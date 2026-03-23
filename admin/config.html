@@ -1,0 +1,126 @@
+#!/usr/local/bin/php
+<?php
+require_once dirname(__DIR__) . '/lib/common.php';
+$bin_ok = is_executable(SELYNT_BIN);
+$pluginBase = '/CMD_PLUGINS_ADMIN/selynt_panel';
+$v = SELYNT_VERSION;
+?>
+
+<link rel="stylesheet" href="<?= $pluginBase ?>/images/assets/css/panel.min.css?v=<?= $v ?>">
+
+<div class="selynt-panel">
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="header-left">
+        <a href="<?= $pluginBase ?>">
+          <img class="header-logo" src="<?= $pluginBase ?>/images/assets/img/logo.png" alt="Selynt Panel">
+        </a>
+        <nav class="main-nav">
+          <a href="<?= $pluginBase ?>">Visão Geral</a>
+          <a class="active" href="<?= $pluginBase ?>/config.html">Configurações</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="app-main">
+      <header class="app-main-header">
+        <div>
+          <h1>Configurações</h1>
+          <p>Configurações do Selynt Panel.</p>
+        </div>
+      </header>
+
+      <div class="content-pad">
+        <div class="cfg-card">
+          <div class="cfg-row">
+            <span class="cfg-lbl">Binário <code>core_selynt</code></span>
+            <span class="cfg-val <?= $bin_ok ? 'ok' : 'err' ?>"><?= $bin_ok ? 'OK' : 'Não encontrado' ?></span>
+          </div>
+          <?php if ($bin_ok): ?>
+          <div class="cfg-row">
+            <span class="cfg-lbl">Versão</span>
+            <span class="cfg-val text-half" id="bin-ver">…</span>
+          </div>
+          <?php endif; ?>
+        </div>
+
+<?php if ($bin_ok): ?>
+        <div class="cfg-card">
+          <h4>Versões do Node.js</h4>
+          <p class="cfg-desc">Selecione quais versões estarão disponíveis para os usuários.</p>
+          <div id="node-list"><em class="text-faded">Clique em "Detectar" para buscar versões instaladas.</em></div>
+          <div class="cfg-actions">
+            <button class="btn-xs btn-soft" onclick="detect()"><i class="fa-solid fa-magnifying-glass"></i> Detectar</button>
+            <button class="btn-xs btn-soft btn-save-hidden" onclick="save()" id="btn-save"><i class="fa-solid fa-floppy-disk"></i> Salvar</button>
+          </div>
+          <div id="node-msg"></div>
+        </div>
+<?php endif; ?>
+      </div>
+    </main>
+  </div>
+</div>
+
+<?php if ($bin_ok): ?>
+<script src="<?= $pluginBase ?>/images/assets/js/fontawesome.min.js?v=<?= $v ?>"></script>
+<script src="<?= $pluginBase ?>/images/assets/js/solid.min.js?v=<?= $v ?>"></script>
+<script src="<?= $pluginBase ?>/images/assets/js/regular.min.js?v=<?= $v ?>"></script>
+<script src="<?= $pluginBase ?>/images/assets/js/brands.min.js?v=<?= $v ?>"></script>
+<script type="module" src="<?= $pluginBase ?>/images/assets/js/script.min.js?v=<?= $v ?>"></script>
+<script type="module" src="<?= $pluginBase ?>/images/assets/js/panel.min.js?v=<?= $v ?>"></script>
+<script type="module">
+const API='/CMD_PLUGINS_ADMIN/selynt_panel/api/config.raw';
+let allowed=[];
+let detected=[];
+
+async function detect(){
+  document.getElementById('node-list').innerHTML='<em class="text-faded">Detectando...</em>';
+  const [r,a]=await Promise.all([
+    fetch(API+'?action=detect_nodes').then(r=>r.json()).catch(()=>null),
+    fetch(API+'?action=allowed_versions').then(r=>r.json()).catch(()=>null)
+  ]);
+  if(a&&a.ok) allowed=a.versions||[];
+  if(!r||!r.ok){msg('Erro ao detectar.','err');return;}
+  detected=r.versions||[];
+  if(!detected.length){document.getElementById('node-list').innerHTML='<p class="text-faded">Nenhuma versão encontrada.</p>';return;}
+  render();
+  document.getElementById('btn-save').classList.remove('d-none');document.getElementById('btn-save').classList.remove('btn-save-hidden');
+}
+
+function render(){
+  document.getElementById('node-list').innerHTML='<ul class="cfg-node-list">'+detected.map(v=>{
+    const chk=allowed.includes(v.version)?'checked':'';
+    return `<li><label><input type="checkbox" value="${v.path}" ${chk}> ${v.version}</label> <code>${v.path}</code></li>`;
+  }).join('')+'</ul>';
+}
+
+async function save(){
+  const checked=[...document.querySelectorAll('#node-list input:checked')];
+  if(!checked.length){msg('Selecione ao menos uma versão.','err');return;}
+  const selected=checked.map(i=>detected.findIndex(d=>d.path===i.value)).filter(x=>x>=0);
+  const res=await fetch(API+'?action=save_node_versions&s='+selected.join('-'),{method:'POST'});
+  const txt=await res.text();
+  let r=null;
+  try{r=JSON.parse(txt);}catch(e){console.error('Resposta:',txt);}
+  if(r&&r.ok){
+    allowed=checked.map(i=>{
+      const v=detected.find(d=>d.path===i.value);
+      return v?v.version:'';
+    }).filter(x=>x);
+    msg('Salvo!','ok');
+  } else {
+    msg(r?.message||'Erro (HTTP '+res.status+'): '+txt.substring(0,200),'err');
+  }
+}
+
+function msg(t,c){const el=document.getElementById('node-msg');el.className='cfg-msg '+c;el.textContent=t;setTimeout(()=>el.textContent='',3000);}
+
+window.detect=detect;
+window.save=save;
+detect();
+fetch(API+'?action=version').then(r=>r.json()).then(r=>{
+  const el=document.getElementById('bin-ver');
+  if(el){el.textContent=r.ok?r.version:'erro';el.classList.remove('text-half');}
+}).catch(()=>{});
+</script>
+<?php endif; ?>

@@ -1,0 +1,15 @@
+[
+  {
+    "name": "Selynt Panel",
+    "icon": "/CMD_PLUGINS/selynt_panel/images/assets/img/logo.png",
+    "entries": [
+      {
+        "name": "Aplicações",
+        "icon": "/CMD_PLUGINS/selynt_panel/images/assets/img/logo.png",
+        "href": "/CMD_PLUGINS/selynt_panel",
+        "newTab": false,
+        "updates": 0
+      }
+    ]
+  }
+]

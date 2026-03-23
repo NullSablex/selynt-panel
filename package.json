@@ -1,0 +1,23 @@
+{
+  "name": "selynt-panel",
+  "version": "1.0.0",
+  "description": "Selynt Panel — DirectAdmin plugin for Node.js & Rust app management",
+  "scripts": {
+    "build": "node build-assets.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NullSablex/selynt-panel.git"
+  },
+  "keywords": [],
+  "author": "NullSablex",
+  "license": "AGPL-3.0-or-later",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/NullSablex/selynt-panel/issues"
+  },
+  "homepage": "https://github.com/NullSablex/selynt-panel#readme",
+  "devDependencies": {
+    "esbuild": "^0.27"
+  }
+}

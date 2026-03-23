@@ -1,0 +1,114 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+  packages: none
+  actions: none
+  issues: none
+  pull-requests: none
+
+jobs:
+  build:
+    name: Build Plugin Package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Build minified assets
+        run: npm run build
+
+      - name: Read version
+        id: ver
+        run: |
+          VERSION=$(tr -d '[:space:]' < version)
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Set file permissions
+        run: |
+          # CGI executáveis (755)
+          find user admin -type f \( -name '*.html' -o -name '*.raw' \) -exec chmod 755 {} \;
+          chmod 755 hooks/user_httpd_write_post.sh
+
+          # Shell scripts (755)
+          find scripts -name '*.sh' -exec chmod 755 {} \;
+
+          # Config e dados (644)
+          chmod 644 plugin.conf
+          chmod 644 hooks/user_txt.html hooks/admin_txt.html
+          chmod 644 images/*.json
+
+          # Lib PHP (644)
+          chmod 644 lib/common.php
+          chmod 644 lib/node-loader.js
+
+          # Assets minificados (644)
+          find images/assets -type f -exec chmod 644 {} \;
+
+          # Licença e copyright (644)
+          chmod 644 LICENSE COPYRIGHT LICENSES/* 2>/dev/null || true
+
+      - name: Package plugin
+        run: |
+          tar -czf selynt_panel.tar.gz \
+            --exclude='node_modules' \
+            --exclude='assets-src' \
+            --exclude='package.json' \
+            --exclude='package-lock.json' \
+            --exclude='build-assets.mjs' \
+            --exclude='assets.manifest.json' \
+            --exclude='packages.md' \
+            --exclude='.github' \
+            --exclude='.gitignore' \
+            --exclude='version' \
+            --exclude='scripts/diag-proxy.sh' \
+            --exclude='scripts/package.sh' \
+            --exclude='*.tar.gz' \
+            --exclude='*.tmp' \
+            .
+
+      - name: Verify package
+        run: |
+          ARCHIVE="selynt_panel.tar.gz"
+
+          echo "=== Must NOT contain (dev/build files) ==="
+          FORBIDDEN="node_modules|assets-src|package\.json|package-lock|build-assets|assets\.manifest|\.github|\.gitignore"
+          if tar -tzf "$ARCHIVE" | grep -qE "$FORBIDDEN"; then
+            echo "ERROR: dev/build files found in package:"
+            tar -tzf "$ARCHIVE" | grep -E "$FORBIDDEN"
+            exit 1
+          fi
+          echo "OK — no dev files"
+
+          echo "=== Must contain (minified assets) ==="
+          for f in panel.min.css panel.min.js script.min.js; do
+            tar -tzf "$ARCHIVE" | grep -q "$f" || { echo "MISSING: $f"; exit 1; }
+          done
+          echo "OK — all minified assets present"
+
+          echo "=== Must contain (core files) ==="
+          for f in plugin.conf LICENSE lib/common.php; do
+            tar -tzf "$ARCHIVE" | grep -q "$f" || { echo "MISSING: $f"; exit 1; }
+          done
+          echo "OK — core files present"
+
+          echo "=== Package size ==="
+          du -sh "$ARCHIVE"
+
+      - name: Upload to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${{ github.event.release.tag_name }}" \
+            selynt_panel.tar.gz \
+            --clobber

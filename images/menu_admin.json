@@ -1,0 +1,22 @@
+[
+  {
+    "name": "Selynt Panel",
+    "icon": "/CMD_PLUGINS_ADMIN/selynt_panel/images/assets/img/logo.png",
+    "entries": [
+      {
+        "name": "Visão Geral",
+        "icon": "/CMD_PLUGINS_ADMIN/selynt_panel/images/assets/img/logo.png",
+        "href": "/CMD_PLUGINS_ADMIN/selynt_panel",
+        "newTab": false,
+        "updates": 0
+      },
+      {
+        "name": "Configurações",
+        "icon": "/CMD_PLUGINS_ADMIN/selynt_panel/images/assets/img/logo.png",
+        "href": "/CMD_PLUGINS_ADMIN/selynt_panel/config.html",
+        "newTab": false,
+        "updates": 0
+      }
+    ]
+  }
+]

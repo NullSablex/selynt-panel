@@ -1,0 +1,38 @@
+frontend:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'assets-src/**'
+          - 'user/**/*.html'
+          - 'admin/**/*.html'
+
+backend:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'lib/**'
+          - 'user/api/**'
+          - 'admin/api/**'
+
+scripts:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'scripts/**'
+          - 'install.sh'
+          - 'uninstall.sh'
+
+ci:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '.github/**'
+
+hooks:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'hooks/**'
+
+docs:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'README.md'
+          - 'LICENSE'
+          - 'COPYRIGHT'
+          - 'LICENSES/**'

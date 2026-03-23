@@ -1,0 +1,13 @@
+#!/usr/local/bin/php -n
+<?php
+require_once dirname(__DIR__, 2) . '/lib/common.php';
+$input = selynt_input();
+$name  = trim($input['name']  ?? '');
+$type  = $input['type']  ?? 'out';
+$lines = max(1, min((int)($input['lines'] ?? 100), 1000));
+if ($name === '') {
+    selynt_json(['ok' => false, 'error' => 'missing_fields', 'message' => 'Parâmetro name obrigatório.']); exit(0);
+}
+$args = ['logs', $name, '--lines', (string)$lines];
+if ($type === 'err') $args[] = '--stderr';
+selynt_json(selynt_run($args));

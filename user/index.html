@@ -1,0 +1,146 @@
+#!/usr/local/bin/php
+<?php
+require_once dirname(__DIR__) . '/lib/common.php';
+$bin_ok = is_executable(SELYNT_BIN);
+$pluginBase = '/CMD_PLUGINS/selynt_panel';
+$v = SELYNT_VERSION;
+?>
+
+<link rel="stylesheet" href="<?= $pluginBase ?>/images/assets/css/panel.min.css?v=<?= $v ?>">
+
+<div class="selynt-panel">
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="header-left">
+        <a href="<?= $pluginBase ?>">
+          <img class="header-logo" src="<?= $pluginBase ?>/images/assets/img/logo.png" alt="Selynt Panel">
+        </a>
+        <nav class="main-nav">
+          <a class="active" href="<?= $pluginBase ?>">Aplicações</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="app-main">
+<?php if (!$bin_ok): ?>
+      <div class="alert-error">
+        Binário <code>core_selynt</code> não encontrado. Contate o administrador.
+      </div>
+<?php else: ?>
+      <header class="app-main-header">
+        <div>
+          <h1>Aplicações</h1>
+          <p>Visão geral dos processos gerenciados.</p>
+        </div>
+        <div class="main-header-actions">
+          <button type="button" class="btn-outline" onclick="load()">
+            <i class="fa-solid fa-rotate-right"></i> Atualizar
+          </button>
+          <a href="<?= $pluginBase ?>/create.html" class="btn-outline">
+            <i class="fa-solid fa-plus"></i> Novo App
+          </a>
+        </div>
+      </header>
+
+      <section class="app-grid" id="sly-list">
+        <p class="text-muted">Carregando...</p>
+      </section>
+<?php endif; ?>
+    </main>
+  </div>
+</div>
+
+<?php if ($bin_ok): ?>
+<script src="<?= $pluginBase ?>/images/assets/js/fontawesome.min.js?v=<?= $v ?>"></script>
+<script src="<?= $pluginBase ?>/images/assets/js/solid.min.js?v=<?= $v ?>"></script>
+<script src="<?= $pluginBase ?>/images/assets/js/regular.min.js?v=<?= $v ?>"></script>
+<script src="<?= $pluginBase ?>/images/assets/js/brands.min.js?v=<?= $v ?>"></script>
+<script type="module" src="<?= $pluginBase ?>/images/assets/js/script.min.js?v=<?= $v ?>"></script>
+<script type="module" src="<?= $pluginBase ?>/images/assets/js/panel.min.js?v=<?= $v ?>"></script>
+<script type="module">
+import { toast, confirm as slyConfirm } from '<?= $pluginBase ?>/images/assets/js/script.min.js?v=<?= $v ?>';
+
+const API='/CMD_PLUGINS/selynt_panel/api';
+const BASE='/CMD_PLUGINS/selynt_panel';
+
+function iconFor(type){
+  if(type==='node') return {wrap:'app-icon app-icon-node',icon:'fa-brands fa-node-js'};
+  if(type==='rust') return {wrap:'app-icon',icon:'fa-solid fa-gears'};
+  return {wrap:'app-icon',icon:'fa-solid fa-cube'};
+}
+
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);}
+
+const actionLabels={start:'iniciado',stop:'parado',restart:'reiniciado',remove:'removido'};
+const actionConfirm={start:'Iniciar',stop:'Parar',restart:'Reiniciar',remove:'Remover'};
+
+async function action(name,act){
+  const ok=await slyConfirm({
+    title:`${actionConfirm[act]||act} app`,
+    text:`Deseja ${(actionConfirm[act]||act).toLowerCase()} "${name}"?`,
+    okText:actionConfirm[act]||'Sim',
+    cancelText:'Cancelar'
+  });
+  if(!ok)return;
+  const p=new URLSearchParams({name,action:act});
+  if(act==='remove'){
+    const del=await slyConfirm({title:'Excluir arquivos',text:'Deseja excluir os arquivos do app também?',okText:'Sim, excluir',cancelText:'Não, manter'});
+    if(del)p.set('delete_dir','1');
+  }
+  const r=await fetch(`${API}/action.raw?${p}`,{method:'POST'}).then(r=>r.json()).catch(()=>({ok:false}));
+  if(r.ok){
+    toast('success',`App ${actionLabels[act]||act} com sucesso.`);
+  } else {
+    toast('error',r.message||r.error||'Erro ao executar ação.');
+  }
+  load();
+}
+window.action=action;
+
+function renderApps(apps){
+  const el=document.getElementById('sly-list');
+  if(!apps.length){
+    el.innerHTML='<p class="text-muted">Nenhuma aplicação encontrada. <a href="'+BASE+'/create.html" class="link-primary">Criar agora</a>.</p>';
+    return;
+  }
+  el.innerHTML=apps.map(a=>{
+    const run=a.status==='RUNNING';
+    const link=`${BASE}/app.html?name=${encodeURIComponent(a.name)}`;
+    const ic=iconFor(a.type);
+    const badge=run?'badge-online':'badge-offline';
+    const statusLabel=run?'Online':'Offline';
+    let buttons='';
+    if(run){
+      buttons+=`<button type="button" class="btn-xs btn-soft" onclick="action('${esc(a.name)}','restart')"><i class="fa-solid fa-arrows-rotate"></i> Reiniciar</button>`;
+      buttons+=`<button type="button" class="btn-xs btn-danger" onclick="action('${esc(a.name)}','stop')"><i class="fa-solid fa-stop"></i> Parar</button>`;
+    } else {
+      buttons+=`<button type="button" class="btn-xs btn-soft" onclick="action('${esc(a.name)}','start')"><i class="fa-solid fa-play"></i> Iniciar</button>`;
+      buttons+=`<button type="button" class="btn-xs btn-danger" onclick="action('${esc(a.name)}','remove')"><i class="fa-solid fa-trash"></i> Remover</button>`;
+    }
+    return`<article class="app-card">
+      <header class="app-card-header">
+        <div class="app-header-main">
+          <div class="${ic.wrap}"><i class="${ic.icon}"></i></div>
+          <div class="app-info">
+            <div class="app-name"><a href="${link}">${esc(a.name)}</a></div>
+            <div class="app-meta">${esc(a.host)}</div>
+          </div>
+        </div>
+        <span class="badge ${badge}">${statusLabel}</span>
+      </header>
+      <footer class="app-card-footer">${buttons}</footer>
+    </article>`;
+  }).join('');
+}
+
+async function load(){
+  const r=await fetch(`${API}/apps.raw`).then(r=>r.json()).catch(()=>null);
+  if(!r){document.getElementById('sly-list').innerHTML='<p class="alert-error">Erro de comunicação com o servidor.</p>';return;}
+  if(Array.isArray(r.apps)){renderApps(r.apps);return;}
+  if(!r.ok&&(r.error==='binary_missing'||!r.error)){renderApps([]);return;}
+  document.getElementById('sly-list').innerHTML=`<p class="alert-error">${r.message||r.error||'Erro ao carregar apps.'}</p>`;
+}
+window.load=load;
+load();setInterval(load,10000);
+</script>
+<?php endif; ?>

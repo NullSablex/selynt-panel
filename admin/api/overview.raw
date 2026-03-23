@@ -1,0 +1,4 @@
+#!/usr/local/bin/php -n
+<?php
+require_once dirname(__DIR__, 2) . '/lib/common.php';
+selynt_json(selynt_run(['admin', 'list']));

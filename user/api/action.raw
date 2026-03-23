@@ -1,0 +1,25 @@
+#!/usr/local/bin/php -n
+<?php
+require_once dirname(__DIR__, 2) . '/lib/common.php';
+
+selynt_require_post();
+$input  = selynt_input();
+$name   = trim($input['name']   ?? '');
+$action = trim($input['action'] ?? '');
+if ($name === '' || $action === '') {
+    selynt_json(['ok' => false, 'error' => 'missing_fields', 'message' => 'Campos name e action são obrigatórios.']); exit(0);
+}
+if (!in_array($action, ['start','stop','restart','remove','set-node-version'], true)) {
+    selynt_json(['ok' => false, 'error' => 'invalid_action', 'message' => 'Ação inválida.']); exit(0);
+}
+$args = [$action, $name];
+if ($action === 'remove' && !empty($input['delete_dir'])) $args[] = '--delete-dir';
+if ($action === 'set-node-version') {
+    $nv = trim($input['node_version'] ?? '');
+    if ($nv === '') {
+        selynt_json(['ok' => false, 'error' => 'missing_fields', 'message' => 'Campo node_version é obrigatório.']); exit(0);
+    }
+    $args[] = '--node-version';
+    $args[] = $nv;
+}
+selynt_json(selynt_run($args));

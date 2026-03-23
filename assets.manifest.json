@@ -1,0 +1,10 @@
+{
+  "outDir": "images/assets",
+  "css": [
+    { "src": "assets-src/css/panel.css", "out": "css/panel.min.css" }
+  ],
+  "js": [
+    { "src": "assets-src/js/panel.js", "out": "js/panel.min.js" },
+    { "src": "assets-src/js/script.js", "out": "js/script.min.js" }
+  ]
+}

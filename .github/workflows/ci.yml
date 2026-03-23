@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+permissions:
+  contents: read
+  packages: none
+  actions: none
+  issues: none
+  pull-requests: none
+
+jobs:
+  check:
+    name: Build & Verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Build assets
+        run: npm run build
+
+      - name: Verify minified files exist
+        run: |
+          test -f images/assets/css/panel.min.css || { echo "panel.min.css missing"; exit 1; }
+          test -f images/assets/js/panel.min.js   || { echo "panel.min.js missing"; exit 1; }
+          test -f images/assets/js/script.min.js  || { echo "script.min.js missing"; exit 1; }
+
+      - name: Validate plugin.conf
+        run: |
+          grep -q '^name=' plugin.conf || { echo "plugin.conf missing name"; exit 1; }
+          grep -q '^version=' plugin.conf || { echo "plugin.conf missing version"; exit 1; }
+
+      - name: Version sync check
+        run: |
+          CONF_VER=$(awk -F= '$1=="version"{print $2; exit}' plugin.conf | tr -d '[:space:]')
+          FILE_VER=$(tr -d '[:space:]' < version)
+          if [ "$CONF_VER" != "$FILE_VER" ]; then
+            echo "ERRO: plugin.conf ($CONF_VER) e version ($FILE_VER) estão dessincronizados"
+            exit 1
+          fi
+          echo "OK — versão $CONF_VER sincronizada"
+
+      - name: Check PHP syntax
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq php-cli > /dev/null
+          ERR=0
+          find lib user admin hooks -type f \( -name '*.php' -o -name '*.html' -o -name '*.raw' \) | while read f; do
+            php -l "$f" 2>&1 | grep -v 'No syntax errors' && ERR=1 || true
+          done
+          exit $ERR
+
+      - name: Check shell scripts syntax
+        run: |
+          find scripts -name '*.sh' -exec bash -n {} \;

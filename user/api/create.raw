@@ -1,0 +1,36 @@
+#!/usr/local/bin/php -n
+<?php
+require_once dirname(__DIR__, 2) . '/lib/common.php';
+selynt_require_post();
+$input = selynt_input();
+$name    = trim($input['name']  ?? '');
+$type    = trim($input['type']  ?? 'node');
+$cwd     = trim($input['cwd']   ?? '');
+$entry   = trim($input['entry'] ?? '');
+$host    = trim($input['host']  ?? '');
+$env_raw = trim($input['env']   ?? '');
+
+foreach (['name','type','cwd','entry','host'] as $f) {
+    if ($$f === '') {
+        selynt_json(['ok'=>false,'error'=>'missing_fields','message'=>"Campo '$f' é obrigatório."]); exit(0);
+    }
+}
+
+if (!preg_match('/^[A-Za-z0-9._\-]{1,64}$/', $name)) {
+    selynt_json(['ok'=>false,'error'=>'invalid_name','message'=>'Nome inválido.']); exit(0);
+}
+
+$node_version = trim($input['node_version'] ?? '');
+
+$args = ['add', $name, '--type', $type, '--cwd', $cwd, '--entry', $entry, '--host', $host];
+if ($type === 'node' && $node_version !== '') {
+    $args[] = '--node-version'; $args[] = $node_version;
+}
+foreach (explode("\n", $env_raw) as $line) {
+    $line = trim($line);
+    if ($line !== '' && strpos($line, '=') !== false) {
+        $args[] = '--env'; $args[] = $line;
+    }
+}
+
+selynt_json(selynt_run($args));

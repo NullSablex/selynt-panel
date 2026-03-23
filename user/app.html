@@ -1,0 +1,245 @@
+#!/usr/local/bin/php
+<?php
+require_once dirname(__DIR__) . '/lib/common.php';
+parse_str((string)getenv('QUERY_STRING'), $_qs);
+$name   = trim($_qs['name'] ?? '');
+$bin_ok = is_executable(SELYNT_BIN);
+$pluginBase = '/CMD_PLUGINS/selynt_panel';
+$v = SELYNT_VERSION;
+?>
+
+<link rel="stylesheet" href="<?= $pluginBase ?>/images/assets/css/panel.min.css?v=<?= $v ?>">
+
+
+<div class="selynt-panel">
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="header-left">
+        <a href="<?= $pluginBase ?>">
+          <img class="header-logo" src="<?= $pluginBase ?>/images/assets/img/logo.png" alt="Selynt Panel">
+        </a>
+        <nav class="main-nav">
+          <a href="<?= $pluginBase ?>">Aplicações</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="app-main">
+<?php if (!$bin_ok): ?>
+      <div class="alert-error">
+        Binário <code>core_selynt</code> não encontrado.
+      </div>
+<?php elseif ($name === ''): ?>
+      <div class="alert-error">
+        Parâmetro <code>name</code> ausente. <a href="<?= $pluginBase ?>">Voltar</a>.
+      </div>
+<?php else: ?>
+      <header class="app-main-header">
+        <div>
+          <h1 id="app-title"><?= htmlspecialchars($name) ?></h1>
+          <p>Processo gerenciado pelo Selynt Panel.</p>
+        </div>
+        <div class="main-header-actions">
+          <a href="<?= $pluginBase ?>" class="btn-outline">
+            <i class="fa-solid fa-arrow-left"></i> Voltar
+          </a>
+        </div>
+      </header>
+
+      <div class="app-detail-grid">
+        <!-- Coluna esquerda: resumo -->
+        <div class="app-summary-card">
+          <div class="app-summary-header">
+            <div class="app-summary-title">
+              <div class="app-summary-icon" id="app-icon"><i class="fa-solid fa-cube"></i></div>
+              <div>
+                <div class="app-summary-name"><?= htmlspecialchars($name) ?></div>
+                <div class="app-summary-sub">Processo monitorado por este painel.</div>
+              </div>
+            </div>
+            <span id="app-badge" class="badge badge-offline">...</span>
+          </div>
+
+          <div class="app-summary-body" id="app-info">
+            <div class="stat-row"><span class="stat-label">Carregando...</span></div>
+          </div>
+
+          <div class="app-summary-footer" id="app-actions"></div>
+        </div>
+
+        <!-- Coluna direita: logs -->
+        <div class="logs-card">
+          <div class="logs-card-header">
+            <div class="log-tabs">
+              <button type="button" class="log-tab-btn active" onclick="tab('out')">
+                <i class="fa-solid fa-circle-check"></i> STDOUT
+              </button>
+              <button type="button" class="log-tab-btn" onclick="tab('err')">
+                <i class="fa-solid fa-triangle-exclamation"></i> STDERR
+              </button>
+            </div>
+            <div class="logs-actions">
+              <button type="button" class="icon-btn" onclick="loadLog(activeTab)" title="Atualizar">
+                <i class="fa-solid fa-rotate"></i>
+              </button>
+            </div>
+          </div>
+          <div class="logs-card-body">
+            <div id="pane-out" class="log-pane active"><pre class="log-code" id="log-out">—</pre></div>
+            <div id="pane-err" class="log-pane"><pre class="log-code" id="log-err">—</pre></div>
+          </div>
+        </div>
+      </div>
+<?php endif; ?>
+    </main>
+  </div>
+</div>
+
+<?php if ($bin_ok && $name !== ''): ?>
+<script src="<?= $pluginBase ?>/images/assets/js/fontawesome.min.js?v=<?= $v ?>"></script>
+<script src="<?= $pluginBase ?>/images/assets/js/solid.min.js?v=<?= $v ?>"></script>
+<script src="<?= $pluginBase ?>/images/assets/js/regular.min.js?v=<?= $v ?>"></script>
+<script src="<?= $pluginBase ?>/images/assets/js/brands.min.js?v=<?= $v ?>"></script>
+<script type="module" src="<?= $pluginBase ?>/images/assets/js/script.min.js?v=<?= $v ?>"></script>
+<script type="module" src="<?= $pluginBase ?>/images/assets/js/panel.min.js?v=<?= $v ?>"></script>
+<script type="module">
+import { toast, confirm as slyConfirm } from '<?= $pluginBase ?>/images/assets/js/script.min.js?v=<?= $v ?>';
+
+const NAME=<?= json_encode($name) ?>,API='/CMD_PLUGINS/selynt_panel/api';
+let activeTab='out',nodeVersions=[];
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+await fetch(`${API}/nodes.raw`).then(r=>r.json()).then(r=>{if(r&&r.ok)nodeVersions=r.versions||[];}).catch(()=>{});
+
+function iconFor(type){
+  if(type==='node') return {icon:'fa-brands fa-node-js',cls:'icon-node'};
+  if(type==='rust') return {icon:'fa-solid fa-gears',cls:''};
+  return {icon:'fa-solid fa-cube',cls:''};
+}
+function typeLabel(t){
+  if(t==='node') return 'Node.js';
+  if(t==='rust') return 'Binário Rust';
+  return t.charAt(0).toUpperCase()+t.slice(1);
+}
+
+function tab(t){
+  activeTab=t;
+  document.querySelectorAll('.log-tab-btn').forEach((b,i)=>b.classList.toggle('active',['out','err'][i]===t));
+  document.querySelectorAll('.log-pane').forEach(p=>p.classList.remove('active'));
+  document.getElementById('pane-'+t).classList.add('active');
+  loadLog(t);
+}
+window.tab=tab;
+
+async function loadStatus(){
+  const r=await fetch(`${API}/apps.raw`).then(r=>r.json()).catch(()=>null);
+  if(!r||!r.ok)return;
+  const a=(r.apps||[]).find(a=>a.name===NAME);if(!a)return;
+  const run=a.status==='RUNNING';
+
+  const ic=iconFor(a.type);
+  document.getElementById('app-icon').innerHTML=`<i class="${ic.icon}${ic.cls?' '+ic.cls:''}"></i>`;
+
+  const bdg=document.getElementById('app-badge');
+  bdg.textContent=run?'Online':'Offline';
+  bdg.className='badge '+(run?'badge-online':'badge-offline');
+
+  const rows=[
+    ['fa-solid fa-server','Tipo',typeLabel(a.type)],
+    ['fa-solid fa-globe','Host',esc(a.host)],
+    ['fa-solid fa-folder','Diretório',esc(a.cwd)],
+    ['fa-solid fa-file-code','Entrada',esc(a.entry||'—')],
+  ];
+  if(a.type==='node'){
+    const nv=nodeVersions.find(v=>v.path===a.node_version);
+    const label=nv?nv.label:(a.node_version?'Versão configurada':'Padrão do sistema');
+    if(!run&&nodeVersions.length>1){
+      const opts=nodeVersions.map(v=>`<option value="${esc(v.path)}"${v.path===a.node_version?' selected':''}>${esc(v.label)}</option>`).join('');
+      rows.push(['fa-brands fa-node-js','Node.js',`<select id="nv-select" class="inline-select">${opts}</select> <button class="btn-xs btn-soft" onclick="changeNodeVersion()"><i class="fa-solid fa-check"></i></button>`]);
+    } else {
+      rows.push(['fa-brands fa-node-js','Node.js',esc(label)]);
+    }
+  }
+  rows.push(['fa-regular fa-calendar','Criado',a.created_at?new Date(a.created_at*1000).toLocaleString():'—']);
+  document.getElementById('app-info').innerHTML=rows.map(([ic,lbl,val])=>
+    `<div class="stat-row"><span class="stat-label"><i class="${ic}"></i> ${lbl}</span><span class="stat-value">${val}</span></div>`
+  ).join('');
+
+  let btns='';
+  if(run){
+    btns+=`<button class="btn-xs btn-soft" onclick="act('restart')"><i class="fa-solid fa-arrows-rotate"></i> Reiniciar</button>`;
+    btns+=`<button class="btn-xs btn-danger" onclick="act('stop')"><i class="fa-solid fa-stop"></i> Parar</button>`;
+  } else {
+    btns+=`<button class="btn-xs btn-soft" onclick="act('start')"><i class="fa-solid fa-play"></i> Iniciar</button>`;
+  }
+  btns+=`<button class="btn-xs btn-danger" onclick="doRemove()"><i class="fa-solid fa-trash"></i> Remover</button>`;
+  document.getElementById('app-actions').innerHTML=btns;
+}
+
+const actLabels={start:'iniciado',stop:'parado',restart:'reiniciado'};
+const actConfirm={start:'Iniciar',stop:'Parar',restart:'Reiniciar'};
+
+async function act(a){
+  const ok=await slyConfirm({
+    title:`${actConfirm[a]||a} app`,
+    text:`Deseja ${(actConfirm[a]||a).toLowerCase()} "${NAME}"?`,
+    okText:actConfirm[a]||'Sim',
+    cancelText:'Cancelar'
+  });
+  if(!ok)return;
+  const p=new URLSearchParams({name:NAME,action:a});
+  const r=await fetch(`${API}/action.raw?${p}`,{method:'POST'}).then(r=>r.json()).catch(()=>({ok:false}));
+  if(r.ok){
+    toast('success',`App ${actLabels[a]||a} com sucesso.`);
+  } else {
+    toast('error',r.message||r.error||'Erro ao executar ação.');
+  }
+  loadStatus();
+}
+window.act=act;
+
+async function changeNodeVersion(){
+  const sel=document.getElementById('nv-select');
+  if(!sel)return;
+  const nv=sel.value;
+  const p=new URLSearchParams({name:NAME,action:'set-node-version',node_version:nv});
+  const r=await fetch(`${API}/action.raw?${p}`,{method:'POST'}).then(r=>r.json()).catch(()=>({ok:false}));
+  if(r.ok){
+    toast('success','Versão do Node.js alterada.');
+  } else {
+    toast('error',r.message||r.error||'Erro ao alterar versão.');
+  }
+  loadStatus();
+}
+window.changeNodeVersion=changeNodeVersion;
+
+async function doRemove(){
+  const ok=await slyConfirm({title:'Remover app',text:`Deseja remover "${NAME}"?`,okText:'Remover',cancelText:'Cancelar'});
+  if(!ok)return;
+  const d=await slyConfirm({title:'Excluir arquivos',text:'Deseja excluir os arquivos do app também?',okText:'Sim, excluir',cancelText:'Não, manter'});
+  const p=new URLSearchParams({name:NAME,action:'remove'});
+  if(d)p.set('delete_dir','1');
+  const r=await fetch(`${API}/action.raw?${p}`,{method:'POST'}).then(r=>r.json()).catch(()=>({ok:false}));
+  if(r.ok){
+    toast('success','App removido com sucesso.');
+    setTimeout(()=>{window.location.href='/CMD_PLUGINS/selynt_panel';},1200);
+  } else {
+    toast('error',r.message||r.error||'Erro ao remover app.');
+  }
+}
+window.doRemove=doRemove;
+
+async function loadLog(t){
+  const box=document.getElementById('log-'+t);
+  const r=await fetch(`${API}/logs.raw?name=${encodeURIComponent(NAME)}&type=${t}&lines=100`).then(r=>r.json()).catch(()=>null);
+  if(!r)return;
+  box.textContent=r.ok?(r.lines||[]).join('\n')||'(sem saída)':'Erro: '+(r.message||r.error);
+  box.scrollTop=box.scrollHeight;
+}
+window.loadLog=loadLog;
+
+loadStatus();setInterval(loadStatus,8000);
+loadLog('out');
+setInterval(()=>loadLog(activeTab),5000);
+</script>
+<?php endif; ?>

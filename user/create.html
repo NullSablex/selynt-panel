@@ -1,0 +1,215 @@
+#!/usr/local/bin/php
+<?php
+require_once dirname(__DIR__) . '/lib/common.php';
+
+$bin_ok   = is_executable(SELYNT_BIN);
+$username = selynt_username();
+$pluginBase = '/CMD_PLUGINS/selynt_panel';
+$v = SELYNT_VERSION;
+
+// Domínio selecionado no DA (env ou query string)
+$selected = trim((string)getenv('DOMAIN'));
+if ($selected === '') {
+    $qs = [];
+    parse_str((string)getenv('QUERY_STRING'), $qs);
+    $selected = trim($qs['domain'] ?? '');
+}
+
+// Chama o binário para listar domínios (filtrado se há seleção)
+$domains_result = null;
+if ($bin_ok) {
+    $args = ['domains'];
+    if ($selected !== '') {
+        $args[] = '--domain';
+        $args[] = $selected;
+    }
+    $domains_result = selynt_run($args);
+}
+?>
+
+<link rel="stylesheet" href="<?= $pluginBase ?>/images/assets/css/panel.min.css?v=<?= $v ?>">
+
+<div class="selynt-panel">
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="header-left">
+        <a href="<?= $pluginBase ?>">
+          <img class="header-logo" src="<?= $pluginBase ?>/images/assets/img/logo.png" alt="Selynt Panel">
+        </a>
+        <nav class="main-nav">
+          <a href="<?= $pluginBase ?>">Aplicações</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="app-main">
+      <div class="app-main-header">
+        <div>
+          <h1>Novo App</h1>
+          <p>Crie uma aplicação vinculada a um domínio.</p>
+        </div>
+        <div class="main-header-actions">
+          <a href="<?= $pluginBase ?>" class="btn-outline">
+            <i class="fa-solid fa-arrow-left"></i> Voltar
+          </a>
+        </div>
+      </div>
+
+<?php if (!$bin_ok): ?>
+      <div class="alert-error">
+        Binário <code>core_selynt</code> não encontrado. Contate o administrador.
+      </div>
+<?php else: ?>
+      <div class="form-container">
+        <div id="sly-msg" class="alert-msg"></div>
+        <form id="sly-form" class="selynt-form">
+          <div class="form-grid">
+            <div class="form-field">
+              <label class="form-label">Nome do App</label>
+              <input type="text" id="f-name" required pattern="[A-Za-z0-9._\-]{1,64}" placeholder="meu-app">
+              <div class="form-help">Letras, números, ponto, hífen, underscore. Máx 64.</div>
+            </div>
+            <div class="form-field">
+              <label class="form-label">Tipo</label>
+              <select id="f-type">
+                <option value="node">Node.js</option>
+                <option value="rust">Binário Rust</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-field">
+            <label class="form-label">Host (domínio ou subdomínio)</label>
+            <select id="f-host" required>
+              <option value="">— selecione —</option>
+            </select>
+            <?php if ($selected !== ''): ?>
+            <div class="form-help">Domínio selecionado: <?= htmlspecialchars($selected) ?></div>
+            <?php endif; ?>
+          </div>
+          <div class="form-field">
+            <label class="form-label">Diretório de trabalho (cwd)</label>
+            <input type="text" id="f-cwd" required>
+            <div class="form-help">Onde fica o código do app. Será criado se não existir.</div>
+          </div>
+          <div class="form-field d-none" id="fg-node-version">
+            <label class="form-label">Versão do Node.js</label>
+            <select id="f-node-version"><option value="">Carregando...</option></select>
+          </div>
+          <div class="form-field">
+            <label class="form-label">Arquivo de entrada</label>
+            <input type="text" id="f-entry" placeholder="index.js">
+          </div>
+          <div class="form-field">
+            <label class="form-label">Variáveis de ambiente <span class="label-optional">(opcional, uma por linha: CHAVE=valor)</span></label>
+            <textarea id="f-env" rows="3" placeholder="NODE_ENV=production&#10;MY_VAR=valor"></textarea>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn-outline btn-primary"><i class="fa-solid fa-plus"></i> Criar App</button>
+            <a href="<?= $pluginBase ?>" class="btn-outline"><i class="fa-solid fa-xmark"></i> Cancelar</a>
+          </div>
+        </form>
+      </div>
+<?php endif; ?>
+    </main>
+  </div>
+</div>
+
+<?php if ($bin_ok): ?>
+<script src="<?= $pluginBase ?>/images/assets/js/fontawesome.min.js?v=<?= $v ?>"></script>
+<script src="<?= $pluginBase ?>/images/assets/js/solid.min.js?v=<?= $v ?>"></script>
+<script src="<?= $pluginBase ?>/images/assets/js/regular.min.js?v=<?= $v ?>"></script>
+<script src="<?= $pluginBase ?>/images/assets/js/brands.min.js?v=<?= $v ?>"></script>
+<script type="module" src="<?= $pluginBase ?>/images/assets/js/script.min.js?v=<?= $v ?>"></script>
+<script type="module" src="<?= $pluginBase ?>/images/assets/js/panel.min.js?v=<?= $v ?>"></script>
+<script type="module">
+const _user = <?= json_encode($username) ?>;
+const _domainsData = <?= json_encode($domains_result) ?>;
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+{
+  const sel = document.getElementById('f-host');
+  if (!_domainsData || !_domainsData.ok || !Array.isArray(_domainsData.domains) || !_domainsData.domains.length) {
+    sel.innerHTML = '<option value="">— nenhum domínio —</option>';
+  } else {
+    const opts = ['<option value="">— selecione —</option>'];
+    for (const d of _domainsData.domains) {
+      opts.push(`<option value="${esc(d.host)}">${esc(d.host)}</option>`);
+      if (Array.isArray(d.subdomains)) {
+        for (const s of d.subdomains) {
+          opts.push(`<option value="${esc(s.host)}">\u00a0\u00a0\u21b3 ${esc(s.host)}</option>`);
+        }
+      }
+    }
+    sel.innerHTML = opts.join('');
+  }
+}
+
+function buildCwd() {
+  const name = document.getElementById('f-name').value.trim() || 'app';
+  return `/home/${_user}/apps/${name}`;
+}
+
+function syncEntry() {
+  const el = document.getElementById('f-entry');
+  if (el.dataset.auto !== '0') {
+    el.value = document.getElementById('f-type').value === 'node' ? 'index.js' : 'app';
+    el.dataset.auto = '1';
+  }
+}
+
+function onFormChange() {
+  document.getElementById('f-cwd').value = buildCwd();
+  syncEntry();
+  const nvEl = document.getElementById('fg-node-version');
+  if (document.getElementById('f-type').value === 'node') nvEl.classList.remove('d-none');
+  else nvEl.classList.add('d-none');
+}
+
+const nvRes = await fetch('/CMD_PLUGINS/selynt_panel/api/nodes.raw').then(r=>r.json()).catch(()=>null);
+{
+  const sel = document.getElementById('f-node-version');
+  if (!nvRes || !nvRes.ok || !nvRes.versions || !nvRes.versions.length) {
+    sel.innerHTML = '<option value="">Node.js (padrão)</option>';
+  } else {
+    sel.innerHTML = nvRes.versions.map(v =>
+      `<option value="${esc(v.path)}">${esc(v.label)}</option>`
+    ).join('');
+  }
+}
+
+document.getElementById('f-entry').addEventListener('input', function() { this.dataset.auto = '0'; });
+['f-host', 'f-type'].forEach(id => document.getElementById(id).addEventListener('change', onFormChange));
+document.getElementById('f-name').addEventListener('input', onFormChange);
+
+document.getElementById('sly-form').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const btn = this.querySelector('button[type=submit]');
+  const msg = document.getElementById('sly-msg');
+  btn.disabled = true; btn.textContent = 'Criando...'; msg.classList.add('d-none');
+  const type = document.getElementById('f-type').value;
+  const params = new URLSearchParams({
+    name:  document.getElementById('f-name').value.trim(),
+    type:  type,
+    host:  document.getElementById('f-host').value,
+    cwd:   document.getElementById('f-cwd').value.trim(),
+    entry: document.getElementById('f-entry').value.trim(),
+    env:   document.getElementById('f-env').value.trim(),
+  });
+  if (type === 'node') {
+    params.set('node_version', document.getElementById('f-node-version').value);
+  }
+  const r = await fetch(`/CMD_PLUGINS/selynt_panel/api/create.raw?${params}`, {
+    method: 'POST'
+  }).then(r => r.json()).catch(() => ({ok:false, message:'Erro de rede.'}));
+  if (r.ok) {
+    window.location.href = '/CMD_PLUGINS/selynt_panel';
+  } else {
+    msg.textContent = r.message || r.error || 'Erro ao criar app.';
+    msg.classList.remove('d-none');
+    btn.disabled = false; btn.textContent = 'Criar App';
+  }
+});
+
+onFormChange();
+</script>
+<?php endif; ?>
