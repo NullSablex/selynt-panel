@@ -20,7 +20,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '24'
           cache: 'npm'
 
       - run: npm ci
@@ -60,7 +60,7 @@ jobs:
 
       - name: Package plugin
         run: |
-          tar -czf selynt_panel.tar.gz \
+          tar -czf /tmp/selynt_panel.tar.gz \
             --exclude='node_modules' \
             --exclude='assets-src' \
             --exclude='package.json' \
@@ -73,9 +73,9 @@ jobs:
             --exclude='version' \
             --exclude='scripts/diag-proxy.sh' \
             --exclude='scripts/package.sh' \
-            --exclude='*.tar.gz' \
             --exclude='*.tmp' \
             .
+          mv /tmp/selynt_panel.tar.gz .
 
       - name: Verify package
         run: |
