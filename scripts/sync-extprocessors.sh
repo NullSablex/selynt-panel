@@ -8,11 +8,11 @@ SELYNT_CONF="$OLS_CONF_DIR/selynt_extprocessors.conf"
 STATE_BASE="/var/lib/selynt_panel"
 LOCK_FILE="/var/lib/selynt_panel/.sync.lock"
 
-[ "$(id -u)" -eq 0 ] || { echo "[erro] Requer root." >&2; exit 1; }
+[ "$(id -u)" -eq 0 ] || exit 1
 
 # Lock exclusivo para evitar runs concorrentes
 exec 9>"$LOCK_FILE"
-flock -n 9 || { echo "[info] Sync já em execução." >&2; exit 0; }
+flock -n 9 || exit 0
 
 # Coleta apps ativos: marker existe + socket existe
 declare -A ACTIVE=()
@@ -44,7 +44,7 @@ extProcessor selynt_proxy-${host}-${port} {
   address                 uds://$socket
   maxConns                35
   initTimeout             60
-  retryTimeout            5
+  retryTimeout            0
   persistConn             1
   respBuffer              0
   autoStart               0
@@ -63,11 +63,9 @@ chmod 640 "$SELYNT_CONF"
 
 rm -f /var/lib/selynt_panel/.sync_needed
 
-# Reload graceful do OLS
-if /usr/local/lsws/bin/lswsctrl reload 2>/dev/null; then
-    :
-elif [ -f /usr/local/lsws/logs/lshttpd.pid ]; then
-    kill -USR1 "$(cat /usr/local/lsws/logs/lshttpd.pid)" 2>/dev/null || true
-fi
+# Reload graceful
+systemctl restart lsws 2>/dev/null \
+    || { command -v lswsctrl >/dev/null 2>&1 && lswsctrl restart 2>/dev/null; } \
+    || true
 
 exit 0

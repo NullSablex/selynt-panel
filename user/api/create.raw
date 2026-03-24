@@ -19,6 +19,9 @@ foreach (['name','type','cwd','entry','host'] as $f) {
 if (!preg_match('/^[A-Za-z0-9._\-]{1,64}$/', $name)) {
     selynt_json(['ok'=>false,'error'=>'invalid_name','message'=>'Nome inválido.']); exit(0);
 }
+if (!in_array($type, ['node', 'rust'], true)) {
+    selynt_json(['ok'=>false,'error'=>'invalid_type','message'=>'Tipo inválido.']); exit(0);
+}
 
 $node_version = trim($input['node_version'] ?? '');
 

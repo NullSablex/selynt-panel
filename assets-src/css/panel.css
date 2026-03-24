@@ -2118,6 +2118,44 @@ table.apps-table {
     margin-bottom: 0.75rem;
 }
 
+/* ─── Diagnóstico ────────────────────────────────────────────────────────── */
+
+.diag-box {
+    background: var(--color-bg);
+    border: 1px solid var(--color-card-border);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-top: 0.75rem;
+    max-height: 500px;
+    overflow-y: auto;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace;
+    font-size: 0.78rem;
+    line-height: 1.55;
+}
+
+.diag-line {
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: var(--color-text-muted);
+}
+
+.diag-ok {
+    color: #22c55e;
+}
+
+.diag-fail {
+    color: #ef4444;
+}
+
+.diag-warn {
+    color: #f59e0b;
+}
+
+.diag-head {
+    color: var(--color-text);
+    font-weight: 600;
+}
+
 /* ─── Links com cor primária ──────────────────────────────────────────────── */
 
 .link-primary {

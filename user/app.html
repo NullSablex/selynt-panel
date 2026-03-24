@@ -27,7 +27,7 @@ $v = SELYNT_VERSION;
     <main class="app-main">
 <?php if (!$bin_ok): ?>
       <div class="alert-error">
-        Binário <code>core_selynt</code> não encontrado.
+        Binário <code>Core Selynt</code> não encontrado.
       </div>
 <?php elseif ($name === ''): ?>
       <div class="alert-error">
@@ -107,7 +107,8 @@ import { toast, confirm as slyConfirm } from '<?= $pluginBase ?>/images/assets/j
 
 const NAME=<?= json_encode($name) ?>,API='/CMD_PLUGINS/selynt_panel/api';
 let activeTab='out',nodeVersions=[];
-function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);}
+function uptime(ts){let s=Math.floor(Date.now()/1000-ts);if(s<60)return'agora';const u=[[31536000,'ano','anos'],[2592000,'mês','meses'],[86400,'dia','dias'],[3600,'hora','horas'],[60,'minuto','minutos']];const p=[];for(const[d,sg,pl] of u){const v=Math.floor(s/d);if(v>0){p.push(v+' '+(v===1?sg:pl));s%=d;}if(p.length===2)break;}return p.join(' e ');}
 
 await fetch(`${API}/nodes.raw`).then(r=>r.json()).then(r=>{if(r&&r.ok)nodeVersions=r.versions||[];}).catch(()=>{});
 
@@ -160,6 +161,7 @@ async function loadStatus(){
       rows.push(['fa-brands fa-node-js','Node.js',esc(label)]);
     }
   }
+  if(run&&a.started_at) rows.push(['fa-solid fa-clock','Ativo há',uptime(a.started_at)]);
   rows.push(['fa-regular fa-calendar','Criado',a.created_at?new Date(a.created_at*1000).toLocaleString():'—']);
   document.getElementById('app-info').innerHTML=rows.map(([ic,lbl,val])=>
     `<div class="stat-row"><span class="stat-label"><i class="${ic}"></i> ${lbl}</span><span class="stat-value">${val}</span></div>`

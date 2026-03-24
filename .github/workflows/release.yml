@@ -36,27 +36,12 @@ jobs:
 
       - name: Set file permissions
         run: |
-          # CGI executáveis (755)
-          find user admin -type f \( -name '*.html' -o -name '*.raw' \) -exec chmod 755 {} \;
-          chmod 755 hooks/user_httpd_write_post.sh
+          # Permissões uniformes (755) — modelo padrão DA plugins
+          find . -type d -exec chmod 755 {} \;
+          find . -type f -exec chmod 755 {} \;
 
-          # Shell scripts (755)
-          find scripts -name '*.sh' -exec chmod 755 {} \;
-
-          # Config e dados (644)
+          # plugin.conf: 644 (DA reescreve, diradmin precisa ler)
           chmod 644 plugin.conf
-          chmod 644 hooks/user_txt.html hooks/admin_txt.html
-          chmod 644 images/*.json
-
-          # Lib PHP (644)
-          chmod 644 lib/common.php
-          chmod 644 lib/node-loader.js
-
-          # Assets minificados (644)
-          find images/assets -type f -exec chmod 644 {} \;
-
-          # Licença e copyright (644)
-          chmod 644 LICENSE COPYRIGHT LICENSES/* 2>/dev/null || true
 
       - name: Package plugin
         run: |
@@ -88,24 +73,26 @@ jobs:
           FORBIDDEN="node_modules|assets-src|package\.json|package-lock|build-assets|assets\.manifest|\.github|\.gitignore|\./install\.sh$|README\.md|CHANGELOG\.md"
           if tar -tzf "$ARCHIVE" | grep -qE "$FORBIDDEN"; then
             echo "ERRO: arquivos indevidos encontrados no pacote:"
+            echo "ERRO: arquivos indevidos encontrados no pacote:"
             tar -tzf "$ARCHIVE" | grep -E "$FORBIDDEN"
             exit 1
           fi
           echo "OK"
+          echo "OK"
 
-          echo "=== Must contain (minified assets) ==="
+          echo "Verificando assets minificados..."
           for f in panel.min.css panel.min.js script.min.js; do
-            tar -tzf "$ARCHIVE" | grep -q "$f" || { echo "MISSING: $f"; exit 1; }
+            tar -tzf "$ARCHIVE" | grep -q "$f" || { echo "FALTANDO: $f"; exit 1; }
           done
-          echo "OK — all minified assets present"
+          echo "OK"
 
-          echo "=== Must contain (core files) ==="
+          echo "Verificando arquivos essenciais..."
           for f in plugin.conf LICENSE lib/common.php; do
-            tar -tzf "$ARCHIVE" | grep -q "$f" || { echo "MISSING: $f"; exit 1; }
+            tar -tzf "$ARCHIVE" | grep -q "$f" || { echo "FALTANDO: $f"; exit 1; }
           done
-          echo "OK — core files present"
+          echo "OK"
 
-          echo "=== Package size ==="
+          echo "Tamanho do pacote:"
           du -sh "$ARCHIVE"
 
       - name: Upload to release

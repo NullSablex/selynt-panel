@@ -46,20 +46,21 @@ jobs:
           CONF_VER=$(awk -F= '$1=="version"{print $2; exit}' plugin.conf | tr -d '[:space:]')
           FILE_VER=$(tr -d '[:space:]' < version)
           if [ "$CONF_VER" != "$FILE_VER" ]; then
-            echo "ERRO: plugin.conf ($CONF_VER) e version ($FILE_VER) estão dessincronizados"
+            echo "ERRO: plugin.conf ($CONF_VER) e version ($FILE_VER) dessincronizados"
             exit 1
           fi
-          echo "OK — versão $CONF_VER sincronizada"
+          echo "OK — versão $CONF_VER"
 
       - name: Check PHP syntax
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq php-cli > /dev/null
           ERR=0
-          find lib user admin hooks -type f \( -name '*.php' -o -name '*.html' -o -name '*.raw' \) | while read f; do
+          while IFS= read -r f; do
             php -l "$f" 2>&1 | grep -v 'No syntax errors' && ERR=1 || true
-          done
+          done < <(find lib user admin hooks -type f \( -name '*.php' -o -name '*.html' -o -name '*.raw' \))
           exit $ERR
 
       - name: Check shell scripts syntax
         run: |
+          bash -n install.sh
           find scripts -name '*.sh' -exec bash -n {} \;

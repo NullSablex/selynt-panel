@@ -25,7 +25,7 @@ $v = SELYNT_VERSION;
     <main class="app-main">
 <?php if (!$bin_ok): ?>
       <div class="alert-error">
-        Binário <code>core_selynt</code> não encontrado. Execute o script de instalação.
+        Binário <code>Core Selynt</code> não encontrado. Execute o script de instalação.
       </div>
 <?php else: ?>
       <header class="app-main-header">
@@ -83,7 +83,8 @@ $v = SELYNT_VERSION;
 <script type="module" src="<?= $pluginBase ?>/images/assets/js/script.min.js?v=<?= $v ?>"></script>
 <script type="module" src="<?= $pluginBase ?>/images/assets/js/panel.min.js?v=<?= $v ?>"></script>
 <script type="module">
-function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);}
+function uptime(ts){let s=Math.floor(Date.now()/1000-ts);if(s<60)return'agora';const u=[[31536000,'ano','anos'],[2592000,'mês','meses'],[86400,'dia','dias'],[3600,'hora','horas'],[60,'minuto','minutos']];const p=[];for(const[d,sg,pl] of u){const v=Math.floor(s/d);if(v>0){p.push(v+' '+(v===1?sg:pl));s%=d;}if(p.length===2)break;}return p.join(' e ');}
 function typeIcon(t){
   if(t==='node') return '<i class="fa-brands fa-node-js icon-node"></i>';
   if(t==='rust') return '<i class="fa-solid fa-gears"></i>';
@@ -104,8 +105,8 @@ async function load(){
   document.getElementById('stat-total').textContent=apps.length;
   document.getElementById('stat-run').textContent=run;
   if(!apps.length){document.getElementById('sly-table').innerHTML='<p class="text-muted">Nenhum app no servidor.</p>';return;}
-  document.getElementById('sly-table').innerHTML=`<div class="table-scroll"><table class="apps-table"><thead><tr><th>Usuário</th><th>App</th><th>Tipo</th><th>Host</th><th>Status</th><th>PID</th></tr></thead><tbody>${
-    apps.map(a=>`<tr><td>${esc(a.user)}</td><td>${esc(a.name)}</td><td>${typeIcon(a.type)} ${typeLabel(a.type)}</td><td><code class="code-muted">${esc(a.host)}</code></td><td><span class="badge ${a.status==='RUNNING'?'badge-online':'badge-offline'}">${a.status==='RUNNING'?'Online':'Offline'}</span></td><td>${a.pid||'—'}</td></tr>`).join('')
+  document.getElementById('sly-table').innerHTML=`<div class="table-scroll"><table class="apps-table"><thead><tr><th>Usuário</th><th>App</th><th>Tipo</th><th>Host</th><th>Status</th><th>Uptime</th><th>PID</th></tr></thead><tbody>${
+    apps.map(a=>`<tr><td>${esc(a.user)}</td><td>${esc(a.name)}</td><td>${typeIcon(a.type)} ${typeLabel(a.type)}</td><td><code class="code-muted">${esc(a.host)}</code></td><td><span class="badge ${a.status==='RUNNING'?'badge-online':'badge-offline'}">${a.status==='RUNNING'?'Online':'Offline'}</span></td><td>${a.status==='RUNNING'&&a.started_at?uptime(a.started_at):'—'}</td><td>${a.pid||'—'}</td></tr>`).join('')
   }</tbody></table></div>`;
 }
 load();setInterval(load,15000);
