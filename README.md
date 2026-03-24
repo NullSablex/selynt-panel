@@ -49,7 +49,7 @@
 No DirectAdmin, acesse **Plugin Manager** e instale usando a URL:
 
 ```
-https://github.com/NullSablex/selynt-panel/releases/latest/download/selynt_panel.tar.gz
+https://nullsablex.com/download/selynt_panel
 ```
 
 ## Estrutura

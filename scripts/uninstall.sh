@@ -45,12 +45,16 @@ fi
 # ── Para todos os apps, limpa runtime, preserva config ──
 SELYNT_DATA="/var/lib/selynt_panel"
 if [ -d "$SELYNT_DATA" ]; then
-    # Mata processos com PID files ativos
+    # Mata processos e seus filhos (group kill)
     for pidfile in "$SELYNT_DATA"/*/.run/*.pid; do
         [ -f "$pidfile" ] || continue
         pid="$(cat "$pidfile" 2>/dev/null)"
-        [ -n "$pid" ] && kill "$pid" 2>/dev/null || true
-        [ -n "$pid" ] && kill -9 "$pid" 2>/dev/null || true
+        [ -z "$pid" ] && continue
+        # SIGTERM no grupo de processos
+        kill -- -"$pid" 2>/dev/null || kill "$pid" 2>/dev/null || true
+        sleep 1
+        # SIGKILL para garantir
+        kill -9 -- -"$pid" 2>/dev/null || kill -9 "$pid" 2>/dev/null || true
     done
 
     rm -rf "$SELYNT_DATA"
