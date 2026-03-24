@@ -44,7 +44,7 @@ extProcessor selynt_proxy-${host}-${port} {
   address                 uds://$socket
   maxConns                35
   initTimeout             60
-  retryTimeout            0
+  retryTimeout            5
   persistConn             1
   respBuffer              0
   autoStart               0
