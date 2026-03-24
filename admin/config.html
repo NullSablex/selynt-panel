@@ -33,7 +33,7 @@ $v = SELYNT_VERSION;
       <div class="content-pad">
         <div class="cfg-card">
           <div class="cfg-row">
-            <span class="cfg-lbl">Binário <code>core_selynt</code></span>
+            <span class="cfg-lbl">Binário <code>Core Selynt</code></span>
             <span class="cfg-val <?= $bin_ok ? 'ok' : 'err' ?>"><?= $bin_ok ? 'OK' : 'Não encontrado' ?></span>
           </div>
           <?php if ($bin_ok): ?>
@@ -42,6 +42,15 @@ $v = SELYNT_VERSION;
             <span class="cfg-val text-half" id="bin-ver">…</span>
           </div>
           <?php endif; ?>
+        </div>
+
+        <div class="cfg-card">
+          <h4>Diagnóstico</h4>
+          <p class="cfg-desc">Verifica templates, vhosts, permissões, sockets, ACLs e logs.</p>
+          <div id="diag-output"></div>
+          <div class="cfg-actions">
+            <button class="btn-xs btn-soft" onclick="runDiag()" id="btn-diag"><i class="fa-solid fa-stethoscope"></i> Executar Diagnóstico</button>
+          </div>
         </div>
 
 <?php if ($bin_ok): ?>
@@ -70,6 +79,7 @@ $v = SELYNT_VERSION;
 <script type="module" src="<?= $pluginBase ?>/images/assets/js/panel.min.js?v=<?= $v ?>"></script>
 <script type="module">
 const API='/CMD_PLUGINS_ADMIN/selynt_panel/api/config.raw';
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);}
 let allowed=[];
 let detected=[];
 
@@ -90,7 +100,7 @@ async function detect(){
 function render(){
   document.getElementById('node-list').innerHTML='<ul class="cfg-node-list">'+detected.map(v=>{
     const chk=allowed.includes(v.version)?'checked':'';
-    return `<li><label><input type="checkbox" value="${v.path}" ${chk}> ${v.version}</label> <code>${v.path}</code></li>`;
+    return `<li><label><input type="checkbox" value="${esc(v.path)}" ${chk}> ${esc(v.version)}</label> <code>${esc(v.path)}</code></li>`;
   }).join('')+'</ul>';
 }
 
@@ -114,6 +124,26 @@ async function save(){
 }
 
 function msg(t,c){const el=document.getElementById('node-msg');el.className='cfg-msg '+c;el.textContent=t;setTimeout(()=>el.textContent='',3000);}
+
+async function runDiag(){
+  const btn=document.getElementById('btn-diag');
+  const out=document.getElementById('diag-output');
+  btn.disabled=true;btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Executando...';
+  out.innerHTML='';
+  const res=await fetch(API+'?action=diag').then(r=>r.json()).catch(()=>null);
+  btn.disabled=false;btn.innerHTML='<i class="fa-solid fa-stethoscope"></i> Executar Diagnóstico';
+  if(!res||!res.ok){out.innerHTML='<p class="cfg-msg err">Erro ao executar diagnóstico.</p>';return;}
+  const lines=res.output||'';
+  const html=lines.split('\n').map(l=>{
+    if(/✓/.test(l)) return `<div class="diag-line diag-ok">${esc(l)}</div>`;
+    if(/✗/.test(l)) return `<div class="diag-line diag-fail">${esc(l)}</div>`;
+    if(/⚠/.test(l)) return `<div class="diag-line diag-warn">${esc(l)}</div>`;
+    if(/^[═╔╚║──]/.test(l)||/^── /.test(l)) return `<div class="diag-line diag-head">${esc(l)}</div>`;
+    return `<div class="diag-line">${esc(l)}</div>`;
+  }).join('');
+  out.innerHTML=`<div class="diag-box">${html}</div>`;
+}
+window.runDiag=runDiag;
 
 window.detect=detect;
 window.save=save;

@@ -1,11 +1,11 @@
 #!/bin/bash
-# package.sh — Compila o core Rust e empacota o plugin para DirectAdmin.
+# package.sh — Compila o Core Selynt e empacota o plugin para DirectAdmin.
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 PLUGIN_DIR="$PROJECT_ROOT/selynt_panel"
-CORE_DIR="$PROJECT_ROOT/core_selynt"
-BIN_DEST="$PLUGIN_DIR/bin/core_selynt"
+CORE_DIR="$PROJECT_ROOT/core-selynt"
+BIN_DEST="$PLUGIN_DIR/bin/core-selynt"
 
 VERSION="$(awk -F= '$1=="version"{print $2; exit}' "$PLUGIN_DIR/plugin.conf" 2>/dev/null | tr -d '[:space:]')"
 VERSION="${VERSION:-0.0.0}"
@@ -14,25 +14,28 @@ OUT_DIR="$PROJECT_ROOT"
 [ "${1:-}" = "--out" ] && [ -n "${2:-}" ] && OUT_DIR="$2"
 PACKAGE="$OUT_DIR/selynt_panel.tar.gz"
 
+# ── Cores e helpers ──
+G="\033[0;32m"; B="\033[0;36m"; D="\033[0;90m"; N="\033[0m"; BOLD="\033[1m"
+ok()   { printf "${G}  ✓${N} %s\n" "$1"; }
+info() { printf "${D}    %s${N}\n" "$1"; }
+step() { printf "\n${BOLD}${B}── %s ──${N}\n" "$1"; }
+
+printf "\n${BOLD}Selynt Panel${N} — Package v${VERSION}\n"
+
 # Build — musl para binário estático (sem dependência de glibc do host)
 TARGET="x86_64-unknown-linux-musl"
-echo "==> Compilando core_selynt (release, $TARGET)..."
+step "Build"
 cargo build --release --target "$TARGET" --manifest-path "$CORE_DIR/Cargo.toml"
-cp "$CORE_DIR/target/$TARGET/release/core_selynt" "$BIN_DEST"
+cp "$CORE_DIR/target/$TARGET/release/core-selynt" "$BIN_DEST"
 chmod 755 "$BIN_DEST"
-echo "    OK ($(du -sh "$BIN_DEST" | cut -f1))"
+ok "Core Selynt compilado ($(du -sh "$BIN_DEST" | cut -f1))"
 
-# Permissões
-find "$PLUGIN_DIR/user" "$PLUGIN_DIR/admin" \( -name "*.html" -o -name "*.raw" \) -exec chmod 755 {} \;
-find "$PLUGIN_DIR/scripts" -name "*.sh" -exec chmod 755 {} \;
-chmod 644 "$PLUGIN_DIR/plugin.conf"
-chmod 644 "$PLUGIN_DIR/hooks/user_txt.html" "$PLUGIN_DIR/hooks/admin_txt.html" 2>/dev/null || true
-chmod 755 "$PLUGIN_DIR/hooks/user_httpd_write_post.sh" 2>/dev/null || true
-chmod 644 "$PLUGIN_DIR/images/"*.json 2>/dev/null || true
-chmod 755 "$PLUGIN_DIR/install.sh" "$PLUGIN_DIR/uninstall.sh"
+# Permissões (root:root 755)
+find "$PLUGIN_DIR" -type d -exec chmod 755 {} \;
+find "$PLUGIN_DIR" -type f -exec chmod 755 {} \;
 
 # Empacotar — DA espera plugin.conf na RAIZ do tar (sem subdiretório)
-echo "==> Empacotando v${VERSION}..."
+step "Empacotamento"
 tar -czf "$PACKAGE" \
     --exclude='*.tmp' \
     --exclude='.git' \
@@ -41,4 +44,5 @@ tar -czf "$PACKAGE" \
     -C "$PLUGIN_DIR" \
     .
 
-echo "    $PACKAGE ($(du -sh "$PACKAGE" | cut -f1))"
+ok "$PACKAGE ($(du -sh "$PACKAGE" | cut -f1))"
+printf "\n"

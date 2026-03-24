@@ -1,6 +1,6 @@
 <?php
-define('SELYNT_VERSION',    '0.1.0');
-define('SELYNT_BIN',        dirname(__DIR__) . '/bin/core_selynt');
+define('SELYNT_VERSION',    '1.1.0');
+define('SELYNT_BIN',        dirname(__DIR__) . '/bin/core-selynt');
 define('SELYNT_PLUGIN_DIR', dirname(__DIR__));
 
 function selynt_debug_mode(): bool {
@@ -36,7 +36,7 @@ function selynt_home(): string {
 
 function selynt_run(array $args): array {
     if (!is_executable(SELYNT_BIN)) {
-        return ['ok' => false, 'error' => 'binary_missing', 'message' => 'Binário core_selynt não encontrado.'];
+        return ['ok' => false, 'error' => 'binary_missing', 'message' => 'Binário Core Selynt não encontrado.'];
     }
 
     $home = selynt_home();
@@ -72,6 +72,8 @@ function selynt_run(array $args): array {
     fclose($pipes[0]);
     $stdout = stream_get_contents($pipes[1]); fclose($pipes[1]);
     $stderr = stream_get_contents($pipes[2]); fclose($pipes[2]);
+    if ($stdout === false) $stdout = '';
+    if ($stderr === false) $stderr = '';
     $exit_code = proc_close($proc);
 
     $result = json_decode($stdout, true);
