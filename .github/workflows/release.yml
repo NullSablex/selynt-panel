@@ -71,6 +71,9 @@ jobs:
             --exclude='.github' \
             --exclude='.gitignore' \
             --exclude='version' \
+            --exclude='./install.sh' \
+            --exclude='README.md' \
+            --exclude='CHANGELOG.md' \
             --exclude='scripts/diag-proxy.sh' \
             --exclude='scripts/package.sh' \
             --exclude='*.tmp' \
@@ -81,14 +84,14 @@ jobs:
         run: |
           ARCHIVE="selynt_panel.tar.gz"
 
-          echo "=== Must NOT contain (dev/build files) ==="
-          FORBIDDEN="node_modules|assets-src|package\.json|package-lock|build-assets|assets\.manifest|\.github|\.gitignore"
+          echo "Verificando ausência de arquivos dev/build..."
+          FORBIDDEN="node_modules|assets-src|package\.json|package-lock|build-assets|assets\.manifest|\.github|\.gitignore|\./install\.sh$|README\.md|CHANGELOG\.md"
           if tar -tzf "$ARCHIVE" | grep -qE "$FORBIDDEN"; then
-            echo "ERROR: dev/build files found in package:"
+            echo "ERRO: arquivos indevidos encontrados no pacote:"
             tar -tzf "$ARCHIVE" | grep -E "$FORBIDDEN"
             exit 1
           fi
-          echo "OK — no dev files"
+          echo "OK"
 
           echo "=== Must contain (minified assets) ==="
           for f in panel.min.css panel.min.js script.min.js; do
