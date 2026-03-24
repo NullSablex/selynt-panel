@@ -57,7 +57,7 @@ if ($bin_ok) {
 
 <?php if (!$bin_ok): ?>
       <div class="alert-error">
-        Binário <code>core_selynt</code> não encontrado. Contate o administrador.
+        Binário <code>Core Selynt</code> não encontrado. Contate o administrador.
       </div>
 <?php else: ?>
       <div class="form-container">
@@ -124,7 +124,7 @@ if ($bin_ok) {
 <script type="module">
 const _user = <?= json_encode($username) ?>;
 const _domainsData = <?= json_encode($domains_result) ?>;
-function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);}
 
 {
   const sel = document.getElementById('f-host');

@@ -17,12 +17,22 @@ DA_TPL_DIR="/usr/local/directadmin/data/templates/custom"
 BEGIN_MARK="# BEGIN SELYNT_PANEL"
 END_MARK="# END SELYNT_PANEL"
 
-[ "$(id -u)" -eq 0 ] || { echo "[erro] Execute como root." >&2; exit 1; }
+# ── Cores e helpers ──
+R="\033[0;31m"; G="\033[0;32m"; Y="\033[0;33m"; B="\033[0;36m"; D="\033[0;90m"; N="\033[0m"; BOLD="\033[1m"
+ok()   { printf "${G}  ✓${N} %s\n" "$1"; }
+erro() { printf "${R}  ✗${N} %s\n" "$1" >&2; }
+warn() { printf "${Y}  ⚠${N} %s\n" "$1"; }
+info() { printf "${D}    %s${N}\n" "$1"; }
+step() { printf "\n${BOLD}${B}── %s ──${N}\n" "$1"; }
+
+[ "$(id -u)" -eq 0 ] || { erro "Execute como root."; exit 1; }
 
 if [ ! -d "$OLS_CONF_DIR" ] || [ ! -f "$OLS_MAIN_CONF" ]; then
-    echo "[erro] OpenLiteSpeed não encontrado." >&2
+    erro "OpenLiteSpeed não encontrado."
     exit 1
 fi
+
+printf "\n${BOLD}Selynt Panel${N} — Setup OLS\n"
 
 # ── Função: upsert bloco delimitado em um arquivo ──
 # Uso: upsert_template "path/file" "conteúdo"
@@ -45,7 +55,7 @@ upsert_template() {
     else
         printf "%s\n" "$content" > "$file"
     fi
-    chmod 644 "$file"
+    chmod 755 "$file"
 }
 
 # ── 1. DA custom templates ──
@@ -66,11 +76,13 @@ upsert_template() {
 #   |SDOMAIN| — domínio/subdomínio do vhost
 #   |VH_PORT| — porta do vhost (80 ou 443)
 
+step "Templates"
+
 if [ -d /usr/local/directadmin/data/templates ]; then
     mkdir -p "$DA_TPL_DIR"
 
     # Limpar templates com nome errado de versões anteriores
-    rm -f "$DA_TPL_DIR/cust_openlitespeed.CUSTOM."*.pre 2>/dev/null || true
+    rm -f "$DA_TPL_DIR"/cust_openlitespeed.CUSTOM.*.pre 2>/dev/null || true
 
     # CUSTOM.7 — extProcessor per-vhost (proxy via Unix socket)
     upsert_template "$DA_TPL_DIR/openlitespeed_vhost.conf.CUSTOM.7.pre" "$(cat <<'EOF'
@@ -80,7 +92,7 @@ extprocessor selynt_proxy-|SDOMAIN|-|VH_PORT| {
   address                 uds:///var/lib/selynt_panel/|USER|/.sockets/|SDOMAIN|
   maxConns                35
   initTimeout             60
-  retryTimeout            5
+  retryTimeout            0
   persistConn             1
   respBuffer              0
   autoStart               0
@@ -89,7 +101,7 @@ extprocessor selynt_proxy-|SDOMAIN|-|VH_PORT| {
 # END SELYNT_PANEL
 EOF
 )"
-    echo "    Template CUSTOM.7 (extProcessor): OK"
+    ok "Template CUSTOM.7 (extProcessor)"
 
     # CUSTOM.5 — rewrite condicional (só proxy se app ativo)
     upsert_template "$DA_TPL_DIR/openlitespeed_vhost.conf.CUSTOM.5.pre" "$(cat <<'EOF'
@@ -99,27 +111,35 @@ RewriteRule ^(.*)$ http://selynt_proxy-|SDOMAIN|-|VH_PORT|/$1 [P,L,E=PROXY-HOST:
 # END SELYNT_PANEL
 EOF
 )"
-    echo "    Template CUSTOM.5 (rewrite proxy): OK"
+    ok "Template CUSTOM.5 (rewrite proxy)"
 
     # ── 2. Rebuild de vhosts ──
-    echo "    Rebuild de vhosts..."
+    step "Rebuild"
     if [ -x /usr/local/directadmin/custombuild/build ]; then
-        (cd /usr/local/directadmin/custombuild && ./build rewrite_confs) >/dev/null 2>&1 \
-            || echo "[aviso] Rebuild de vhosts falhou."
+        if (cd /usr/local/directadmin/custombuild && ./build rewrite_confs) >/dev/null 2>&1; then
+            ok "Vhosts reconstruídos"
+        else
+            warn "Rebuild de vhosts falhou"
+        fi
     elif command -v da >/dev/null 2>&1; then
-        da build rewrite_confs >/dev/null 2>&1 \
-            || echo "[aviso] Rebuild de vhosts falhou."
+        if da build rewrite_confs >/dev/null 2>&1; then
+            ok "Vhosts reconstruídos"
+        else
+            warn "Rebuild de vhosts falhou"
+        fi
     else
-        echo "[aviso] Rebuild manual necessário: cd /usr/local/directadmin/custombuild && ./build rewrite_confs"
+        warn "Rebuild manual necessário"
+        info "cd /usr/local/directadmin/custombuild && ./build rewrite_confs"
     fi
 else
-    echo "[aviso] Templates do DA não encontrados."
+    warn "Templates do DA não encontrados"
 fi
 
 # ── 2b. Garantir traverse no state dir base (para web server acessar sockets/markers) ──
 chmod 711 /var/lib/selynt_panel 2>/dev/null || true
 
 # ── 3. Web user ──
+step "Servidor web"
 
 WEB_USER=""
 if [ -r "$OLS_MAIN_CONF" ]; then
@@ -134,31 +154,32 @@ fi
 if [ -n "$WEB_USER" ]; then
     mkdir -p "$PLUGIN_DIR/etc"
     printf "%s\n" "$WEB_USER" > "$PLUGIN_DIR/etc/ols_web_user"
-    chmod 644 "$PLUGIN_DIR/etc/ols_web_user"
-    echo "    Usuário web: $WEB_USER"
+    chmod 755 "$PLUGIN_DIR/etc/ols_web_user"
+    ok "Usuário web: $WEB_USER"
 fi
 
 # ── 4. Cron job (sync + reload) ──
+step "Cron"
 
 SYNC_SCRIPT="$PLUGIN_DIR/scripts/sync-extprocessors.sh"
 CRON_LINE="* * * * * [ -f /var/lib/selynt_panel/.sync_needed ] && $SYNC_SCRIPT"
 if ! crontab -l 2>/dev/null | grep -qF "sync-extprocessors.sh"; then
     ( crontab -l 2>/dev/null; printf "%s\n" "$CRON_LINE" ) | crontab -
-    echo "    Cron job instalado."
+    ok "Cron job instalado"
 else
-    echo "    Cron job já presente."
+    ok "Cron job já presente"
 fi
 
-# ── Reload OLS ──
+# ── Reload ──
+step "Reload"
 
-if /usr/local/lsws/bin/lswsctrl reload 2>/dev/null; then
-    echo "    OLS recarregado."
-elif [ -f /usr/local/lsws/logs/lshttpd.pid ]; then
-    kill -USR1 "$(cat /usr/local/lsws/logs/lshttpd.pid)" 2>/dev/null \
-        && echo "    OLS: sinal USR1 enviado."
+if systemctl restart lsws 2>/dev/null; then
+    ok "Servidor web reiniciado"
+elif command -v lswsctrl >/dev/null 2>&1 && lswsctrl restart 2>/dev/null; then
+    ok "Servidor web reiniciado (lswsctrl)"
 else
-    echo "[aviso] Reload do OLS falhou."
+    warn "Restart do servidor web falhou"
 fi
 
-echo "    Setup OLS concluído."
+printf "\n${G}${BOLD}  ✓ Setup OLS concluído${N}\n\n"
 exit 0

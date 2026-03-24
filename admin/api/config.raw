@@ -5,6 +5,23 @@ require_once dirname(__DIR__, 2) . '/lib/common.php';
 $input  = selynt_input();
 $action = $input['action'] ?? '';
 
+if ($action === 'diag') {
+    $script = SELYNT_PLUGIN_DIR . '/scripts/diag-proxy.sh';
+    if (!is_executable($script)) {
+        selynt_json(['ok' => false, 'error' => 'script_missing', 'message' => 'diag-proxy.sh não encontrado ou não executável.']); exit(0);
+    }
+    $output = []; $exit_code = 0;
+    exec('bash ' . escapeshellarg($script) . ' 2>&1', $output, $exit_code);
+    // Remover códigos ANSI para exibir no painel
+    $raw = implode("\n", $output);
+    $clean = preg_replace('/\033\[[0-9;]*m/', '', $raw);
+    selynt_json([
+        'ok'     => true,
+        'output' => $clean,
+        'exit'   => $exit_code,
+    ]); exit(0);
+}
+
 if ($action === 'setup_ols') {
     selynt_require_post();
     $script = SELYNT_PLUGIN_DIR . '/scripts/setup-ols.sh';

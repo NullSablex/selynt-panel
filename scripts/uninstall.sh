@@ -1,5 +1,5 @@
 #!/bin/bash
-# Selynt Panel — Uninstaller (chamado pelo uninstall.sh raiz do plugin)
+# Selynt Panel — Uninstaller
 set -euo pipefail
 
 PLUGIN_ID="selynt_panel"
@@ -9,9 +9,20 @@ DA_TPL_DIR="/usr/local/directadmin/data/templates/custom"
 BEGIN_MARK="# BEGIN SELYNT_PANEL"
 END_MARK="# END SELYNT_PANEL"
 
-[ "$(id -u)" -eq 0 ] || { echo "[erro] Execute como root." >&2; exit 1; }
+# ── Cores e helpers ──
+R="\033[0;31m"; G="\033[0;32m"; Y="\033[0;33m"; B="\033[0;36m"; D="\033[0;90m"; N="\033[0m"; BOLD="\033[1m"
+ok()   { printf "${G}  ✓${N} %s\n" "$1"; }
+erro() { printf "${R}  ✗${N} %s\n" "$1" >&2; }
+warn() { printf "${Y}  ⚠${N} %s\n" "$1"; }
+info() { printf "${D}    %s${N}\n" "$1"; }
+step() { printf "\n${BOLD}${B}── %s ──${N}\n" "$1"; }
+
+[ "$(id -u)" -eq 0 ] || { erro "Execute como root."; exit 1; }
+
+printf "\n${BOLD}Selynt Panel${N} — Desinstalação\n"
 
 # ── Remove DA custom templates ──
+step "Templates"
 for tpl in openlitespeed_vhost.conf.CUSTOM.5.pre openlitespeed_vhost.conf.CUSTOM.7.pre; do
     TPL_FILE="$DA_TPL_DIR/$tpl"
     [ -f "$TPL_FILE" ] || continue
@@ -22,27 +33,30 @@ for tpl in openlitespeed_vhost.conf.CUSTOM.5.pre openlitespeed_vhost.conf.CUSTOM
     ' "$TPL_FILE")"
     if [ -z "$(echo "$CLEAN" | tr -d '[:space:]')" ]; then
         rm -f "$TPL_FILE"
-        echo "    Template $tpl removido."
+        ok "Template $tpl removido"
     else
         printf "%s\n" "$CLEAN" > "$TPL_FILE"
-        echo "    Bloco Selynt removido de $tpl."
+        ok "Bloco Selynt removido de $tpl"
     fi
 done
 
 # ── Remove include do OLS ──
+step "Configuração OLS"
 if [ -f "$OLS_MAIN_CONF" ] && grep -qF "selynt_extprocessors" "$OLS_MAIN_CONF" 2>/dev/null; then
     sed -i '/selynt_panel extProcessors include/d;/selynt_extprocessors\.conf/d' "$OLS_MAIN_CONF"
-    echo "    Include removido do config do OLS."
+    ok "Include removido do config do OLS"
 fi
 rm -f "$SELYNT_CONF" "$SELYNT_CONF.tmp".*
 
 # ── Remove cron job ──
+step "Cron"
 if crontab -l 2>/dev/null | grep -qF "sync-extprocessors.sh"; then
     crontab -l 2>/dev/null | grep -vF "sync-extprocessors.sh" | crontab - 2>/dev/null || true
-    echo "    Cron job removido."
+    ok "Cron job removido"
 fi
 
 # ── Para todos os apps, limpa runtime, preserva config ──
+step "Aplicações"
 SELYNT_DATA="/var/lib/selynt_panel"
 if [ -d "$SELYNT_DATA" ]; then
     # Mata processos e seus filhos (group kill)
@@ -58,16 +72,28 @@ if [ -d "$SELYNT_DATA" ]; then
     done
 
     rm -rf "$SELYNT_DATA"
-    echo "    State dir removido: $SELYNT_DATA"
+    ok "State dir removido: $SELYNT_DATA"
 fi
 
 # ── Rebuild vhosts (remove rewrite rules dos vhosts) ──
+step "Rebuild"
 if [ -x /usr/local/directadmin/custombuild/build ]; then
-    (cd /usr/local/directadmin/custombuild && ./build rewrite_confs) >/dev/null 2>&1 || true
+    if (cd /usr/local/directadmin/custombuild && ./build rewrite_confs) >/dev/null 2>&1; then
+        ok "Vhosts reconstruídos"
+    else
+        warn "Rebuild de vhosts falhou"
+    fi
 fi
 
-# ── Reload OLS ──
-/usr/local/lsws/bin/lswsctrl reload 2>/dev/null || true
+# ── Restart servidor web ──
+step "Reload"
+if systemctl restart lsws 2>/dev/null; then
+    ok "Servidor web reiniciado"
+elif command -v lswsctrl >/dev/null 2>&1 && lswsctrl restart 2>/dev/null; then
+    ok "Servidor web reiniciado (lswsctrl)"
+else
+    warn "Restart do servidor web falhou"
+fi
 
-echo "    Desinstalação concluída."
+printf "\n${G}${BOLD}  ✓ Desinstalação concluída${N}\n\n"
 exit 0

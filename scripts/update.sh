@@ -3,34 +3,28 @@ set -euo pipefail
 
 PLUGIN_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
-[ "$(id -u)" -eq 0 ] || { echo "[erro] Execute como root." >&2; exit 1; }
+G="\033[0;32m"; R="\033[0;31m"; B="\033[0;36m"; N="\033[0m"; BOLD="\033[1m"
+ok()   { printf "${G}  ✓${N} %s\n" "$1"; }
+erro() { printf "${R}  ✗${N} %s\n" "$1" >&2; }
 
-echo "==> Atualizando permissões..."
+[ "$(id -u)" -eq 0 ] || { erro "Execute como root."; exit 1; }
 
-# Binário principal (setuid root)
-BIN="$PLUGIN_DIR/bin/core_selynt"
+printf "\n${BOLD}${B}── Atualizando permissões ──${N}\n"
+
+BIN="$PLUGIN_DIR/bin/core-selynt"
+
+# Permissões (root:root 755)
+find "$PLUGIN_DIR" -type d -exec chmod 755 {} \; 2>/dev/null || true
+find "$PLUGIN_DIR" -type f -exec chmod 755 {} \; 2>/dev/null || true
+
+# plugin.conf: DA reescreve com 600, forçar 644 para leitura pelo diradmin
+chmod 644 "$PLUGIN_DIR/plugin.conf" 2>/dev/null || true
+
+# Binário: setuid root (4755)
 if [ -f "$BIN" ]; then
     chown root:root "$BIN"
     chmod 4755 "$BIN"
 fi
 
-# CGI executáveis (755)
-find "$PLUGIN_DIR/user" "$PLUGIN_DIR/admin" -type f \( -name "*.html" -o -name "*.raw" \) -exec chmod 755 {} \;
-
-# Shell scripts (755)
-find "$PLUGIN_DIR/scripts" -name "*.sh" -exec chmod 755 {} \;
-
-# Hooks
-chmod 755 "$PLUGIN_DIR/hooks/user_httpd_write_post.sh" 2>/dev/null || true
-chmod 644 "$PLUGIN_DIR/hooks/user_txt.html" "$PLUGIN_DIR/hooks/admin_txt.html" 2>/dev/null || true
-
-# Config e dados (644)
-chmod 644 "$PLUGIN_DIR/plugin.conf"
-chmod 644 "$PLUGIN_DIR/images/"*.json 2>/dev/null || true
-chmod 644 "$PLUGIN_DIR/lib/common.php" "$PLUGIN_DIR/lib/node-loader.js"
-find "$PLUGIN_DIR/images/assets" -type f -exec chmod 644 {} \; 2>/dev/null || true
-
-# Ownership
-chown -R diradmin:diradmin "$PLUGIN_DIR"
-
-echo "==> Atualização concluída."
+ok "Permissões atualizadas"
+printf "\n"

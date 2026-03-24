@@ -7,7 +7,7 @@
 SELYNT_PLUGIN_DIR="/usr/local/directadmin/plugins/selynt_panel"
 SELYNT_STATE="/var/lib/selynt_panel/$username"
 
-# Diretórios de estado são criados on-demand pelo binário core_selynt.
+# Diretórios de estado são criados on-demand pelo binário Core Selynt.
 # Se não existem, o user nunca usou o plugin — nada a fazer.
 [ -d "$SELYNT_STATE/.sockets" ] || exit 0
 [ -d "$SELYNT_STATE/.proxy" ]   || exit 0
