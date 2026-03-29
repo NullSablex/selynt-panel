@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1] — 2026-03-29
+
+### Corrigido
+- **config.html: seção Node.js oculta por padrão** — card "Versões do Node.js" agora só aparece se o binário Core Selynt suportar detecção de Node.js; binários Rust não exibem a seção.
+- **create.html: campo de versão Node.js visível com Rust** — ao selecionar "Binário Rust" como tipo de app, o campo de versão Node.js agora é ocultado corretamente.
+- **release.yml: falso positivo no verify** — regex `install\.sh` casava com `uninstall.sh`; ancoragem corrigida para excluir apenas o instalador raiz.
+
 ## [1.1.0] — 2026-03-24
 
 ### Adicionado
