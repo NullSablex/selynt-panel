@@ -54,7 +54,7 @@ $v = SELYNT_VERSION;
         </div>
 
 <?php if ($bin_ok): ?>
-        <div class="cfg-card">
+        <div class="cfg-card" id="node-section" style="display:none">
           <h4>Versões do Node.js</h4>
           <p class="cfg-desc">Selecione quais versões estarão disponíveis para os usuários.</p>
           <div id="node-list"><em class="text-faded">Clique em "Detectar" para buscar versões instaladas.</em></div>
@@ -90,9 +90,10 @@ async function detect(){
     fetch(API+'?action=allowed_versions').then(r=>r.json()).catch(()=>null)
   ]);
   if(a&&a.ok) allowed=a.versions||[];
-  if(!r||!r.ok){msg('Erro ao detectar.','err');return;}
+  if(!r||!r.ok){return;}
   detected=r.versions||[];
-  if(!detected.length){document.getElementById('node-list').innerHTML='<p class="text-faded">Nenhuma versão encontrada.</p>';return;}
+  if(!detected.length){return;}
+  document.getElementById('node-section').style.display='';
   render();
   document.getElementById('btn-save').classList.remove('d-none');document.getElementById('btn-save').classList.remove('btn-save-hidden');
 }

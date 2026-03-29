@@ -91,7 +91,7 @@ if ($bin_ok) {
             <input type="text" id="f-cwd" required>
             <div class="form-help">Onde fica o código do app. Será criado se não existir.</div>
           </div>
-          <div class="form-field d-none" id="fg-node-version">
+          <div class="form-field" id="fg-node-version" style="display:none">
             <label class="form-label">Versão do Node.js</label>
             <select id="f-node-version"><option value="">Carregando...</option></select>
           </div>
@@ -161,8 +161,7 @@ function onFormChange() {
   document.getElementById('f-cwd').value = buildCwd();
   syncEntry();
   const nvEl = document.getElementById('fg-node-version');
-  if (document.getElementById('f-type').value === 'node') nvEl.classList.remove('d-none');
-  else nvEl.classList.add('d-none');
+  nvEl.style.display = document.getElementById('f-type').value === 'node' ? '' : 'none';
 }
 
 const nvRes = await fetch('/CMD_PLUGINS/selynt_panel/api/nodes.raw').then(r=>r.json()).catch(()=>null);
