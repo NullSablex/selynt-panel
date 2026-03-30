@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.1.2] — 2026-03-29
+
+### Alterado
+- Atualização do binário Core Selynt.
+
 ## [1.1.1] — 2026-03-29
 
 ### Corrigido

@@ -1,5 +1,5 @@
 <?php
-define('SELYNT_VERSION',    '1.1.1');
+define('SELYNT_VERSION',    '1.1.2');
 define('SELYNT_BIN',        dirname(__DIR__) . '/bin/core-selynt');
 define('SELYNT_PLUGIN_DIR', dirname(__DIR__));
 
