@@ -18,6 +18,6 @@
   },
   "homepage": "https://github.com/NullSablex/selynt-panel#readme",
   "devDependencies": {
-    "esbuild": "^0.27"
+    "esbuild": "^0.28"
   }
 }
