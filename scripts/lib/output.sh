@@ -68,3 +68,16 @@ sly_err() {
 sly_finished() {
     printf '%s%12s%s %s\n' "$_SLY_G$_SLY_B" "Finished" "$_SLY_N" "${1:-}"
 }
+
+# Runs a step that must not abort the installer — the DirectAdmin plugin hook
+# has to exit 0 or the plugin is never registered — but whose failure the admin
+# needs to see. Replaces the silent `cmd 2>/dev/null || true`, which hid the
+# cause of a broken install behind a success message.
+sly_try() {
+    _sly_what="$1"; shift
+    if "$@" 2>/dev/null; then
+        return 0
+    fi
+    sly_warn "$_sly_what failed — the plugin may not work correctly"
+    return 1
+}
