@@ -1,5 +1,5 @@
 #!/bin/bash
-# package.sh — Compila o Core Selynt e empacota o plugin para DirectAdmin.
+# package.sh — Build the Core Selynt binary and package the plugin tarball.
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -14,35 +14,49 @@ OUT_DIR="$PROJECT_ROOT"
 [ "${1:-}" = "--out" ] && [ -n "${2:-}" ] && OUT_DIR="$2"
 PACKAGE="$OUT_DIR/selynt_panel.tar.gz"
 
-# ── Cores e helpers ──
-G="\033[0;32m"; B="\033[0;36m"; D="\033[0;90m"; N="\033[0m"; BOLD="\033[1m"
-ok()   { printf "${G}  ✓${N} %s\n" "$1"; }
-info() { printf "${D}    %s${N}\n" "$1"; }
-step() { printf "\n${BOLD}${B}── %s ──${N}\n" "$1"; }
+# shellcheck source=lib/output.sh
+. "$PLUGIN_DIR/scripts/lib/output.sh"
 
-printf "\n${BOLD}Selynt Panel${N} — Package v${VERSION}\n"
+sly_header "Selynt Panel" "package v${VERSION}"
 
-# Build — musl para binário estático (sem dependência de glibc do host)
 TARGET="x86_64-unknown-linux-musl"
-step "Build"
+
+sly_act "Compiling" "core-selynt ($TARGET)"
 cargo build --release --target "$TARGET" --manifest-path "$CORE_DIR/Cargo.toml"
 cp "$CORE_DIR/target/$TARGET/release/core-selynt" "$BIN_DEST"
 chmod 755 "$BIN_DEST"
-ok "Core Selynt compilado ($(du -sh "$BIN_DEST" | cut -f1))"
+sly_sub "Binary  " "$(du -sh "$BIN_DEST" | cut -f1) → $BIN_DEST"
 
-# Permissões (root:root 755)
 find "$PLUGIN_DIR" -type d -exec chmod 755 {} \;
 find "$PLUGIN_DIR" -type f -exec chmod 755 {} \;
 
-# Empacotar — DA espera plugin.conf na RAIZ do tar (sem subdiretório)
-step "Empacotamento"
+sly_act "Packaging" "$PACKAGE"
+# Exclusion list mirrors .github/workflows/release.yml so the local package
+# matches what CI produces.
 tar -czf "$PACKAGE" \
-    --exclude='*.tmp' \
+    --exclude='node_modules' \
+    --exclude='assets-src' \
+    --exclude='package.json' \
+    --exclude='package-lock.json' \
+    --exclude='build-assets.mjs' \
+    --exclude='assets.manifest.json' \
+    --exclude='packages.md' \
     --exclude='.git' \
+    --exclude='.github' \
     --exclude='.gitignore' \
+    --exclude='version' \
+    --exclude='./install.sh' \
+    --exclude='README.md' \
+    --exclude='CHANGELOG.md' \
+    --exclude='docs' \
+    --exclude='notes' \
+    --exclude='mkdocs.yml' \
+    --exclude='scripts/package.sh' \
+    --exclude='scripts/fetch-core-selynt.sh' \
+    --exclude='*.tmp' \
     --exclude='*.tar.gz' \
     -C "$PLUGIN_DIR" \
     .
+sly_sub "Archive " "$(du -sh "$PACKAGE" | cut -f1)"
 
-ok "$PACKAGE ($(du -sh "$PACKAGE" | cut -f1))"
-printf "\n"
+sly_finished "package v${VERSION}"

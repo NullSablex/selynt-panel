@@ -1,5 +1,7 @@
 #!/usr/local/bin/php -n
 <?php
+declare(strict_types=1);
+
 require_once dirname(__DIR__, 2) . '/lib/common.php';
 
 // Formato do arquivo: "path version" por linha (ex: "/usr/local/bin/node v20.15.1")
@@ -7,20 +9,26 @@ $nv_file = SELYNT_PLUGIN_DIR . '/etc/node_versions';
 $versions = [];
 
 if (file_exists($nv_file)) {
-    foreach (file($nv_file) as $line) {
-        $parts = preg_split('/\s+/', trim($line), 2);
-        $path = $parts[0] ?? '';
-        $ver  = $parts[1] ?? '';
-        if ($path === '' || $path[0] !== '/') continue;
-        $label = $ver !== '' ? ltrim($ver, 'v') : basename(dirname($path));
-        $versions[] = ['path' => $path, 'version' => $ver, 'label' => $label];
+    $lines = file($nv_file);
+    if ($lines !== false) {
+        foreach ($lines as $line) {
+            $parts = preg_split('/\s+/', trim($line), 2);
+            if (!is_array($parts)) continue;
+            $path = (string)($parts[0] ?? '');
+            $ver  = (string)($parts[1] ?? '');
+            if ($path === '' || $path[0] !== '/') continue;
+            $label = $ver !== '' ? ltrim($ver, 'v') : basename(dirname($path));
+            $versions[] = ['path' => $path, 'version' => $ver, 'label' => $label];
+        }
     }
 }
 
 // Se nenhuma versão configurada, oferecer default do PATH
 if (empty($versions)) {
     $ver = trim((string)shell_exec('node --version 2>/dev/null'));
-    $label = $ver !== '' ? ltrim($ver, 'v') . ' (padrão)' : 'padrão do sistema';
+    $label = $ver !== ''
+        ? ltrim($ver, 'v') . ' (' . selynt_t('create.field.node_default_short') . ')'
+        : selynt_t('create.field.node_system_default');
     $versions[] = ['path' => '', 'version' => $ver, 'label' => $label];
 }
 

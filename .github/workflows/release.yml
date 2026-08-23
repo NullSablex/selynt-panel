@@ -1,24 +1,54 @@
 name: Release
 
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+      - 'v*'
 
 permissions:
-  contents: write
-  packages: none
-  actions: none
-  issues: none
-  pull-requests: none
+  contents: read
+
+env:
+  PACKAGE_NAME: selynt_panel
+  CORE_REPO: NullSablex/core-selynt
 
 jobs:
-  build:
-    name: Build Plugin Package
+  build-release:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
+    # Needs write access to create the release and upload the tarball.
+    permissions:
+      contents: write
 
-      - uses: actions/setup-node@v5
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0   # full history so generate-notes can list every commit
+
+      - name: Verify version file matches release tag
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          FILE_VERSION="$(tr -d '[:space:]' < version)"
+          CONF_VERSION="$(awk -F= '$1=="version"{print $2; exit}' plugin.conf | tr -d '[:space:]')"
+          echo "Release tag:   ${GITHUB_REF_NAME} (version=${TAG_VERSION})"
+          echo "version file:  ${FILE_VERSION}"
+          echo "plugin.conf:   ${CONF_VERSION}"
+          if [ "$TAG_VERSION" != "$FILE_VERSION" ] || [ "$TAG_VERSION" != "$CONF_VERSION" ]; then
+            echo "::error::Release tag (${GITHUB_REF_NAME}) does not match version file (${FILE_VERSION}) and/or plugin.conf (${CONF_VERSION})."
+            echo "::error::Bump version and plugin.conf to ${TAG_VERSION} (or retag) and try again."
+            exit 1
+          fi
+
+      - name: Detect pre-release
+        id: prerelease
+        run: |
+          TAG="${{ github.ref_name }}"
+          if echo "$TAG" | grep -qE '\-(alpha|beta|rc)'; then
+            echo "is_prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: '24'
           cache: 'npm'
@@ -28,24 +58,42 @@ jobs:
       - name: Build minified assets
         run: npm run build
 
-      - name: Read version
-        id: ver
+      - name: Fetch Core Selynt binary from upstream release
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          VERSION=$(tr -d '[:space:]' < version)
-          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          # Always picks the latest published release of core-selynt — the
+          # binary is not tracked in this repo (see .gitignore).
+          mkdir -p bin
+          TAG=$(gh release list --repo "$CORE_REPO" --limit 1 --json tagName --jq '.[0].tagName')
+          if [ -z "$TAG" ]; then
+            echo "::error::No release found in $CORE_REPO."
+            exit 1
+          fi
+          echo "Downloading core-selynt $TAG from $CORE_REPO"
+          gh release download "$TAG" \
+            --repo "$CORE_REPO" \
+            --pattern 'core-selynt' \
+            --pattern 'core-selynt.sha256' \
+            --dir bin \
+            --clobber
+          (cd bin && sha256sum -c core-selynt.sha256)
+          rm -f bin/core-selynt.sha256
+          test -s bin/core-selynt
+          echo "Bundled core-selynt $TAG ($(stat -c%s bin/core-selynt) bytes)"
 
       - name: Set file permissions
         run: |
-          # Permissões uniformes (755) — modelo padrão DA plugins
+          # Uniform 755 — standard DA plugin layout.
           find . -type d -exec chmod 755 {} \;
           find . -type f -exec chmod 755 {} \;
-
-          # plugin.conf: 644 (DA reescreve, diradmin precisa ler)
+          # plugin.conf: 644 (DA rewrites it; diradmin needs to read).
           chmod 644 plugin.conf
 
       - name: Package plugin
         run: |
-          tar -czf /tmp/selynt_panel.tar.gz \
+          mkdir -p dist
+          tar -czf "dist/${PACKAGE_NAME}.tar.gz" \
             --exclude='node_modules' \
             --exclude='assets-src' \
             --exclude='package.json' \
@@ -59,44 +107,121 @@ jobs:
             --exclude='./install.sh' \
             --exclude='README.md' \
             --exclude='CHANGELOG.md' \
-            --exclude='scripts/diag-proxy.sh' \
+            --exclude='docs' \
+            --exclude='notes' \
+            --exclude='mkdocs.yml' \
             --exclude='scripts/package.sh' \
+            --exclude='scripts/fetch-core-selynt.sh' \
             --exclude='*.tmp' \
+            --exclude='dist' \
             .
-          mv /tmp/selynt_panel.tar.gz .
+          sha256sum "dist/${PACKAGE_NAME}.tar.gz" > "dist/${PACKAGE_NAME}.tar.gz.sha256"
 
       - name: Verify package
         run: |
-          ARCHIVE="selynt_panel.tar.gz"
+          ARCHIVE="dist/${PACKAGE_NAME}.tar.gz"
 
-          echo "Verificando ausência de arquivos dev/build..."
-          FORBIDDEN="node_modules|assets-src|package\.json|package-lock|build-assets|assets\.manifest|\.github|\.gitignore|^\./install\.sh$|README\.md|CHANGELOG\.md"
+          echo "Ensuring no dev/build artefacts leaked into the archive..."
+          FORBIDDEN="node_modules|assets-src|package\.json|package-lock|build-assets|assets\.manifest|\.github|\.gitignore|^\./install\.sh$|README\.md|CHANGELOG\.md|^\./docs/|^\./notes/|mkdocs\.yml|scripts/package\.sh|scripts/fetch-core-selynt\.sh"
           if tar -tzf "$ARCHIVE" | grep -qE "$FORBIDDEN"; then
-            echo "ERRO: arquivos indevidos encontrados no pacote:"
+            echo "::error::Forbidden files found in the package:"
             tar -tzf "$ARCHIVE" | grep -E "$FORBIDDEN"
             exit 1
           fi
-          echo "OK"
 
-          echo "Verificando assets minificados..."
+          echo "Checking minified assets..."
           for f in panel.min.css panel.min.js script.min.js; do
-            tar -tzf "$ARCHIVE" | grep -q "$f" || { echo "FALTANDO: $f"; exit 1; }
+            tar -tzf "$ARCHIVE" | grep -q "$f" || { echo "::error::missing $f"; exit 1; }
           done
-          echo "OK"
 
-          echo "Verificando arquivos essenciais..."
-          for f in plugin.conf LICENSE lib/common.php; do
-            tar -tzf "$ARCHIVE" | grep -q "$f" || { echo "FALTANDO: $f"; exit 1; }
+          echo "Checking essential files..."
+          for f in plugin.conf LICENSE lib/common.php bin/core-selynt; do
+            tar -tzf "$ARCHIVE" | grep -q "$f" || { echo "::error::missing $f"; exit 1; }
           done
-          echo "OK"
 
-          echo "Tamanho do pacote:"
           du -sh "$ARCHIVE"
 
-      - name: Upload to release
+      - name: Build release body
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release upload "${{ github.event.release.tag_name }}" \
-            selynt_panel.tar.gz \
-            --clobber
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="${TAG#v}"
+
+          # 1. Curated section from CHANGELOG.md — headlines, migration notes,
+          # breaking changes. Everything humans wrote that the API cannot
+          # infer from PR titles alone.
+          BODY=$(awk "/^## \[?v?${VERSION}\]?/{found=1; next} found && /^## /{exit} found{print}" CHANGELOG.md)
+          # Fall back to [Unreleased]: the section is often still under that
+          # heading at tag time, and shipping the notes beats shipping a stub.
+          if [ -z "$(echo "$BODY" | tr -d '[:space:]')" ]; then
+            BODY=$(awk '/^## \[Unreleased\]/{found=1; next} found && /^## /{exit} found{print}' CHANGELOG.md)
+            if [ -n "$(echo "$BODY" | tr -d '[:space:]')" ]; then
+              echo "::warning::CHANGELOG.md has no [${VERSION}] section; used [Unreleased] instead."
+            fi
+          fi
+
+          if [ -z "$(echo "$BODY" | tr -d '[:space:]')" ]; then
+            echo "::error::CHANGELOG.md has neither a [${VERSION}] nor an [Unreleased] section."
+            exit 1
+          fi
+
+          # 2. Auto-generated notes — used only to borrow the "New Contributors"
+          # block and the "Full Changelog" comparison link that GitHub computes
+          # natively. The "## What's Changed" categorisation produced here is
+          # dropped on purpose; the CHANGELOG already does that job with more
+          # context.
+          AUTO=$(gh api -X POST "repos/${GITHUB_REPOSITORY}/releases/generate-notes" \
+            -f tag_name="$TAG" \
+            -q .body 2>/dev/null || echo "")
+
+          APPENDIX=$(echo "$AUTO" | sed -n '/^## New Contributors$/,$p')
+          if [ -z "$APPENDIX" ]; then
+            APPENDIX=$(echo "$AUTO" | grep '^\*\*Full Changelog\*\*' | tail -1)
+          fi
+
+          # 3. Artifact orientation footer — what to download and how to
+          # install it. Kept at the bottom so it doesn't push the actual
+          # release notes below the fold.
+          FOOTER=$(cat <<EOF
+          ### Artifacts
+
+          - \`${PACKAGE_NAME}.tar.gz\` — plugin package, ready to upload in DirectAdmin's plugin manager.
+          - \`${PACKAGE_NAME}.tar.gz.sha256\` — checksum for the package above.
+
+          Verify before installing:
+
+          \`\`\`sh
+          sha256sum -c ${PACKAGE_NAME}.tar.gz.sha256
+          \`\`\`
+
+          Install through **Admin Level → Plugin Manager → Add Plugin**, or from the shell with \`./install.sh\`. The bundled \`core-selynt\` binary is set up as setuid root by the installer.
+          EOF
+          )
+
+          {
+            echo "$BODY"
+            if [ -n "$APPENDIX" ]; then
+              echo ""
+              echo "---"
+              echo ""
+              echo "$APPENDIX"
+            fi
+            echo ""
+            echo "---"
+            echo ""
+            echo "$FOOTER"
+          } > release_body.md
+
+          cat release_body.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3
+        with:
+          name: ${{ github.ref_name }}
+          body_path: release_body.md
+          files: |
+            dist/${{ env.PACKAGE_NAME }}.tar.gz
+            dist/${{ env.PACKAGE_NAME }}.tar.gz.sha256
+          draft: false
+          prerelease: ${{ steps.prerelease.outputs.is_prerelease }}

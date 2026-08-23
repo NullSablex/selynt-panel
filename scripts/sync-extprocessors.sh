@@ -1,20 +1,27 @@
 #!/bin/bash
-# sync-extprocessors.sh — Regenera extProcessors do OLS para todos os apps ativos.
-# Executado via cron a cada minuto quando /var/lib/selynt_panel/.sync_needed existe.
+# sync-extprocessors.sh — Regenerate OLS extProcessors for every live app.
+# Run by cron once per minute when /var/lib/selynt_panel/.sync_needed exists.
 set -euo pipefail
 
-OLS_CONF_DIR="/usr/local/lsws/conf"
+PLUGIN_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+
+# Detect OLS layout (new DA 1.690+ or legacy).
+# shellcheck source=lib/ols-paths.sh
+. "$PLUGIN_DIR/scripts/lib/ols-paths.sh"
+selynt_detect_ols || true
+OLS_CONF_DIR="${OLS_CONF_DIR:-/etc/openlitespeed}"
+
 SELYNT_CONF="$OLS_CONF_DIR/selynt_extprocessors.conf"
 STATE_BASE="/var/lib/selynt_panel"
 LOCK_FILE="/var/lib/selynt_panel/.sync.lock"
 
 [ "$(id -u)" -eq 0 ] || exit 1
 
-# Lock exclusivo para evitar runs concorrentes
+# Exclusive lock — prevent concurrent runs.
 exec 9>"$LOCK_FILE"
 flock -n 9 || exit 0
 
-# Coleta apps ativos: marker existe + socket existe
+# Collect live apps: marker present + socket present.
 declare -A ACTIVE=()
 for marker in "$STATE_BASE"/*/.proxy/*; do
     [ -f "$marker" ] || continue
@@ -26,17 +33,16 @@ for marker in "$STATE_BASE"/*/.proxy/*; do
     ACTIVE["$host"]="$user|$socket"
 done
 
-# Gera extProcessors atomicamente
+# Emit extProcessors atomically.
 TMP="$(mktemp "${SELYNT_CONF}.XXXXXX")"
 {
     printf "# Selynt Panel extProcessors — %s\n" "$(date -Iseconds)"
-    printf "# NAO EDITE — gerado automaticamente\n\n"
+    printf "# DO NOT EDIT — generated automatically\n\n"
 
     for host in "${!ACTIVE[@]}"; do
         IFS='|' read -r user socket <<< "${ACTIVE[$host]}"
 
-        # Nome sem sanitização — deve coincidir com o template DA:
-        # http://selynt_proxy-|SDOMAIN|-|VH_PORT|
+        # Name must match the DA template: selynt_proxy-|SDOMAIN|-|VH_PORT|
         for port in 80 443; do
             cat <<EOF
 extProcessor selynt_proxy-${host}-${port} {
@@ -63,7 +69,7 @@ chmod 640 "$SELYNT_CONF"
 
 rm -f /var/lib/selynt_panel/.sync_needed
 
-# Reload graceful
+# Graceful reload.
 systemctl restart lsws 2>/dev/null \
     || { command -v lswsctrl >/dev/null 2>&1 && lswsctrl restart 2>/dev/null; } \
     || true

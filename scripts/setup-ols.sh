@@ -1,44 +1,37 @@
 #!/bin/bash
-# setup-ols.sh — Configura o Selynt Panel no OpenLiteSpeed + DirectAdmin.
-# Deve ser executado como root (pelo install.sh ou via admin/api/config.raw).
-#
-# O que faz:
-#   1. Instala DA custom templates (CUSTOM.7 + CUSTOM.5) para proxy por vhost
-#   2. Rebuild de vhosts para aplicar os templates
-#   3. Detecta web user para ACL
-#   4. Cron job para sync/reload do OLS
+# setup-ols.sh — Wire Selynt Panel into OpenLiteSpeed + DirectAdmin.
+# Must run as root (invoked by install.sh).
 set -euo pipefail
 
-OLS_CONF_DIR="/usr/local/lsws/conf"
-OLS_MAIN_CONF="$OLS_CONF_DIR/httpd_config.conf"
 PLUGIN_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+
+# shellcheck source=lib/output.sh
+. "$PLUGIN_DIR/scripts/lib/output.sh"
+
+# Detect OLS layout: new (DA 1.690+) under /etc/openlitespeed, legacy under
+# /usr/local/lsws/conf. Sets OLS_CONF_DIR and OLS_MAIN_CONF.
+# shellcheck source=lib/ols-paths.sh
+. "$PLUGIN_DIR/scripts/lib/ols-paths.sh"
+selynt_detect_ols || true
+OLS_CONF_DIR="${OLS_CONF_DIR:-/etc/openlitespeed}"
+OLS_MAIN_CONF="${OLS_MAIN_CONF:-$OLS_CONF_DIR/httpd_config.conf}"
 
 DA_TPL_DIR="/usr/local/directadmin/data/templates/custom"
 BEGIN_MARK="# BEGIN SELYNT_PANEL"
 END_MARK="# END SELYNT_PANEL"
 
-# ── Cores e helpers ──
-R="\033[0;31m"; G="\033[0;32m"; Y="\033[0;33m"; B="\033[0;36m"; D="\033[0;90m"; N="\033[0m"; BOLD="\033[1m"
-ok()   { printf "${G}  ✓${N} %s\n" "$1"; }
-erro() { printf "${R}  ✗${N} %s\n" "$1" >&2; }
-warn() { printf "${Y}  ⚠${N} %s\n" "$1"; }
-info() { printf "${D}    %s${N}\n" "$1"; }
-step() { printf "\n${BOLD}${B}── %s ──${N}\n" "$1"; }
+[ "$(id -u)" -eq 0 ] || { sly_err "must run as root"; exit 1; }
 
-[ "$(id -u)" -eq 0 ] || { erro "Execute como root."; exit 1; }
-
-if [ ! -d "$OLS_CONF_DIR" ] || [ ! -f "$OLS_MAIN_CONF" ]; then
-    erro "OpenLiteSpeed não encontrado."
+if [ "$OLS_PRESENT" != "1" ] || [ ! -f "$OLS_MAIN_CONF" ]; then
+    sly_err "OpenLiteSpeed not found"
     exit 1
 fi
 
-printf "\n${BOLD}Selynt Panel${N} — Setup OLS\n"
+sly_header "Selynt Panel" "OLS setup (${OLS_LAYOUT}: ${OLS_CONF_DIR})"
 
-# ── Função: upsert bloco delimitado em um arquivo ──
-# Uso: upsert_template "path/file" "conteúdo"
+# upsert_template — replace or insert a marker-delimited block in a file.
 upsert_template() {
     local file="$1" content="$2"
-
     if [ -f "$file" ]; then
         local clean
         clean="$(awk -v b="$BEGIN_MARK" -v e="$END_MARK" '
@@ -46,7 +39,6 @@ upsert_template() {
             $0==e {inside=0; next}
             !inside {print}
         ' "$file")"
-        # Conteúdo limpo vazio? Só o nosso bloco.
         if [ -z "$(echo "$clean" | tr -d '[:space:]')" ]; then
             printf "%s\n" "$content" > "$file"
         else
@@ -58,33 +50,17 @@ upsert_template() {
     chmod 755 "$file"
 }
 
-# ── 1. DA custom templates ──
-#
-# Mecanismo de proxy em duas camadas:
-#
-# CUSTOM.7 (fim do virtualHost): define um extProcessor POR VHOST usando
-#   variáveis DA. O extProcessor aponta para o Unix socket do app.
-#   Isso garante que o extProcessor exista no escopo do vhost,
-#   sem depender de includes no httpd_config.conf ou sync externo.
-#
-# CUSTOM.5 (rewrite rules): RewriteCond verifica se o marker .proxy/|SDOMAIN|
-#   existe. Se existe → app ativo → proxy para o extProcessor.
-#   Se não existe → request segue normal (site estático, PHP, etc.).
-#
-# Variáveis DA expandidas por vhost:
-#   |USER|    — username do dono do domínio
-#   |SDOMAIN| — domínio/subdomínio do vhost
-#   |VH_PORT| — porta do vhost (80 ou 443)
-
-step "Templates"
+# Two-layer proxy mechanism:
+# CUSTOM.7 — per-vhost extProcessor pointing to the app's Unix socket
+# CUSTOM.5 — RewriteCond that activates the proxy only when .proxy/|SDOMAIN|
+#            marker exists; otherwise the request falls through to PHP/static.
 
 if [ -d /usr/local/directadmin/data/templates ]; then
     mkdir -p "$DA_TPL_DIR"
-
-    # Limpar templates com nome errado de versões anteriores
     rm -f "$DA_TPL_DIR"/cust_openlitespeed.CUSTOM.*.pre 2>/dev/null || true
 
-    # CUSTOM.7 — extProcessor per-vhost (proxy via Unix socket)
+    sly_act "Installing" "DirectAdmin templates"
+
     upsert_template "$DA_TPL_DIR/openlitespeed_vhost.conf.CUSTOM.7.pre" "$(cat <<'EOF'
 # BEGIN SELYNT_PANEL
 extprocessor selynt_proxy-|SDOMAIN|-|VH_PORT| {
@@ -101,9 +77,8 @@ extprocessor selynt_proxy-|SDOMAIN|-|VH_PORT| {
 # END SELYNT_PANEL
 EOF
 )"
-    ok "Template CUSTOM.7 (extProcessor)"
+    sly_sub "CUSTOM.7" "extProcessor block"
 
-    # CUSTOM.5 — rewrite condicional (só proxy se app ativo)
     upsert_template "$DA_TPL_DIR/openlitespeed_vhost.conf.CUSTOM.5.pre" "$(cat <<'EOF'
 # BEGIN SELYNT_PANEL
 RewriteCond /var/lib/selynt_panel/|USER|/.proxy/|SDOMAIN| -f
@@ -111,36 +86,28 @@ RewriteRule ^(.*)$ http://selynt_proxy-|SDOMAIN|-|VH_PORT|/$1 [P,L,E=PROXY-HOST:
 # END SELYNT_PANEL
 EOF
 )"
-    ok "Template CUSTOM.5 (rewrite proxy)"
+    sly_sub "CUSTOM.5" "rewrite proxy block"
 
-    # ── 2. Rebuild de vhosts ──
-    step "Rebuild"
+    sly_act "Building" "vhosts (rewrite_confs)"
     if [ -x /usr/local/directadmin/custombuild/build ]; then
-        if (cd /usr/local/directadmin/custombuild && ./build rewrite_confs) >/dev/null 2>&1; then
-            ok "Vhosts reconstruídos"
-        else
-            warn "Rebuild de vhosts falhou"
-        fi
+        (cd /usr/local/directadmin/custombuild && ./build rewrite_confs) >/dev/null 2>&1 \
+            || sly_warn "vhost rebuild failed"
     elif command -v da >/dev/null 2>&1; then
-        if da build rewrite_confs >/dev/null 2>&1; then
-            ok "Vhosts reconstruídos"
-        else
-            warn "Rebuild de vhosts falhou"
-        fi
+        da build rewrite_confs >/dev/null 2>&1 \
+            || sly_warn "vhost rebuild failed"
     else
-        warn "Rebuild manual necessário"
-        info "cd /usr/local/directadmin/custombuild && ./build rewrite_confs"
+        sly_warn "rebuild manually: cd /usr/local/directadmin/custombuild && ./build rewrite_confs"
     fi
 else
-    warn "Templates do DA não encontrados"
+    sly_warn "DirectAdmin templates directory not found"
 fi
 
-# ── 2b. Garantir traverse no state dir base (para web server acessar sockets/markers) ──
+# Ensure the base state dir is world-traversable so the web server can reach
+# the per-user sockets and markers.
 chmod 711 /var/lib/selynt_panel 2>/dev/null || true
 
-# ── 3. Web user ──
-step "Servidor web"
-
+# ── Detecting web server user ──
+sly_act "Detecting" "web server user"
 WEB_USER=""
 if [ -r "$OLS_MAIN_CONF" ]; then
     WEB_USER="$(awk 'tolower($1)=="user"{print $2; exit}' "$OLS_MAIN_CONF" 2>/dev/null || true)"
@@ -155,31 +122,28 @@ if [ -n "$WEB_USER" ]; then
     mkdir -p "$PLUGIN_DIR/etc"
     printf "%s\n" "$WEB_USER" > "$PLUGIN_DIR/etc/ols_web_user"
     chmod 755 "$PLUGIN_DIR/etc/ols_web_user"
-    ok "Usuário web: $WEB_USER"
+    sly_sub "Web user" "$WEB_USER"
 fi
 
-# ── 4. Cron job (sync + reload) ──
-step "Cron"
-
+# ── Installing cron job ──
 SYNC_SCRIPT="$PLUGIN_DIR/scripts/sync-extprocessors.sh"
 CRON_LINE="* * * * * [ -f /var/lib/selynt_panel/.sync_needed ] && $SYNC_SCRIPT"
 if ! crontab -l 2>/dev/null | grep -qF "sync-extprocessors.sh"; then
+    sly_act "Installing" "cron job"
     ( crontab -l 2>/dev/null; printf "%s\n" "$CRON_LINE" ) | crontab -
-    ok "Cron job instalado"
 else
-    ok "Cron job já presente"
+    sly_act "Skipping" "cron job (already present)"
 fi
 
-# ── Reload ──
-step "Reload"
-
+# ── Restarting lsws ──
+sly_act "Restarting" "lsws"
 if systemctl restart lsws 2>/dev/null; then
-    ok "Servidor web reiniciado"
+    :
 elif command -v lswsctrl >/dev/null 2>&1 && lswsctrl restart 2>/dev/null; then
-    ok "Servidor web reiniciado (lswsctrl)"
+    :
 else
-    warn "Restart do servidor web falhou"
+    sly_warn "web server restart failed"
 fi
 
-printf "\n${G}${BOLD}  ✓ Setup OLS concluído${N}\n\n"
+sly_finished "OLS setup"
 exit 0

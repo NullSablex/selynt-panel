@@ -1,0 +1,15 @@
+#!/usr/local/bin/php -n
+<?php
+declare(strict_types=1);
+
+require_once dirname(__DIR__, 2) . '/lib/common.php';
+
+$input = selynt_input();
+$name  = trim((string)($input['name'] ?? ''));
+
+if ($name === '') {
+    selynt_json(['ok' => false, 'error' => 'missing_name', 'message' => selynt_t('errors.missing_name')]);
+    exit(0);
+}
+
+selynt_json(selynt_run(['stats', $name]));

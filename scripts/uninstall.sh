@@ -1,28 +1,31 @@
 #!/bin/bash
-# Selynt Panel — Uninstaller
+# Selynt Panel — uninstaller.
 set -euo pipefail
 
+PLUGIN_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+
 PLUGIN_ID="selynt_panel"
-OLS_MAIN_CONF="/usr/local/lsws/conf/httpd_config.conf"
-SELYNT_CONF="/usr/local/lsws/conf/selynt_extprocessors.conf"
 DA_TPL_DIR="/usr/local/directadmin/data/templates/custom"
 BEGIN_MARK="# BEGIN SELYNT_PANEL"
 END_MARK="# END SELYNT_PANEL"
 
-# ── Cores e helpers ──
-R="\033[0;31m"; G="\033[0;32m"; Y="\033[0;33m"; B="\033[0;36m"; D="\033[0;90m"; N="\033[0m"; BOLD="\033[1m"
-ok()   { printf "${G}  ✓${N} %s\n" "$1"; }
-erro() { printf "${R}  ✗${N} %s\n" "$1" >&2; }
-warn() { printf "${Y}  ⚠${N} %s\n" "$1"; }
-info() { printf "${D}    %s${N}\n" "$1"; }
-step() { printf "\n${BOLD}${B}── %s ──${N}\n" "$1"; }
+# shellcheck source=lib/output.sh
+. "$PLUGIN_DIR/scripts/lib/output.sh"
 
-[ "$(id -u)" -eq 0 ] || { erro "Execute como root."; exit 1; }
+# shellcheck source=lib/ols-paths.sh
+. "$PLUGIN_DIR/scripts/lib/ols-paths.sh"
+selynt_detect_ols || true
+OLS_CONF_DIR="${OLS_CONF_DIR:-/etc/openlitespeed}"
+OLS_MAIN_CONF="${OLS_MAIN_CONF:-$OLS_CONF_DIR/httpd_config.conf}"
+SELYNT_CONF="$OLS_CONF_DIR/selynt_extprocessors.conf"
+SELYNT_CONF_LEGACY="/usr/local/lsws/conf/selynt_extprocessors.conf"
 
-printf "\n${BOLD}Selynt Panel${N} — Desinstalação\n"
+[ "$(id -u)" -eq 0 ] || { sly_err "must run as root"; exit 1; }
 
-# ── Remove DA custom templates ──
-step "Templates"
+sly_header "Selynt Panel" "uninstalling"
+
+# ── Removing DA templates ──
+sly_act "Removing" "DirectAdmin templates"
 for tpl in openlitespeed_vhost.conf.CUSTOM.5.pre openlitespeed_vhost.conf.CUSTOM.7.pre; do
     TPL_FILE="$DA_TPL_DIR/$tpl"
     [ -f "$TPL_FILE" ] || continue
@@ -33,67 +36,67 @@ for tpl in openlitespeed_vhost.conf.CUSTOM.5.pre openlitespeed_vhost.conf.CUSTOM
     ' "$TPL_FILE")"
     if [ -z "$(echo "$CLEAN" | tr -d '[:space:]')" ]; then
         rm -f "$TPL_FILE"
-        ok "Template $tpl removido"
+        sly_sub "$tpl" "removed"
     else
         printf "%s\n" "$CLEAN" > "$TPL_FILE"
-        ok "Bloco Selynt removido de $tpl"
+        sly_sub "$tpl" "stripped Selynt block"
     fi
 done
 
-# ── Remove include do OLS ──
-step "Configuração OLS"
+# ── Removing OLS include ──
+sly_act "Cleaning" "OLS configuration"
 if [ -f "$OLS_MAIN_CONF" ] && grep -qF "selynt_extprocessors" "$OLS_MAIN_CONF" 2>/dev/null; then
     sed -i '/selynt_panel extProcessors include/d;/selynt_extprocessors\.conf/d' "$OLS_MAIN_CONF"
-    ok "Include removido do config do OLS"
 fi
 rm -f "$SELYNT_CONF" "$SELYNT_CONF.tmp".*
+rm -f "$SELYNT_CONF_LEGACY" "$SELYNT_CONF_LEGACY.tmp".*
 
-# ── Remove cron job ──
-step "Cron"
+# ── Removing cron job ──
 if crontab -l 2>/dev/null | grep -qF "sync-extprocessors.sh"; then
+    sly_act "Removing" "cron job"
     crontab -l 2>/dev/null | grep -vF "sync-extprocessors.sh" | crontab - 2>/dev/null || true
-    ok "Cron job removido"
 fi
 
-# ── Para todos os apps, limpa runtime, preserva config ──
-step "Aplicações"
+# ── Disabling systemd boot-recovery ──
+if command -v systemctl >/dev/null 2>&1; then
+    sly_act "Disabling" "boot-recovery service"
+    systemctl disable selynt-panel.service >/dev/null 2>&1 || true
+    rm -f /etc/systemd/system/selynt-panel.service
+    systemctl daemon-reload 2>/dev/null || true
+fi
+
+# ── Stopping apps and cleaning state ──
+sly_act "Stopping" "running apps"
 SELYNT_DATA="/var/lib/selynt_panel"
 if [ -d "$SELYNT_DATA" ]; then
-    # Mata processos e seus filhos (group kill)
     for pidfile in "$SELYNT_DATA"/*/.run/*.pid; do
         [ -f "$pidfile" ] || continue
         pid="$(cat "$pidfile" 2>/dev/null)"
         [ -z "$pid" ] && continue
-        # SIGTERM no grupo de processos
         kill -- -"$pid" 2>/dev/null || kill "$pid" 2>/dev/null || true
         sleep 1
-        # SIGKILL para garantir
         kill -9 -- -"$pid" 2>/dev/null || kill -9 "$pid" 2>/dev/null || true
     done
-
     rm -rf "$SELYNT_DATA"
-    ok "State dir removido: $SELYNT_DATA"
+    sly_sub "State   " "removed $SELYNT_DATA"
 fi
 
-# ── Rebuild vhosts (remove rewrite rules dos vhosts) ──
-step "Rebuild"
+# ── Rebuilding vhosts ──
 if [ -x /usr/local/directadmin/custombuild/build ]; then
-    if (cd /usr/local/directadmin/custombuild && ./build rewrite_confs) >/dev/null 2>&1; then
-        ok "Vhosts reconstruídos"
-    else
-        warn "Rebuild de vhosts falhou"
-    fi
+    sly_act "Building" "vhosts (rewrite_confs)"
+    (cd /usr/local/directadmin/custombuild && ./build rewrite_confs) >/dev/null 2>&1 \
+        || sly_warn "vhost rebuild failed"
 fi
 
-# ── Restart servidor web ──
-step "Reload"
+# ── Restarting web server ──
+sly_act "Restarting" "lsws"
 if systemctl restart lsws 2>/dev/null; then
-    ok "Servidor web reiniciado"
+    :
 elif command -v lswsctrl >/dev/null 2>&1 && lswsctrl restart 2>/dev/null; then
-    ok "Servidor web reiniciado (lswsctrl)"
+    :
 else
-    warn "Restart do servidor web falhou"
+    sly_warn "web server restart failed"
 fi
 
-printf "\n${G}${BOLD}  ✓ Desinstalação concluída${N}\n\n"
+sly_finished "uninstall"
 exit 0

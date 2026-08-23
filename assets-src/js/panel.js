@@ -1,5 +1,45 @@
 const ROOT = document.querySelector('.selynt-panel');
 
+// Tema escolhido pelo usuário, quando houver. O painel espelha o tema do
+// DirectAdmin por padrão, mas fora da skin não há DA na página para observar —
+// então a escolha explícita fica guardada aqui e tem prioridade.
+const THEME_KEY = 'selynt.theme';
+
+function storedTheme() {
+  try {
+    const v = localStorage.getItem(THEME_KEY);
+    return v === 'light' || v === 'dark' ? v : null;
+  } catch (e) {
+    return null;   // localStorage bloqueado (modo privado, cookies desativados)
+  }
+}
+
+function storeTheme(theme) {
+  try {
+    if (theme) localStorage.setItem(THEME_KEY, theme);
+    else localStorage.removeItem(THEME_KEY);
+  } catch (e) {}
+}
+
+export function applyTheme(theme) {
+  if (!ROOT) return;
+  ROOT.classList.toggle('theme-light', theme === 'light');
+  // O backdrop de modais vive fora de .selynt-panel; mantém-se em sincronia.
+  const backdrop = document.getElementById('selynt-modal-backdrop');
+  if (backdrop) backdrop.classList.toggle('theme-light', theme === 'light');
+}
+
+export function currentTheme() {
+  return ROOT && ROOT.classList.contains('theme-light') ? 'light' : 'dark';
+}
+
+export function toggleTheme() {
+  const next = currentTheme() === 'light' ? 'dark' : 'light';
+  storeTheme(next);
+  applyTheme(next);
+  return next;
+}
+
 function applyDirectAdminTheme() {
   if (!ROOT) return;
 
@@ -48,14 +88,23 @@ function applyDirectAdminTheme() {
     return true;
   }
 
-  ROOT.classList.toggle('theme-light', isProbablyLight());
+  const chosen = storedTheme();
+  ROOT.classList.toggle('theme-light', chosen ? chosen === 'light' : isProbablyLight());
 }
 
 if (ROOT) {
   applyDirectAdminTheme();
   try {
-    const obs = new MutationObserver(() => applyDirectAdminTheme());
+    // Só faz sentido espelhar o DirectAdmin enquanto o usuário não escolheu:
+    // uma escolha explícita não deve ser desfeita por mudança na skin.
+    const obs = new MutationObserver(() => {
+      if (!storedTheme()) applyDirectAdminTheme();
+    });
     if (document.documentElement) obs.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] });
     if (document.body) obs.observe(document.body, { attributes: true, attributeFilter: ['class', 'data-theme'] });
   } catch (e) {}
+
+  const themeBtn = document.getElementById('sly-theme-btn');
+  if (themeBtn) themeBtn.addEventListener('click', () => toggleTheme());
 }
+

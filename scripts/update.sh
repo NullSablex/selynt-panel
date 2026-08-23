@@ -1,30 +1,27 @@
 #!/bin/bash
+# update.sh — Reapply Selynt Panel permissions after a DA upgrade.
 set -euo pipefail
 
 PLUGIN_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
-G="\033[0;32m"; R="\033[0;31m"; B="\033[0;36m"; N="\033[0m"; BOLD="\033[1m"
-ok()   { printf "${G}  ✓${N} %s\n" "$1"; }
-erro() { printf "${R}  ✗${N} %s\n" "$1" >&2; }
+# shellcheck source=lib/output.sh
+. "$PLUGIN_DIR/scripts/lib/output.sh"
 
-[ "$(id -u)" -eq 0 ] || { erro "Execute como root."; exit 1; }
-
-printf "\n${BOLD}${B}── Atualizando permissões ──${N}\n"
+[ "$(id -u)" -eq 0 ] || { sly_err "must run as root"; exit 1; }
 
 BIN="$PLUGIN_DIR/bin/core-selynt"
 
-# Permissões (root:root 755)
+sly_act "Refreshing" "permissions"
 find "$PLUGIN_DIR" -type d -exec chmod 755 {} \; 2>/dev/null || true
 find "$PLUGIN_DIR" -type f -exec chmod 755 {} \; 2>/dev/null || true
 
-# plugin.conf: DA reescreve com 600, forçar 644 para leitura pelo diradmin
+# plugin.conf: DA rewrites it as 600; force 644 so diradmin can read it.
 chmod 644 "$PLUGIN_DIR/plugin.conf" 2>/dev/null || true
 
-# Binário: setuid root (4755)
 if [ -f "$BIN" ]; then
     chown root:root "$BIN"
     chmod 4755 "$BIN"
+    sly_sub "Binary  " "setuid root applied"
 fi
 
-ok "Permissões atualizadas"
-printf "\n"
+sly_finished "update"

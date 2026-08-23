@@ -1,50 +1,58 @@
 #!/bin/bash
-# Selynt Panel — Instalação manual via linha de comando.
-# Execute como root: bash <(curl -sL https://raw.githubusercontent.com/NullSablex/selynt-panel/master/install.sh)
+# Selynt Panel — one-shot installer.
+# Run as root:
+#   bash <(curl -fsSL https://raw.githubusercontent.com/NullSablex/selynt-panel/master/install.sh)
 set -euo pipefail
 
-R="\033[0;31m"; G="\033[0;32m"; Y="\033[0;33m"; B="\033[0;36m"; D="\033[0;90m"; N="\033[0m"; BOLD="\033[1m"
-ok()   { printf "${G}  ✓${N} %s\n" "$1"; }
-erro() { printf "${R}  ✗${N} %s\n" "$1" >&2; }
-warn() { printf "${Y}  ⚠${N} %s\n" "$1"; }
-step() { printf "\n${BOLD}${B}── %s ──${N}\n" "$1"; }
-
 PLUGIN_DIR="/usr/local/directadmin/plugins/selynt_panel"
-DOWNLOAD_URL="https://nullsablex.com/download/selynt_panel"
+REPO="NullSablex/selynt-panel"
+RELEASE_URL="https://github.com/${REPO}/releases/latest/download/selynt_panel.tar.gz"
 
-printf "\n${BOLD}Selynt Panel${N} — Instalação manual\n"
-
-[ "$(id -u)" -eq 0 ] || { erro "Execute como root."; exit 1; }
-command -v directadmin >/dev/null 2>&1 || [ -x /usr/local/directadmin/directadmin ] || { erro "DirectAdmin não encontrado."; exit 1; }
-
-step "Download"
-TMP="$(mktemp)"
-if command -v curl >/dev/null 2>&1; then
-    curl -fsSL "$DOWNLOAD_URL" -o "$TMP"
-elif command -v wget >/dev/null 2>&1; then
-    wget -qO "$TMP" "$DOWNLOAD_URL"
+# Inline cargo-style helpers — this script runs before the plugin is installed,
+# so it cannot source scripts/lib/output.sh.
+if [ -t 1 ] && [ -z "${NO_COLOR:-}" ]; then
+    R=$'\033[0;31m'; G=$'\033[0;32m'; Y=$'\033[0;33m'; D=$'\033[0;90m'
+    B=$'\033[1m'; N=$'\033[0m'
 else
-    erro "curl ou wget necessário."; exit 1
+    R=""; G=""; Y=""; D=""; B=""; N=""
 fi
-ok "Pacote baixado"
+header()  { printf '\n%s%s%s %s%s%s\n\n' "$B" "$1" "$N" "$D" "${2:-}" "$N"; }
+act()     { printf '%s%12s%s %s\n' "$G$B" "$1" "$N" "${2:-}"; }
+warn()    { printf '%s%12s%s %s\n' "$Y$B" "warning:" "$N" "$1" >&2; }
+err()     { printf '%s%12s%s %s\n' "$R$B" "error:"   "$N" "$1" >&2; }
+finished(){ printf '%s%12s%s %s\n' "$G$B" "Finished" "$N" "${1:-}"; }
 
-step "Instalação"
+header "Selynt Panel" "installer"
+
+[ "$(id -u)" -eq 0 ] || { err "must run as root"; exit 1; }
+command -v directadmin >/dev/null 2>&1 \
+    || [ -x /usr/local/directadmin/directadmin ] \
+    || { err "DirectAdmin not found"; exit 1; }
+
+act "Downloading" "latest release from github.com/${REPO}"
+TMP="$(mktemp)"
+trap 'rm -f "$TMP"' EXIT
+if command -v curl >/dev/null 2>&1; then
+    curl -fsSL "$RELEASE_URL" -o "$TMP"
+elif command -v wget >/dev/null 2>&1; then
+    wget -qO "$TMP" "$RELEASE_URL"
+else
+    err "curl or wget required"; exit 1
+fi
+
+act "Extracting" "to $PLUGIN_DIR"
 mkdir -p "$PLUGIN_DIR"
 tar -xzf "$TMP" -C "$PLUGIN_DIR"
-rm -f "$TMP"
-ok "Extraído em $PLUGIN_DIR"
 
 bash "$PLUGIN_DIR/scripts/install.sh"
-
-step "Permissões"
 bash "$PLUGIN_DIR/scripts/update.sh"
 
-step "DirectAdmin"
+act "Restarting" "directadmin"
 if systemctl restart directadmin 2>/dev/null || service directadmin restart 2>/dev/null; then
-    ok "DirectAdmin reiniciado"
+    :
 else
-    warn "Reinicie o DirectAdmin manualmente"
+    warn "restart directadmin manually"
 fi
 
-printf "\n${G}${BOLD}  ✓ Selynt Panel instalado com sucesso!${N}\n"
-printf "${D}  Acesse: https://seu-servidor:2222/CMD_PLUGINS_ADMIN/selynt_panel${N}\n\n"
+finished "install"
+printf '             %sAccess:%s https://your-server:2222/CMD_PLUGINS_ADMIN/selynt_panel\n\n' "$D" "$N"

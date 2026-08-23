@@ -1,5 +1,7 @@
 #!/usr/local/bin/php
 <?php
+declare(strict_types=1);
+
 require_once dirname(__DIR__) . '/lib/common.php';
 
 $bin_ok   = is_executable(SELYNT_BIN);
@@ -12,7 +14,7 @@ $selected = trim((string)getenv('DOMAIN'));
 if ($selected === '') {
     $qs = [];
     parse_str((string)getenv('QUERY_STRING'), $qs);
-    $selected = trim($qs['domain'] ?? '');
+    $selected = trim((string)($qs['domain'] ?? ''));
 }
 
 // Chama o binário para listar domínios (filtrado se há seleção)
@@ -33,31 +35,48 @@ if ($bin_ok) {
   <div class="app-shell">
     <header class="app-header">
       <div class="header-left">
-        <a href="<?= $pluginBase ?>">
-          <img class="header-logo" src="<?= $pluginBase ?>/images/assets/img/logo.png" alt="Selynt Panel">
-        </a>
+        <img src="<?= $pluginBase ?>/images/assets/img/logo.png" class="brand-mini" alt="Selynt Panel">
+
         <nav class="main-nav">
-          <a href="<?= $pluginBase ?>">Aplicações</a>
+          <a href="<?= $pluginBase ?>"><?= selynt_t_html('nav.dashboard') ?></a>
+          <a href="<?= $pluginBase ?>/apps.html" class="active"><?= selynt_t_html('nav.apps') ?></a>
         </nav>
+      </div>
+
+      <div class="header-right">
+        <button type="button" class="lang-button" id="sly-lang-btn" aria-label="<?= selynt_t_html('locale.label') ?>">
+          <i class="fa-solid fa-globe"></i>
+          <span class="lang-button-label"><?= htmlspecialchars(selynt_i18n_active_name(), ENT_QUOTES, 'UTF-8') ?></span>
+        </button>
+
+        <button type="button" class="theme-toggle" id="sly-theme-btn" aria-label="<?= selynt_t_html('theme.toggle') ?>">
+          <i class="fa-solid fa-moon icon-moon"></i>
+          <i class="fa-solid fa-sun icon-sun"></i>
+        </button>
+
+        <a href="/" class="lang-button" title="<?= selynt_t_html('nav.back_da') ?>">
+          <i class="fa-solid fa-arrow-left-long"></i>
+          <span class="lang-button-label"><?= selynt_t_html('nav.back_da') ?></span>
+        </a>
       </div>
     </header>
 
     <main class="app-main">
       <div class="app-main-header">
         <div>
-          <h1>Novo App</h1>
-          <p>Crie uma aplicação vinculada a um domínio.</p>
+          <h1><?= selynt_t_html('create.title') ?></h1>
+          <p><?= selynt_t_html('create.subtitle') ?></p>
         </div>
         <div class="main-header-actions">
-          <a href="<?= $pluginBase ?>" class="btn-outline">
-            <i class="fa-solid fa-arrow-left"></i> Voltar
+          <a href="<?= $pluginBase ?>/apps.html" class="btn-outline">
+            <i class="fa-solid fa-arrow-left"></i> <?= selynt_t_html('common.back') ?>
           </a>
         </div>
       </div>
 
 <?php if (!$bin_ok): ?>
       <div class="alert-error">
-        Binário <code>Core Selynt</code> não encontrado. Contate o administrador.
+        <?= selynt_t_html('alert.binary_missing_user') ?>
       </div>
 <?php else: ?>
       <div class="form-container">
@@ -65,47 +84,47 @@ if ($bin_ok) {
         <form id="sly-form" class="selynt-form">
           <div class="form-grid">
             <div class="form-field">
-              <label class="form-label">Nome do App</label>
+              <label class="form-label"><?= selynt_t_html('create.field.name') ?></label>
               <input type="text" id="f-name" required pattern="[A-Za-z0-9._\-]{1,64}" placeholder="meu-app">
-              <div class="form-help">Letras, números, ponto, hífen, underscore. Máx 64.</div>
+              <div class="form-help"><?= selynt_t_html('create.field.name_help') ?></div>
             </div>
             <div class="form-field">
-              <label class="form-label">Tipo</label>
+              <label class="form-label"><?= selynt_t_html('create.field.type') ?></label>
               <select id="f-type">
-                <option value="node">Node.js</option>
-                <option value="rust">Binário Rust</option>
+                <option value="node"><?= selynt_t_html('type.node') ?></option>
+                <option value="rust"><?= selynt_t_html('type.rust') ?></option>
               </select>
             </div>
           </div>
           <div class="form-field">
-            <label class="form-label">Host (domínio ou subdomínio)</label>
+            <label class="form-label"><?= selynt_t_html('create.field.host') ?></label>
             <select id="f-host" required>
-              <option value="">— selecione —</option>
+              <option value=""><?= selynt_t_html('create.field.host_select') ?></option>
             </select>
             <?php if ($selected !== ''): ?>
-            <div class="form-help">Domínio selecionado: <?= htmlspecialchars($selected) ?></div>
+            <div class="form-help"><?= selynt_t_html('create.field.host_selected', ['domain' => $selected]) ?></div>
             <?php endif; ?>
           </div>
           <div class="form-field">
-            <label class="form-label">Diretório de trabalho (cwd)</label>
+            <label class="form-label"><?= selynt_t_html('create.field.cwd') ?></label>
             <input type="text" id="f-cwd" required>
-            <div class="form-help">Onde fica o código do app. Será criado se não existir.</div>
+            <div class="form-help"><?= selynt_t_html('create.field.cwd_help') ?></div>
           </div>
           <div class="form-field" id="fg-node-version" style="display:none">
-            <label class="form-label">Versão do Node.js</label>
-            <select id="f-node-version"><option value="">Carregando...</option></select>
+            <label class="form-label"><?= selynt_t_html('create.field.node') ?></label>
+            <select id="f-node-version"><option value=""><?= selynt_t_html('common.loading') ?></option></select>
           </div>
           <div class="form-field">
-            <label class="form-label">Arquivo de entrada</label>
+            <label class="form-label"><?= selynt_t_html('create.field.entry') ?></label>
             <input type="text" id="f-entry" placeholder="index.js">
           </div>
           <div class="form-field">
-            <label class="form-label">Variáveis de ambiente <span class="label-optional">(opcional, uma por linha: CHAVE=valor)</span></label>
+            <label class="form-label"><?= selynt_t_html('create.field.env') ?> <span class="label-optional"><?= selynt_t_html('create.field.env_optional') ?></span></label>
             <textarea id="f-env" rows="3" placeholder="NODE_ENV=production&#10;MY_VAR=valor"></textarea>
           </div>
           <div class="form-actions">
-            <button type="submit" class="btn-outline btn-primary"><i class="fa-solid fa-plus"></i> Criar App</button>
-            <a href="<?= $pluginBase ?>" class="btn-outline"><i class="fa-solid fa-xmark"></i> Cancelar</a>
+            <button type="submit" class="btn-outline btn-primary"><i class="fa-solid fa-plus"></i> <?= selynt_t_html('create.submit') ?></button>
+            <a href="<?= $pluginBase ?>/apps.html" class="btn-outline"><i class="fa-solid fa-xmark"></i> <?= selynt_t_html('common.cancel') ?></a>
           </div>
         </form>
       </div>
@@ -115,6 +134,7 @@ if ($bin_ok) {
 </div>
 
 <?php if ($bin_ok): ?>
+<?= selynt_i18n_script_tag() ?>
 <script src="<?= $pluginBase ?>/images/assets/js/fontawesome.min.js?v=<?= $v ?>"></script>
 <script src="<?= $pluginBase ?>/images/assets/js/solid.min.js?v=<?= $v ?>"></script>
 <script src="<?= $pluginBase ?>/images/assets/js/regular.min.js?v=<?= $v ?>"></script>
@@ -122,6 +142,7 @@ if ($bin_ok) {
 <script type="module" src="<?= $pluginBase ?>/images/assets/js/script.min.js?v=<?= $v ?>"></script>
 <script type="module" src="<?= $pluginBase ?>/images/assets/js/panel.min.js?v=<?= $v ?>"></script>
 <script type="module">
+import { t } from '<?= $pluginBase ?>/images/assets/js/script.min.js?v=<?= $v ?>';
 const _user = <?= json_encode($username) ?>;
 const _domainsData = <?= json_encode($domains_result) ?>;
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);}
@@ -129,14 +150,14 @@ function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;',
 {
   const sel = document.getElementById('f-host');
   if (!_domainsData || !_domainsData.ok || !Array.isArray(_domainsData.domains) || !_domainsData.domains.length) {
-    sel.innerHTML = '<option value="">— nenhum domínio —</option>';
+    sel.innerHTML = '<option value="">'+esc(t('create.field.host_empty'))+'</option>';
   } else {
-    const opts = ['<option value="">— selecione —</option>'];
+    const opts = ['<option value="">'+esc(t('create.field.host_select'))+'</option>'];
     for (const d of _domainsData.domains) {
       opts.push(`<option value="${esc(d.host)}">${esc(d.host)}</option>`);
       if (Array.isArray(d.subdomains)) {
         for (const s of d.subdomains) {
-          opts.push(`<option value="${esc(s.host)}">\u00a0\u00a0\u21b3 ${esc(s.host)}</option>`);
+          opts.push(`<option value="${esc(s.host)}">  ↳ ${esc(s.host)}</option>`);
         }
       }
     }
@@ -168,7 +189,7 @@ const nvRes = await fetch('/CMD_PLUGINS/selynt_panel/api/nodes.raw').then(r=>r.j
 {
   const sel = document.getElementById('f-node-version');
   if (!nvRes || !nvRes.ok || !nvRes.versions || !nvRes.versions.length) {
-    sel.innerHTML = '<option value="">Node.js (padrão)</option>';
+    sel.innerHTML = '<option value="">'+esc(t('create.field.node_default'))+'</option>';
   } else {
     sel.innerHTML = nvRes.versions.map(v =>
       `<option value="${esc(v.path)}">${esc(v.label)}</option>`
@@ -184,7 +205,7 @@ document.getElementById('sly-form').addEventListener('submit', async function(e)
   e.preventDefault();
   const btn = this.querySelector('button[type=submit]');
   const msg = document.getElementById('sly-msg');
-  btn.disabled = true; btn.textContent = 'Criando...'; msg.classList.add('d-none');
+  btn.disabled = true; btn.textContent = t('create.submitting'); msg.classList.add('d-none');
   const type = document.getElementById('f-type').value;
   const params = new URLSearchParams({
     name:  document.getElementById('f-name').value.trim(),
@@ -199,13 +220,13 @@ document.getElementById('sly-form').addEventListener('submit', async function(e)
   }
   const r = await fetch(`/CMD_PLUGINS/selynt_panel/api/create.raw?${params}`, {
     method: 'POST'
-  }).then(r => r.json()).catch(() => ({ok:false, message:'Erro de rede.'}));
+  }).then(r => r.json()).catch(() => ({ok:false, message:t('errors.network')}));
   if (r.ok) {
     window.location.href = '/CMD_PLUGINS/selynt_panel';
   } else {
-    msg.textContent = r.message || r.error || 'Erro ao criar app.';
+    msg.textContent = r.message || r.error || t('errors.create_failed');
     msg.classList.remove('d-none');
-    btn.disabled = false; btn.textContent = 'Criar App';
+    btn.disabled = false; btn.textContent = t('create.submit');
   }
 });
 

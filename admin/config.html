@@ -1,9 +1,13 @@
 #!/usr/local/bin/php
 <?php
+declare(strict_types=1);
+
 require_once dirname(__DIR__) . '/lib/common.php';
 $bin_ok = is_executable(SELYNT_BIN);
 $pluginBase = '/CMD_PLUGINS_ADMIN/selynt_panel';
 $v = SELYNT_VERSION;
+$locale_options = selynt_i18n_options();
+$locale_global  = selynt_i18n_global();
 ?>
 
 <link rel="stylesheet" href="<?= $pluginBase ?>/images/assets/css/panel.min.css?v=<?= $v ?>">
@@ -12,55 +16,80 @@ $v = SELYNT_VERSION;
   <div class="app-shell">
     <header class="app-header">
       <div class="header-left">
-        <a href="<?= $pluginBase ?>">
-          <img class="header-logo" src="<?= $pluginBase ?>/images/assets/img/logo.png" alt="Selynt Panel">
-        </a>
+        <img src="<?= $pluginBase ?>/images/assets/img/logo.png" class="brand-mini" alt="Selynt Panel">
+
         <nav class="main-nav">
-          <a href="<?= $pluginBase ?>">Visão Geral</a>
-          <a class="active" href="<?= $pluginBase ?>/config.html">Configurações</a>
+          <a href="<?= $pluginBase ?>"><?= selynt_t_html('nav.overview') ?></a>
+          <a href="<?= $pluginBase ?>/config.html" class="active"><?= selynt_t_html('nav.settings') ?></a>
+          <a href="<?= $pluginBase ?>/diagnostic.html"><?= selynt_t_html('nav.diagnostic') ?></a>
         </nav>
+      </div>
+
+      <div class="header-right">
+        <button type="button" class="lang-button" id="sly-lang-btn" aria-label="<?= selynt_t_html('locale.label') ?>">
+          <i class="fa-solid fa-globe"></i>
+          <span class="lang-button-label"><?= htmlspecialchars(selynt_i18n_active_name(), ENT_QUOTES, 'UTF-8') ?></span>
+        </button>
+
+        <button type="button" class="theme-toggle" id="sly-theme-btn" aria-label="<?= selynt_t_html('theme.toggle') ?>">
+          <i class="fa-solid fa-moon icon-moon"></i>
+          <i class="fa-solid fa-sun icon-sun"></i>
+        </button>
+
+        <a href="/" class="lang-button" title="<?= selynt_t_html('nav.back_da') ?>">
+          <i class="fa-solid fa-arrow-left-long"></i>
+          <span class="lang-button-label"><?= selynt_t_html('nav.back_da') ?></span>
+        </a>
       </div>
     </header>
 
     <main class="app-main">
       <header class="app-main-header">
         <div>
-          <h1>Configurações</h1>
-          <p>Configurações do Selynt Panel.</p>
+          <h1><?= selynt_t_html('admin.cfg.title') ?></h1>
+          <p><?= selynt_t_html('admin.cfg.subtitle') ?></p>
         </div>
       </header>
 
       <div class="content-pad">
         <div class="cfg-card">
           <div class="cfg-row">
-            <span class="cfg-lbl">Binário <code>Core Selynt</code></span>
-            <span class="cfg-val <?= $bin_ok ? 'ok' : 'err' ?>"><?= $bin_ok ? 'OK' : 'Não encontrado' ?></span>
+            <span class="cfg-lbl"><?= selynt_t_html('admin.cfg.bin_label') ?> <code>Core Selynt</code></span>
+            <span class="cfg-val <?= $bin_ok ? 'ok' : 'err' ?>"><?= $bin_ok ? selynt_t_html('admin.cfg.bin_ok') : selynt_t_html('admin.cfg.bin_missing') ?></span>
           </div>
           <?php if ($bin_ok): ?>
           <div class="cfg-row">
-            <span class="cfg-lbl">Versão</span>
+            <span class="cfg-lbl"><?= selynt_t_html('admin.cfg.version') ?></span>
             <span class="cfg-val text-half" id="bin-ver">…</span>
           </div>
           <?php endif; ?>
         </div>
 
         <div class="cfg-card">
-          <h4>Diagnóstico</h4>
-          <p class="cfg-desc">Verifica templates, vhosts, permissões, sockets, ACLs e logs.</p>
-          <div id="diag-output"></div>
+          <h4><?= selynt_t_html('locale.global') ?></h4>
+          <p class="cfg-desc"><?= selynt_t_html('locale.global_hint') ?></p>
           <div class="cfg-actions">
-            <button class="btn-xs btn-soft" onclick="runDiag()" id="btn-diag"><i class="fa-solid fa-stethoscope"></i> Executar Diagnóstico</button>
+<?php
+            $global_name = selynt_t('locale.global_unset');
+            foreach ($locale_options as $opt) {
+                if ($opt['code'] === $locale_global) { $global_name = $opt['name']; break; }
+            }
+?>
+            <button type="button" class="lang-button" id="sly-lang-btn">
+              <i class="fa-solid fa-globe"></i>
+              <span class="lang-button-label"><?= htmlspecialchars($global_name, ENT_QUOTES, 'UTF-8') ?></span>
+            </button>
           </div>
         </div>
 
 <?php if ($bin_ok): ?>
         <div class="cfg-card" id="node-section" style="display:none">
-          <h4>Versões do Node.js</h4>
-          <p class="cfg-desc">Selecione quais versões estarão disponíveis para os usuários.</p>
-          <div id="node-list"><em class="text-faded">Clique em "Detectar" para buscar versões instaladas.</em></div>
+          <h4><?= selynt_t_html('admin.cfg.node_title') ?></h4>
+          <p class="cfg-desc"><?= selynt_t_html('admin.cfg.node_desc') ?></p>
+          <div id="node-list"><em class="text-faded"><?= selynt_t_html('admin.cfg.node_detect_hint') ?></em></div>
           <div class="cfg-actions">
-            <button class="btn-xs btn-soft" onclick="detect()"><i class="fa-solid fa-magnifying-glass"></i> Detectar</button>
-            <button class="btn-xs btn-soft btn-save-hidden" onclick="save()" id="btn-save"><i class="fa-solid fa-floppy-disk"></i> Salvar</button>
+            <button class="btn-xs btn-soft" onclick="detect()"><i class="fa-solid fa-magnifying-glass"></i> <?= selynt_t_html('admin.cfg.detect') ?></button>
+            <button class="btn-xs btn-soft btn-save-hidden" onclick="save()" id="btn-save"><i class="fa-solid fa-floppy-disk"></i> <?= selynt_t_html('common.save') ?></button>
           </div>
           <div id="node-msg"></div>
         </div>
@@ -70,21 +99,30 @@ $v = SELYNT_VERSION;
   </div>
 </div>
 
-<?php if ($bin_ok): ?>
+<?= selynt_i18n_script_tag() ?>
 <script src="<?= $pluginBase ?>/images/assets/js/fontawesome.min.js?v=<?= $v ?>"></script>
 <script src="<?= $pluginBase ?>/images/assets/js/solid.min.js?v=<?= $v ?>"></script>
 <script src="<?= $pluginBase ?>/images/assets/js/regular.min.js?v=<?= $v ?>"></script>
 <script src="<?= $pluginBase ?>/images/assets/js/brands.min.js?v=<?= $v ?>"></script>
 <script type="module" src="<?= $pluginBase ?>/images/assets/js/script.min.js?v=<?= $v ?>"></script>
 <script type="module" src="<?= $pluginBase ?>/images/assets/js/panel.min.js?v=<?= $v ?>"></script>
+
+<!-- Global language picker (admin), available regardless of the binary. -->
 <script type="module">
+import { langModal } from '<?= $pluginBase ?>/images/assets/js/script.min.js?v=<?= $v ?>';
+langModal({ apiBase: '<?= $pluginBase ?>/api', endpoint: 'config.raw', getAction: 'get_locale', saveAction: 'save_locale' });
+</script>
+
+<?php if ($bin_ok): ?>
+<script type="module">
+import { t } from '<?= $pluginBase ?>/images/assets/js/script.min.js?v=<?= $v ?>';
 const API='/CMD_PLUGINS_ADMIN/selynt_panel/api/config.raw';
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);}
 let allowed=[];
 let detected=[];
 
 async function detect(){
-  document.getElementById('node-list').innerHTML='<em class="text-faded">Detectando...</em>';
+  document.getElementById('node-list').innerHTML='<em class="text-faded">'+esc(t('admin.cfg.detecting'))+'</em>';
   const [r,a]=await Promise.all([
     fetch(API+'?action=detect_nodes').then(r=>r.json()).catch(()=>null),
     fetch(API+'?action=allowed_versions').then(r=>r.json()).catch(()=>null)
@@ -107,51 +145,45 @@ function render(){
 
 async function save(){
   const checked=[...document.querySelectorAll('#node-list input:checked')];
-  if(!checked.length){msg('Selecione ao menos uma versão.','err');return;}
+  if(!checked.length){msg(t('errors.no_selection'),'err');return;}
   const selected=checked.map(i=>detected.findIndex(d=>d.path===i.value)).filter(x=>x>=0);
   const res=await fetch(API+'?action=save_node_versions&s='+selected.join('-'),{method:'POST'});
   const txt=await res.text();
   let r=null;
-  try{r=JSON.parse(txt);}catch(e){console.error('Resposta:',txt);}
+  try{r=JSON.parse(txt);}catch(e){console.error('Response:',txt);}
   if(r&&r.ok){
     allowed=checked.map(i=>{
       const v=detected.find(d=>d.path===i.value);
       return v?v.version:'';
     }).filter(x=>x);
-    msg('Salvo!','ok');
+    msg(t('admin.cfg.save_ok'),'ok');
   } else {
-    msg(r?.message||'Erro (HTTP '+res.status+'): '+txt.substring(0,200),'err');
+    msg(r?.message||t('admin.cfg.save_err_http',{status:res.status,text:txt.substring(0,200)}),'err');
   }
 }
 
-function msg(t,c){const el=document.getElementById('node-msg');el.className='cfg-msg '+c;el.textContent=t;setTimeout(()=>el.textContent='',3000);}
+function msg(tx,c){const el=document.getElementById('node-msg');el.className='cfg-msg '+c;el.textContent=tx;setTimeout(()=>el.textContent='',3000);}
 
-async function runDiag(){
-  const btn=document.getElementById('btn-diag');
-  const out=document.getElementById('diag-output');
-  btn.disabled=true;btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Executando...';
-  out.innerHTML='';
-  const res=await fetch(API+'?action=diag').then(r=>r.json()).catch(()=>null);
-  btn.disabled=false;btn.innerHTML='<i class="fa-solid fa-stethoscope"></i> Executar Diagnóstico';
-  if(!res||!res.ok){out.innerHTML='<p class="cfg-msg err">Erro ao executar diagnóstico.</p>';return;}
-  const lines=res.output||'';
-  const html=lines.split('\n').map(l=>{
-    if(/✓/.test(l)) return `<div class="diag-line diag-ok">${esc(l)}</div>`;
-    if(/✗/.test(l)) return `<div class="diag-line diag-fail">${esc(l)}</div>`;
-    if(/⚠/.test(l)) return `<div class="diag-line diag-warn">${esc(l)}</div>`;
-    if(/^[═╔╚║──]/.test(l)||/^── /.test(l)) return `<div class="diag-line diag-head">${esc(l)}</div>`;
-    return `<div class="diag-line">${esc(l)}</div>`;
-  }).join('');
-  out.innerHTML=`<div class="diag-box">${html}</div>`;
+async function copyCmd(id){
+  const el=document.getElementById(id);
+  if(!el)return;
+  try{
+    await navigator.clipboard.writeText(el.textContent.trim());
+  } catch(e){
+    const r=document.createRange();r.selectNode(el);
+    const sel=window.getSelection();sel.removeAllRanges();sel.addRange(r);
+    try{document.execCommand('copy');}catch(_){}
+    sel.removeAllRanges();
+  }
 }
-window.runDiag=runDiag;
+window.copyCmd=copyCmd;
 
 window.detect=detect;
 window.save=save;
 detect();
 fetch(API+'?action=version').then(r=>r.json()).then(r=>{
   const el=document.getElementById('bin-ver');
-  if(el){el.textContent=r.ok?r.version:'erro';el.classList.remove('text-half');}
+  if(el){el.textContent=r.ok?r.version:t('admin.cfg.version_err');el.classList.remove('text-half');}
 }).catch(()=>{});
 </script>
 <?php endif; ?>

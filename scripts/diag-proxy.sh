@@ -1,290 +1,223 @@
 #!/bin/bash
-# diag-proxy.sh — Diagnóstico completo do proxy Selynt Panel.
-# Execute como root: bash /usr/local/directadmin/plugins/selynt_panel/scripts/diag-proxy.sh
+# diag-proxy.sh — Full diagnostic of the Selynt Panel proxy stack.
+# Run as root.
 set -u
-
-# ── Cores e helpers ──
-R="\033[0;31m"; G="\033[0;32m"; Y="\033[0;33m"; B="\033[0;36m"; D="\033[0;90m"; N="\033[0m"; BOLD="\033[1m"
-PASS=0; FAILS=0; WARNS=0
-
-ok()   { printf "${G}  ✓${N} %s\n" "$1"; PASS=$((PASS+1)); }
-fail() { printf "${R}  ✗${N} %s\n" "$1"; FAILS=$((FAILS+1)); }
-warn() { printf "${Y}  ⚠${N} %s\n" "$1"; WARNS=$((WARNS+1)); }
-info() { printf "${D}    %s${N}\n" "$1"; }
-section() { printf "\n${BOLD}${B}── %s ──${N}\n" "$1"; }
-sep()  { printf "${D}%s${N}\n" "────────────────────────────────────────────────────────"; }
 
 PLUGIN_DIR="/usr/local/directadmin/plugins/selynt_panel"
 STATE_BASE="/var/lib/selynt_panel"
-OLS_CONF_DIR="/usr/local/lsws/conf"
-OLS_MAIN="$OLS_CONF_DIR/httpd_config.conf"
 DA_TPL_DIR="/usr/local/directadmin/data/templates/custom"
 
-printf "\n${BOLD}╔══════════════════════════════════════════════╗${N}\n"
-printf "${BOLD}║     Selynt Panel — Diagnóstico de Proxy      ║${N}\n"
-printf "${BOLD}╚══════════════════════════════════════════════╝${N}\n"
-printf "${D}  %s${N}\n" "$(date '+%Y-%m-%d %H:%M:%S %Z')"
+# shellcheck source=lib/output.sh
+. "$PLUGIN_DIR/scripts/lib/output.sh"
 
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-section "Ambiente"
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# shellcheck source=lib/ols-paths.sh
+. "$PLUGIN_DIR/scripts/lib/ols-paths.sh"
+selynt_detect_ols || true
+OLS_CONF_DIR="${OLS_CONF_DIR:-/usr/local/lsws/conf}"
+OLS_MAIN="${OLS_MAIN_CONF:-$OLS_CONF_DIR/httpd_config.conf}"
 
-# Root check
+PASS=0; FAILS=0; WARNS=0
+pass() { sly_sub "$1" "$2"; PASS=$((PASS+1)); }
+fail() { sly_err  "$1"; FAILS=$((FAILS+1)); }
+warn() { sly_warn "$1"; WARNS=$((WARNS+1)); }
+
+sly_header "Selynt Panel" "diagnostic — $(date '+%Y-%m-%d %H:%M:%S %Z')"
+
+# ── Checking environment ──
+sly_act "Checking" "environment"
+
 if [ "$(id -u)" -eq 0 ]; then
-    ok "Executando como root"
+    pass "user    " "root"
 else
-    warn "Executando como $(whoami) — alguns testes podem ser limitados"
+    warn "running as $(whoami) — some checks may be limited"
 fi
 
-# DirectAdmin
 if [ -x /usr/local/directadmin/directadmin ]; then
-    DA_VER="$(/usr/local/directadmin/directadmin v 2>/dev/null || echo 'desconhecida')"
-    ok "DirectAdmin: $DA_VER"
+    DA_VER="$(/usr/local/directadmin/directadmin v 2>/dev/null || echo 'unknown')"
+    pass "DA      " "$DA_VER"
 else
-    fail "DirectAdmin não encontrado"
+    fail "DirectAdmin not found"
 fi
 
-# OpenLiteSpeed / LiteSpeed Enterprise
 if command -v lshttpd >/dev/null 2>&1; then
-    LS_VER="$(lshttpd -v 2>/dev/null | head -1 || echo 'desconhecida')"
-    ok "OLS/LSWS: $LS_VER"
-elif [ -d /usr/local/lsws ]; then
-    ok "OLS/LSWS: instalado"
+    LS_VER="$(lshttpd -v 2>/dev/null | head -1 || echo 'unknown')"
+    pass "OLS/LSWS" "$LS_VER"
+elif [ -d /etc/openlitespeed ] || [ -d /usr/local/lsws ]; then
+    pass "OLS/LSWS" "$OLS_LAYOUT layout, conf at $OLS_CONF_DIR"
 else
-    fail "OLS/LSWS: não encontrado"
+    fail "OLS/LSWS not found"
 fi
 
 if systemctl is-active lsws >/dev/null 2>&1; then
-    ok "Serviço lsws: ativo"
+    pass "lsws svc" "active"
 else
-    fail "Serviço lsws: NÃO está rodando"
+    fail "lsws service is not running"
 fi
 
-# Plugin
 if [ -d "$PLUGIN_DIR" ]; then
-    PLUGIN_VER="$(cat "$PLUGIN_DIR/version" 2>/dev/null | tr -d '[:space:]')"
-    ok "Plugin instalado: v${PLUGIN_VER:-?}"
+    PLUGIN_VER="$(awk -F= '$1=="version"{print $2; exit}' "$PLUGIN_DIR/plugin.conf" 2>/dev/null | tr -d '[:space:]')"
+    pass "plugin  " "v${PLUGIN_VER:-?}"
 else
-    fail "Plugin não instalado em $PLUGIN_DIR"
+    fail "plugin not installed at $PLUGIN_DIR"
 fi
 
-# Binário Core Selynt
 BIN="$PLUGIN_DIR/bin/core-selynt"
 if [ -x "$BIN" ]; then
     PERMS="$(stat -c '%a %U:%G' "$BIN" 2>/dev/null)"
     if stat -c '%a' "$BIN" 2>/dev/null | grep -q '^4'; then
-        ok "Binário Core Selynt: OK (setuid, $PERMS)"
+        CORE_VER="$("$BIN" version 2>/dev/null || echo '')"
+        pass "binary  " "OK (setuid, $PERMS)${CORE_VER:+ — $CORE_VER}"
     else
-        fail "Binário Core Selynt: sem setuid ($PERMS) — esperado 4755 root:root"
+        fail "core-selynt missing setuid ($PERMS) — expected 4755 root:root"
     fi
-    CORE_VER="$("$BIN" version 2>/dev/null || echo '')"
-    [ -n "$CORE_VER" ] && info "Versão: $CORE_VER"
 else
-    fail "Binário Core Selynt NÃO encontrado: $BIN"
+    fail "core-selynt binary not found: $BIN"
 fi
 
-# PHP CLI
 if command -v php >/dev/null 2>&1; then
-    PHP_VER="$(php -v 2>/dev/null | head -1)"
-    ok "PHP CLI: $PHP_VER"
+    pass "PHP CLI " "$(php -v 2>/dev/null | head -1)"
 else
-    fail "PHP CLI não encontrado"
+    fail "PHP CLI not found"
 fi
 
-# Node.js
 if command -v node >/dev/null 2>&1; then
     NODE_VER="$(node --version 2>/dev/null)"
     NODE_MAJOR="${NODE_VER#v}"; NODE_MAJOR="${NODE_MAJOR%%.*}"
     NODE_MINOR="${NODE_VER#*.}"; NODE_MINOR="${NODE_MINOR%%.*}"
     if [ "$NODE_MAJOR" -gt 20 ] 2>/dev/null || { [ "$NODE_MAJOR" -eq 20 ] && [ "$NODE_MINOR" -ge 6 ]; } 2>/dev/null; then
-        ok "Node.js: $NODE_VER (≥ 20.6 requerido)"
+        pass "Node.js " "$NODE_VER (≥ 20.6)"
     else
-        fail "Node.js: $NODE_VER (< 20.6 — incompatível com --import loader)"
+        fail "Node.js $NODE_VER (< 20.6 — incompatible with --import loader)"
     fi
 else
-    warn "Node.js não encontrado no PATH"
+    warn "Node.js not found on PATH"
 fi
 
-# Versões configuradas
 NV_FILE="$PLUGIN_DIR/etc/node_versions"
 if [ -f "$NV_FILE" ]; then
     NV_COUNT="$(wc -l < "$NV_FILE" | tr -d '[:space:]')"
-    ok "Versões Node.js configuradas: $NV_COUNT"
+    pass "nodes   " "$NV_COUNT configured"
     while IFS= read -r line; do
         path="$(echo "$line" | awk '{print $1}')"
         ver="$(echo "$line" | awk '{print $2}')"
         if [ -x "$path" ]; then
-            info "$ver → $path"
+            sly_sub "  $ver" "$path"
         else
-            warn "$ver → $path (NÃO EXISTE)"
+            warn "$ver → $path (missing)"
         fi
     done < "$NV_FILE"
 else
-    info "Nenhuma versão Node.js configurada (usa padrão do sistema)"
+    sly_note "no Node.js versions configured (uses system default)"
 fi
 
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-section "Templates DirectAdmin"
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ── Inspecting DA templates ──
+sly_act "Inspecting" "DirectAdmin templates"
 
 for f in openlitespeed_vhost.conf.CUSTOM.7.pre openlitespeed_vhost.conf.CUSTOM.5.pre; do
     TPL="$DA_TPL_DIR/$f"
     if [ -f "$TPL" ]; then
         if grep -q "SELYNT_PANEL" "$TPL" 2>/dev/null; then
-            ok "$f — bloco SELYNT_PANEL presente"
-            # Verificar conteúdo esperado
-            case "$f" in
-                *.7.pre)
-                    grep -q "extprocessor.*selynt_proxy" "$TPL" 2>/dev/null \
-                        && info "extProcessor definido: selynt_proxy-|SDOMAIN|-|VH_PORT|" \
-                        || warn "extProcessor NÃO encontrado dentro do template"
-                    grep -q "uds://" "$TPL" 2>/dev/null \
-                        && info "Endereço: Unix socket (uds://)" \
-                        || warn "Endereço uds:// NÃO encontrado"
-                    ;;
-                *.5.pre)
-                    grep -q "RewriteCond.*\.proxy" "$TPL" 2>/dev/null \
-                        && info "RewriteCond: verifica marker .proxy/|SDOMAIN|" \
-                        || warn "RewriteCond .proxy NÃO encontrado"
-                    grep -q "RewriteRule.*selynt_proxy" "$TPL" 2>/dev/null \
-                        && info "RewriteRule: proxy para selynt_proxy-|SDOMAIN|-|VH_PORT|" \
-                        || warn "RewriteRule selynt_proxy NÃO encontrado"
-                    ;;
-            esac
+            pass "$(printf '%-9s' "${f##*CUSTOM.}")" "block present"
         else
-            fail "$f existe mas NÃO contém bloco SELYNT_PANEL"
+            fail "$f exists but does not contain a SELYNT_PANEL block"
         fi
     else
-        fail "$f NÃO existe"
-        info "Corrija: bash $PLUGIN_DIR/scripts/setup-ols.sh"
+        fail "$f missing — fix: bash $PLUGIN_DIR/scripts/setup-ols.sh"
     fi
 done
 
-# Templates antigos (versões anteriores usavam nomes errados)
 for old in "$DA_TPL_DIR"/cust_openlitespeed.CUSTOM.*.pre; do
     [ -f "$old" ] || continue
-    warn "Template antigo encontrado: $(basename "$old") — remover manualmente"
+    warn "legacy template found: $(basename "$old") — remove manually"
 done
 
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-section "Vhosts Gerados"
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ── Inspecting generated vhosts ──
+sly_act "Inspecting" "generated vhosts"
 
 VHOST_CHECKED=0
 VHOST_WITH_PROXY=0
-VHOST_WITHOUT_PROXY=0
-VHOST_DIRS=("/usr/local/lsws/conf/vhosts" "/usr/local/directadmin/data/users")
-
+VHOST_DIRS=("$OLS_CONF_DIR/vhosts" "/usr/local/lsws/conf/vhosts" "/usr/local/directadmin/data/users")
 for vdir in "${VHOST_DIRS[@]}"; do
     [ -d "$vdir" ] || continue
     while IFS= read -r vconf; do
         [ -f "$vconf" ] || continue
         VHOST_CHECKED=$((VHOST_CHECKED+1))
-        if grep -q "selynt_proxy" "$vconf" 2>/dev/null; then
-            VHOST_WITH_PROXY=$((VHOST_WITH_PROXY+1))
-        else
-            VHOST_WITHOUT_PROXY=$((VHOST_WITHOUT_PROXY+1))
-        fi
+        grep -q "selynt_proxy" "$vconf" 2>/dev/null && VHOST_WITH_PROXY=$((VHOST_WITH_PROXY+1))
     done < <(find "$vdir" -name "*.conf" -path "*openlitespeed*" -o -name "vhost.conf" 2>/dev/null | head -50)
 done
 
 if [ "$VHOST_CHECKED" -gt 0 ]; then
-    ok "Vhosts analisados: $VHOST_CHECKED"
-    if [ "$VHOST_WITH_PROXY" -gt 0 ]; then
-        ok "  Com selynt_proxy: $VHOST_WITH_PROXY"
-    fi
-    if [ "$VHOST_WITHOUT_PROXY" -gt 0 ]; then
-        info "  Sem selynt_proxy: $VHOST_WITHOUT_PROXY (normal se templates recém-instalados)"
-    fi
+    pass "vhosts  " "$VHOST_CHECKED inspected, $VHOST_WITH_PROXY with selynt_proxy"
     if [ "$VHOST_WITH_PROXY" -eq 0 ]; then
-        warn "Nenhum vhost contém selynt_proxy — rebuild necessário"
-        info "Corrija: cd /usr/local/directadmin/custombuild && ./build rewrite_confs"
+        warn "no vhost contains selynt_proxy — rebuild required"
+        sly_note "cd /usr/local/directadmin/custombuild && ./build rewrite_confs"
     fi
 else
-    warn "Nenhum vhost encontrado para análise"
+    warn "no vhosts found to inspect"
 fi
 
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-section "Configuração do OLS/LSWS"
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ── Inspecting OLS configuration ──
+sly_act "Inspecting" "OLS configuration"
 
-# Web user
+WEB_USER=""
 WEB_USER_FILE="$PLUGIN_DIR/etc/ols_web_user"
 if [ -f "$WEB_USER_FILE" ]; then
     WEB_USER="$(head -n1 "$WEB_USER_FILE" | tr -d '[:space:]')"
-    if [ -n "$WEB_USER" ]; then
-        if id "$WEB_USER" >/dev/null 2>&1; then
-            ok "Web user: $WEB_USER (existe no sistema)"
-        else
-            fail "Web user: $WEB_USER (NÃO existe no sistema)"
-        fi
+    if [ -n "$WEB_USER" ] && id "$WEB_USER" >/dev/null 2>&1; then
+        pass "web user" "$WEB_USER"
+    elif [ -n "$WEB_USER" ]; then
+        fail "web user $WEB_USER does not exist on system"
     else
-        fail "Arquivo ols_web_user vazio"
+        fail "ols_web_user file is empty"
     fi
 else
-    fail "Web user NÃO configurado — $WEB_USER_FILE não existe"
-    info "Corrija: bash $PLUGIN_DIR/scripts/setup-ols.sh"
+    fail "web user not configured (fix: bash $PLUGIN_DIR/scripts/setup-ols.sh)"
 fi
 
-# DA user
 DA_USER_FILE="$PLUGIN_DIR/etc/da_user"
 if [ -f "$DA_USER_FILE" ]; then
-    DA_USER="$(head -n1 "$DA_USER_FILE" | tr -d '[:space:]')"
-    ok "DA user: $DA_USER"
+    pass "DA user " "$(head -n1 "$DA_USER_FILE" | tr -d '[:space:]')"
 else
-    warn "Arquivo da_user não encontrado"
+    warn "da_user file not found"
 fi
 
-# selynt_extprocessors.conf (gerado pelo sync)
 SELYNT_CONF="$OLS_CONF_DIR/selynt_extprocessors.conf"
 if [ -f "$SELYNT_CONF" ]; then
     EP_COUNT=$(grep -c "^extProcessor" "$SELYNT_CONF" 2>/dev/null || echo 0)
     LAST_SYNC="$(head -1 "$SELYNT_CONF" 2>/dev/null | sed 's/.*— //')"
-    ok "selynt_extprocessors.conf: $EP_COUNT extProcessors"
-    info "Última sincronização: $LAST_SYNC"
+    pass "extProc " "$EP_COUNT defined (last sync: $LAST_SYNC)"
 else
-    info "selynt_extprocessors.conf não existe (criado pelo sync quando há apps ativos)"
+    sly_note "selynt_extprocessors.conf not present (created by sync when apps are live)"
 fi
 
-# Cron job (instalado no crontab do root)
 CRON_FOUND=false
-if crontab -l 2>/dev/null | grep -qF "sync-extprocessors.sh"; then
-    CRON_FOUND=true
-elif crontab -u root -l 2>/dev/null | grep -qF "sync-extprocessors.sh"; then
-    CRON_FOUND=true
-elif [ -f /var/spool/cron/root ] && grep -qF "sync-extprocessors.sh" /var/spool/cron/root 2>/dev/null; then
-    CRON_FOUND=true
-elif [ -f /var/spool/cron/crontabs/root ] && grep -qF "sync-extprocessors.sh" /var/spool/cron/crontabs/root 2>/dev/null; then
-    CRON_FOUND=true
+if crontab -l 2>/dev/null | grep -qF "sync-extprocessors.sh"; then CRON_FOUND=true
+elif crontab -u root -l 2>/dev/null | grep -qF "sync-extprocessors.sh"; then CRON_FOUND=true
+elif [ -f /var/spool/cron/root ] && grep -qF "sync-extprocessors.sh" /var/spool/cron/root 2>/dev/null; then CRON_FOUND=true
+elif [ -f /var/spool/cron/crontabs/root ] && grep -qF "sync-extprocessors.sh" /var/spool/cron/crontabs/root 2>/dev/null; then CRON_FOUND=true
 fi
 if $CRON_FOUND; then
-    ok "Cron job: presente"
+    pass "cron    " "present"
 else
-    fail "Cron job: AUSENTE"
-    info "Corrija: bash $PLUGIN_DIR/scripts/setup-ols.sh"
+    fail "cron job missing (fix: bash $PLUGIN_DIR/scripts/setup-ols.sh)"
 fi
 
-# Sync needed flag
 if [ -f "$STATE_BASE/.sync_needed" ]; then
-    warn "Flag .sync_needed presente — sync pendente (cron executará em breve)"
+    warn ".sync_needed flag present — sync pending"
 fi
 
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-section "State Dir e Aplicações"
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ── Inspecting state and apps ──
+sly_act "Inspecting" "state directory and apps"
 
-TOTAL_APPS=0
-RUNNING_APPS=0
-STOPPED_APPS=0
-ORPHAN_PIDS=0
+TOTAL_APPS=0; RUNNING_APPS=0; STOPPED_APPS=0; ORPHAN_PIDS=0
 
 if [ -d "$STATE_BASE" ]; then
     STATE_PERMS="$(stat -c '%a %U:%G' "$STATE_BASE")"
     STATE_MODE="$(stat -c '%a' "$STATE_BASE")"
     if [ "$STATE_MODE" = "711" ]; then
-        ok "State dir: $STATE_BASE ($STATE_PERMS)"
+        pass "stateDir" "$STATE_BASE ($STATE_PERMS)"
     else
-        warn "State dir: $STATE_BASE ($STATE_PERMS) — esperado 711"
+        warn "state dir $STATE_BASE ($STATE_PERMS) — expected 711"
     fi
 
     for udir in "$STATE_BASE"/*/; do
@@ -300,131 +233,98 @@ if [ -d "$STATE_BASE" ]; then
             host="$(grep '^host=' "$app_file" 2>/dev/null | cut -d= -f2- || echo '?')"
             type="$(grep '^type=' "$app_file" 2>/dev/null | cut -d= -f2- || echo '?')"
 
-            # Status
             pidfile="$udir.run/$app.pid"
             marker="$udir.proxy/$host"
             socket="$udir.sockets/$host"
-            status="PARADO"
-            pid=""
+            status="STOPPED"; pid=""
 
             if [ -f "$pidfile" ]; then
                 pid="$(cat "$pidfile" 2>/dev/null)"
                 if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
-                    status="ATIVO"
-                    RUNNING_APPS=$((RUNNING_APPS+1))
+                    status="RUNNING"; RUNNING_APPS=$((RUNNING_APPS+1))
                 else
-                    status="MORTO"
-                    ORPHAN_PIDS=$((ORPHAN_PIDS+1))
+                    status="DEAD"; ORPHAN_PIDS=$((ORPHAN_PIDS+1))
                 fi
             else
                 STOPPED_APPS=$((STOPPED_APPS+1))
             fi
 
-            # Cor do status
             case "$status" in
-                ATIVO) STATUS_FMT="${G}ATIVO${N}" ;;
-                MORTO) STATUS_FMT="${R}MORTO${N}" ;;
-                *)     STATUS_FMT="${D}PARADO${N}" ;;
+                RUNNING) STATUS_FMT="${_SLY_G}${_SLY_B}running${_SLY_N}" ;;
+                DEAD)    STATUS_FMT="${_SLY_R}${_SLY_B}dead${_SLY_N}" ;;
+                *)       STATUS_FMT="${_SLY_D}stopped${_SLY_N}" ;;
             esac
+            sly_sub "$user/$app" "[$type] $host — $(printf '%b' "$STATUS_FMT")${pid:+ (pid $pid)}"
 
-            printf "    ${BOLD}%s${N} [%s] ${D}%s${N} — " "$app" "$type" "$host"
-            printf "$STATUS_FMT"
-            [ -n "$pid" ] && printf " ${D}(PID %s)${N}" "$pid"
-            printf "\n"
-
-            # Detalhes do app
-            if [ "$status" = "ATIVO" ]; then
-                # Socket
+            if [ "$status" = "RUNNING" ]; then
                 if [ -S "$socket" ]; then
-                    SOCK_PERMS="$(stat -c '%a %U:%G' "$socket" 2>/dev/null)"
-                    ok "      Socket: $SOCK_PERMS"
-                    # ACL check
                     if command -v getfacl >/dev/null 2>&1 && [ -n "${WEB_USER:-}" ]; then
                         if getfacl -p "$socket" 2>/dev/null | grep -q "user:${WEB_USER}:rw"; then
-                            ok "      ACL: $WEB_USER tem acesso rw"
+                            pass "  ACL   " "$WEB_USER rw on socket"
                         else
-                            fail "      ACL: $WEB_USER NÃO tem acesso ao socket"
-                            info "      Corrija: setfacl -m u:${WEB_USER}:rw- $socket"
+                            fail "$WEB_USER cannot access socket (fix: setfacl -m u:${WEB_USER}:rw- $socket)"
                         fi
                     fi
                 else
-                    fail "      Socket NÃO existe: $socket"
+                    fail "socket missing: $socket"
                 fi
 
-                # Marker
                 if [ -f "$marker" ]; then
-                    ok "      Marker: presente"
+                    pass "  marker" "present"
                 else
-                    fail "      Marker NÃO existe — proxy inativo mesmo com app rodando"
+                    fail "marker missing — proxy inactive while app runs"
                 fi
 
-                # Conexão ao socket (teste real)
                 if [ -S "$socket" ] && command -v curl >/dev/null 2>&1; then
                     HTTP_CODE="$(curl -s -o /dev/null -w '%{http_code}' --unix-socket "$socket" http://localhost/ --max-time 3 2>/dev/null || echo '000')"
                     if [ "$HTTP_CODE" != "000" ]; then
-                        ok "      Resposta via socket: HTTP $HTTP_CODE"
+                        pass "  probe " "HTTP $HTTP_CODE via socket"
                     else
-                        warn "      Socket não respondeu (app pode não estar ouvindo ainda)"
+                        warn "socket did not respond (app may not be listening yet)"
                     fi
                 fi
-            elif [ "$status" = "MORTO" ]; then
-                fail "      PID $pid não está ativo — pidfile órfão"
-                info "      Corrija: inicie o app ou limpe com 'rm $pidfile'"
+            elif [ "$status" = "DEAD" ]; then
+                fail "PID $pid not alive — orphan pidfile (fix: rm $pidfile)"
             fi
         done
 
-        if [ "$USER_APPS" -gt 0 ]; then
-            # ACL nos diretórios do user
-            if command -v getfacl >/dev/null 2>&1 && [ -n "${WEB_USER:-}" ]; then
-                for subdir in .sockets .proxy; do
-                    dir="$udir$subdir"
-                    [ -d "$dir" ] || continue
-                    if getfacl -p "$dir" 2>/dev/null | grep -q "user:${WEB_USER}"; then
-                        ok "    ACL [$user/$subdir]: $WEB_USER configurado"
-                    else
-                        warn "    ACL [$user/$subdir]: $WEB_USER SEM acesso"
-                        info "    Corrija: setfacl -m u:${WEB_USER}:--x $dir"
-                    fi
-                done
-            fi
+        if [ "$USER_APPS" -gt 0 ] && command -v getfacl >/dev/null 2>&1 && [ -n "${WEB_USER:-}" ]; then
+            for subdir in .sockets .proxy; do
+                dir="$udir$subdir"
+                [ -d "$dir" ] || continue
+                if getfacl -p "$dir" 2>/dev/null | grep -q "user:${WEB_USER}"; then
+                    pass "  ACL[$subdir]" "$WEB_USER ok"
+                else
+                    warn "ACL [$user/$subdir]: $WEB_USER missing (fix: setfacl -m u:${WEB_USER}:--x $dir)"
+                fi
+            done
         fi
-
-        [ "$USER_APPS" -eq 0 ] && info "  [$user] nenhum app registrado"
     done
 
-    sep
-    printf "    ${BOLD}Total:${N} %d apps — ${G}%d ativos${N}, ${D}%d parados${N}" "$TOTAL_APPS" "$RUNNING_APPS" "$STOPPED_APPS"
-    [ "$ORPHAN_PIDS" -gt 0 ] && printf ", ${R}%d mortos${N}" "$ORPHAN_PIDS"
-    printf "\n"
+    sly_sub "total   " "$TOTAL_APPS apps — ${_SLY_G}$RUNNING_APPS running${_SLY_N}, ${_SLY_D}$STOPPED_APPS stopped${_SLY_N}${ORPHAN_PIDS:+, ${_SLY_R}$ORPHAN_PIDS dead${_SLY_N}}"
 else
-    fail "State dir NÃO existe: $STATE_BASE"
-    info "Corrija: bash $PLUGIN_DIR/scripts/install.sh"
+    fail "state dir not found: $STATE_BASE (fix: bash $PLUGIN_DIR/scripts/install.sh)"
 fi
 
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-section "Permissões do Plugin"
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ── Auditing plugin permissions ──
+sly_act "Auditing" "plugin permissions"
 
 if [ -d "$PLUGIN_DIR" ]; then
-    # plugin.conf: DA reescreve com 600, corrigir para 644 (diradmin precisa ler)
     PC="$PLUGIN_DIR/plugin.conf"
     if [ -f "$PC" ]; then
         PC_PERMS="$(stat -c '%a' "$PC")"
         if [ "$PC_PERMS" = "600" ]; then
             if chmod 644 "$PC" 2>/dev/null; then
-                ok "plugin.conf: corrigido 600 → 644"
+                pass "plugin.conf" "corrected 600 → 644"
             else
-                fail "plugin.conf: $PC_PERMS (DA não consegue ler, requer root para corrigir)"
+                fail "plugin.conf $PC_PERMS (DA cannot read it; needs root to fix)"
             fi
         else
-            ok "plugin.conf: $PC_PERMS"
+            pass "plugin.conf" "$PC_PERMS"
         fi
     fi
 
-    # Demais arquivos devem ser 755, exceto binário (4755) e plugin.conf
-    # Auto-corrige quando possível
-    BAD_PERMS=0
-    FIXED=0
+    BAD_PERMS=0; FIXED=0
     while IFS= read -r f; do
         [ "$f" = "$BIN" ] && continue
         [ "$f" = "$PC" ] && continue
@@ -434,126 +334,88 @@ if [ -d "$PLUGIN_DIR" ]; then
                 FIXED=$((FIXED+1))
             else
                 BAD_PERMS=$((BAD_PERMS+1))
-                info "  $FPERMS → $(echo "$f" | sed "s|$PLUGIN_DIR/||")"
             fi
         fi
     done < <(find "$PLUGIN_DIR" -type f 2>/dev/null)
-    [ "$FIXED" -gt 0 ] && ok "Permissões corrigidas: $FIXED arquivos"
-    [ "$BAD_PERMS" -eq 0 ] && ok "Arquivos do plugin: todos 755" || fail "Permissões: $BAD_PERMS arquivos não são 755 (requer root)"
-
-    # Hook presente
-    if [ -f "$PLUGIN_DIR/hooks/user_httpd_write_post.sh" ]; then
-        ok "Hook user_httpd_write_post.sh: presente"
+    [ "$FIXED" -gt 0 ] && pass "perms   " "fixed $FIXED files to 755"
+    if [ "$BAD_PERMS" -eq 0 ]; then
+        pass "files   " "all 755"
     else
-        fail "Hook user_httpd_write_post.sh NÃO existe"
+        fail "$BAD_PERMS files not 755 (needs root)"
     fi
 
-    # node-loader.js
-    if [ -f "$PLUGIN_DIR/lib/node-loader.js" ]; then
-        ok "node-loader.js: presente"
-    else
-        fail "node-loader.js NÃO encontrado"
-    fi
+    [ -f "$PLUGIN_DIR/hooks/user_httpd_write_post.sh" ] \
+        && pass "hook    " "user_httpd_write_post.sh present" \
+        || fail "hook user_httpd_write_post.sh missing"
+
+    [ -f "$PLUGIN_DIR/lib/node-loader.js" ] \
+        && pass "loader  " "node-loader.js present" \
+        || fail "node-loader.js missing"
 fi
 
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-section "Logs Recentes"
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ── Scanning recent logs ──
+sly_act "Scanning" "recent logs"
 
-# OLS error log (DA usa /var/log/openlitespeed/error_log)
 OLS_ERRLOG="/var/log/openlitespeed/error_log"
 if [ -f "$OLS_ERRLOG" ]; then
-    RELEVANT="$(grep -i "selynt\|proxy\|extprocessor\|rewrite\|uds://" "$OLS_ERRLOG" 2>/dev/null | tail -10)"
+    RELEVANT="$(grep -i "selynt\|proxy\|extprocessor\|rewrite\|uds://" "$OLS_ERRLOG" 2>/dev/null | tail -5)"
     if [ -n "$RELEVANT" ]; then
-        warn "Entradas relevantes no error log do OLS:"
-        echo "$RELEVANT" | while IFS= read -r line; do
-            printf "    ${D}%s${N}\n" "$line"
-        done
+        warn "OLS error log has relevant entries:"
+        echo "$RELEVANT" | while IFS= read -r line; do sly_note "$line"; done
     else
-        ok "Nenhuma menção a selynt/proxy no error log do OLS"
+        pass "OLS log " "no selynt/proxy mentions"
     fi
 else
-    info "Log do OLS não encontrado: $OLS_ERRLOG"
+    sly_note "OLS log not found: $OLS_ERRLOG"
 fi
 
-# Plugin stderr log
 PLUGIN_ERR="$PLUGIN_DIR/etc/stderr.log"
 if [ -f "$PLUGIN_ERR" ] && [ -s "$PLUGIN_ERR" ]; then
     LINES="$(wc -l < "$PLUGIN_ERR" | tr -d '[:space:]')"
-    warn "stderr.log do plugin: $LINES linhas"
-    tail -5 "$PLUGIN_ERR" | while IFS= read -r line; do
-        printf "    ${D}%s${N}\n" "$line"
-    done
+    warn "plugin stderr.log: $LINES lines"
+    tail -3 "$PLUGIN_ERR" | while IFS= read -r line; do sly_note "$line"; done
 else
-    ok "stderr.log do plugin: limpo"
+    pass "stderr  " "plugin log is clean"
 fi
 
-# DirectAdmin error log (últimas 24h)
 DA_ERRLOG="/var/log/directadmin/error.log"
 if [ -f "$DA_ERRLOG" ]; then
     TODAY="$(date '+%Y:%m:%d')"
     YESTERDAY="$(date -d '1 day ago' '+%Y:%m:%d' 2>/dev/null || date -v-1d '+%Y:%m:%d' 2>/dev/null || echo '')"
-    DA_RELEVANT="$(grep -i "selynt_panel\|timeout.*plugin" "$DA_ERRLOG" 2>/dev/null | grep -E "^($TODAY|$YESTERDAY)" 2>/dev/null | sed 's/<[^>]*>//g' | tail -5)"
+    DA_RELEVANT="$(grep -i "selynt_panel\|timeout.*plugin" "$DA_ERRLOG" 2>/dev/null | grep -E "^($TODAY|$YESTERDAY)" 2>/dev/null | sed 's/<[^>]*>//g' | tail -3)"
     if [ -n "$DA_RELEVANT" ]; then
-        warn "Entradas recentes do selynt_panel no log do DirectAdmin:"
-        echo "$DA_RELEVANT" | while IFS= read -r line; do
-            printf "    ${D}%s${N}\n" "$line"
-        done
-    else
-        ok "Nenhum erro recente do selynt_panel no log do DirectAdmin"
+        warn "recent selynt_panel entries in DA log:"
+        echo "$DA_RELEVANT" | while IFS= read -r line; do sly_note "$line"; done
     fi
 fi
 
-# journald (últimos 10 minutos)
-if command -v journalctl >/dev/null 2>&1; then
-    JOURNAL="$(journalctl -u directadmin --since '10 min ago' --no-pager -q 2>/dev/null | grep -i "selynt\|timeout.*plugin" | tail -5)"
-    if [ -n "$JOURNAL" ]; then
-        warn "Entradas recentes no journald (últimos 10 min):"
-        echo "$JOURNAL" | while IFS= read -r line; do
-            printf "    ${D}%s${N}\n" "$line"
-        done
-    fi
-fi
-
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-section "Conectividade (teste rápido)"
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
+# ── Probing connectivity ──
+sly_act "Probing" "DA connectivity"
 if command -v curl >/dev/null 2>&1; then
-    # Teste acesso local ao DA
     DA_PORT="$(grep '^port=' /usr/local/directadmin/conf/directadmin.conf 2>/dev/null | cut -d= -f2 | tr -d '[:space:]')"
     DA_PORT="${DA_PORT:-2222}"
     HTTP_CODE="$(curl -sk -o /dev/null -w '%{http_code}' "https://127.0.0.1:${DA_PORT}/CMD_PLUGINS/selynt_panel" --max-time 5 2>/dev/null || echo '000')"
     case "$HTTP_CODE" in
-        200|301|302) ok "Acesso ao plugin via DA: HTTP $HTTP_CODE" ;;
-        401|403)     ok "Plugin acessível (requer autenticação): HTTP $HTTP_CODE" ;;
-        000)         warn "Não foi possível conectar ao DA na porta $DA_PORT" ;;
-        *)           warn "Resposta inesperada do DA: HTTP $HTTP_CODE" ;;
+        200|301|302) pass "DA      " "HTTP $HTTP_CODE" ;;
+        401|403)     pass "DA      " "auth required, HTTP $HTTP_CODE" ;;
+        000)         warn "could not connect to DA on port $DA_PORT" ;;
+        *)           warn "unexpected reply from DA: HTTP $HTTP_CODE" ;;
     esac
 else
-    info "curl não disponível — teste de conectividade ignorado"
+    sly_note "curl unavailable — connectivity test skipped"
 fi
 
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# Resumo
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-printf "\n${BOLD}╔══════════════════════════════════════════════╗${N}\n"
-printf "${BOLD}║                   Resumo                     ║${N}\n"
-printf "${BOLD}╚══════════════════════════════════════════════╝${N}\n"
-printf "  ${G}✓ %d passou${N}  ${Y}⚠ %d avisos${N}  ${R}✗ %d falhas${N}\n" "$PASS" "$WARNS" "$FAILS"
-
+# ── Summary ──
 if [ "$FAILS" -gt 0 ]; then
-    printf "\n  ${R}${BOLD}Ação necessária:${N} corrija os itens marcados com ✗ acima.\n"
-    printf "  ${D}Comandos comuns:${N}\n"
-    printf "    ${D}bash %s/scripts/setup-ols.sh${N}   — reconfigurar templates e cron\n" "$PLUGIN_DIR"
-    printf "    ${D}cd /usr/local/directadmin/custombuild && ./build rewrite_confs${N}   — reaplicar templates\n"
-    printf "    ${D}systemctl restart lsws${N}   — reiniciar OLS/LSWS\n"
+    sly_err "$PASS passed, $WARNS warnings, $FAILS failures"
+    printf '             %sCommon fixes:%s\n' "$_SLY_D" "$_SLY_N"
+    printf '               bash %s/scripts/setup-ols.sh\n' "$PLUGIN_DIR"
+    printf '               cd /usr/local/directadmin/custombuild && ./build rewrite_confs\n'
+    printf '               systemctl restart lsws\n'
+    exit 1
 elif [ "$WARNS" -gt 0 ]; then
-    printf "\n  ${Y}Verifique os avisos acima. Podem indicar configuração incompleta.${N}\n"
+    sly_finished "diagnostic — $PASS passed, $WARNS warnings"
 else
-    printf "\n  ${G}${BOLD}Tudo OK!${N} Nenhum problema encontrado.\n"
+    sly_finished "diagnostic — $PASS passed, no issues"
 fi
-
-printf "\n"
 exit 0

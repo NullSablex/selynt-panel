@@ -1,5 +1,7 @@
 #!/usr/local/bin/php
 <?php
+declare(strict_types=1);
+
 require_once dirname(__DIR__) . '/lib/common.php';
 $bin_ok = is_executable(SELYNT_BIN);
 $pluginBase = '/CMD_PLUGINS_ADMIN/selynt_panel';
@@ -12,26 +14,43 @@ $v = SELYNT_VERSION;
   <div class="app-shell">
     <header class="app-header">
       <div class="header-left">
-        <a href="<?= $pluginBase ?>">
-          <img class="header-logo" src="<?= $pluginBase ?>/images/assets/img/logo.png" alt="Selynt Panel">
-        </a>
+        <img src="<?= $pluginBase ?>/images/assets/img/logo.png" class="brand-mini" alt="Selynt Panel">
+
         <nav class="main-nav">
-          <a class="active" href="<?= $pluginBase ?>">Visão Geral</a>
-          <a href="<?= $pluginBase ?>/config.html">Configurações</a>
+          <a href="<?= $pluginBase ?>" class="active"><?= selynt_t_html('nav.overview') ?></a>
+          <a href="<?= $pluginBase ?>/config.html"><?= selynt_t_html('nav.settings') ?></a>
+          <a href="<?= $pluginBase ?>/diagnostic.html"><?= selynt_t_html('nav.diagnostic') ?></a>
         </nav>
+      </div>
+
+      <div class="header-right">
+        <button type="button" class="lang-button" id="sly-lang-btn" aria-label="<?= selynt_t_html('locale.label') ?>">
+          <i class="fa-solid fa-globe"></i>
+          <span class="lang-button-label"><?= htmlspecialchars(selynt_i18n_active_name(), ENT_QUOTES, 'UTF-8') ?></span>
+        </button>
+
+        <button type="button" class="theme-toggle" id="sly-theme-btn" aria-label="<?= selynt_t_html('theme.toggle') ?>">
+          <i class="fa-solid fa-moon icon-moon"></i>
+          <i class="fa-solid fa-sun icon-sun"></i>
+        </button>
+
+        <a href="/" class="lang-button" title="<?= selynt_t_html('nav.back_da') ?>">
+          <i class="fa-solid fa-arrow-left-long"></i>
+          <span class="lang-button-label"><?= selynt_t_html('nav.back_da') ?></span>
+        </a>
       </div>
     </header>
 
     <main class="app-main">
 <?php if (!$bin_ok): ?>
       <div class="alert-error">
-        Binário <code>Core Selynt</code> não encontrado. Execute o script de instalação.
+        <?= selynt_t_html('alert.binary_missing_admin') ?>
       </div>
 <?php else: ?>
       <header class="app-main-header">
         <div>
-          <h1>Visão Geral</h1>
-          <p>Resumo de todos os apps do servidor.</p>
+          <h1><?= selynt_t_html('admin.overview.title') ?></h1>
+          <p><?= selynt_t_html('admin.overview.subtitle') ?></p>
         </div>
       </header>
 
@@ -39,7 +58,7 @@ $v = SELYNT_VERSION;
         <article class="stat-card stat-card-total">
           <div class="stat-header">
             <div>
-              <div class="stat-title">Usuários</div>
+              <div class="stat-title"><?= selynt_t_html('admin.overview.users') ?></div>
               <div class="stat-value" id="stat-users">—</div>
             </div>
             <div class="stat-icon"><i class="fa-solid fa-users"></i></div>
@@ -48,7 +67,7 @@ $v = SELYNT_VERSION;
         <article class="stat-card stat-card-online">
           <div class="stat-header">
             <div>
-              <div class="stat-title">Total de apps</div>
+              <div class="stat-title"><?= selynt_t_html('admin.overview.total') ?></div>
               <div class="stat-value" id="stat-total">—</div>
             </div>
             <div class="stat-icon"><i class="fa-solid fa-cubes"></i></div>
@@ -57,7 +76,7 @@ $v = SELYNT_VERSION;
         <article class="stat-card stat-card-online">
           <div class="stat-header">
             <div>
-              <div class="stat-title">Em execução</div>
+              <div class="stat-title"><?= selynt_t_html('admin.overview.running') ?></div>
               <div class="stat-value" id="stat-run">—</div>
             </div>
             <div class="stat-icon"><i class="fa-solid fa-circle-check"></i></div>
@@ -67,7 +86,7 @@ $v = SELYNT_VERSION;
 
       <div class="content-pad">
         <div class="apps-table-card">
-          <div id="sly-table"><p class="text-muted text-faded">Carregando...</p></div>
+          <div id="sly-table"><p class="text-muted text-faded"><?= selynt_t_html('common.loading') ?></p></div>
         </div>
       </div>
 <?php endif; ?>
@@ -76,6 +95,7 @@ $v = SELYNT_VERSION;
 </div>
 
 <?php if ($bin_ok): ?>
+<?= selynt_i18n_script_tag() ?>
 <script src="<?= $pluginBase ?>/images/assets/js/fontawesome.min.js?v=<?= $v ?>"></script>
 <script src="<?= $pluginBase ?>/images/assets/js/solid.min.js?v=<?= $v ?>"></script>
 <script src="<?= $pluginBase ?>/images/assets/js/regular.min.js?v=<?= $v ?>"></script>
@@ -83,30 +103,84 @@ $v = SELYNT_VERSION;
 <script type="module" src="<?= $pluginBase ?>/images/assets/js/script.min.js?v=<?= $v ?>"></script>
 <script type="module" src="<?= $pluginBase ?>/images/assets/js/panel.min.js?v=<?= $v ?>"></script>
 <script type="module">
+import { t } from '<?= $pluginBase ?>/images/assets/js/script.min.js?v=<?= $v ?>';
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);}
-function uptime(ts){let s=Math.floor(Date.now()/1000-ts);if(s<60)return'agora';const u=[[31536000,'ano','anos'],[2592000,'mês','meses'],[86400,'dia','dias'],[3600,'hora','horas'],[60,'minuto','minutos']];const p=[];for(const[d,sg,pl] of u){const v=Math.floor(s/d);if(v>0){p.push(v+' '+(v===1?sg:pl));s%=d;}if(p.length===2)break;}return p.join(' e ');}
-function typeIcon(t){
-  if(t==='node') return '<i class="fa-brands fa-node-js icon-node"></i>';
-  if(t==='rust') return '<i class="fa-solid fa-gears"></i>';
+function uptime(ts){
+  let s=Math.floor(Date.now()/1000-ts);
+  if(s<60)return t('time.now');
+  const u=[
+    [31536000,'time.year','time.years'],
+    [2592000,'time.month','time.months'],
+    [86400,'time.day','time.days'],
+    [3600,'time.hour','time.hours'],
+    [60,'time.minute','time.minutes'],
+  ];
+  const p=[];
+  for(const[d,sg,pl] of u){
+    const v=Math.floor(s/d);
+    if(v>0){p.push(v+' '+t(v===1?sg:pl));s%=d;}
+    if(p.length===2)break;
+  }
+  return p.join(t('time.connector'));
+}
+function typeIcon(ty){
+  if(ty==='node') return '<i class="fa-brands fa-node-js icon-node"></i>';
+  if(ty==='rust') return '<i class="fa-solid fa-gears"></i>';
   return '<i class="fa-solid fa-cube"></i>';
 }
-function typeLabel(t){
-  if(t==='node') return 'Node.js';
-  if(t==='rust') return 'Binário Rust';
-  return t.charAt(0).toUpperCase()+t.slice(1);
+function typeLabel(ty){
+  if(ty==='node') return t('type.node');
+  if(ty==='rust') return t('type.rust');
+  return ty.charAt(0).toUpperCase()+ty.slice(1);
 }
+// CPU é contador acumulado: a taxa sai do delta entre dois refreshes da
+// tabela (15s), sem custo extra de requisição.
+const cpuPrev={};
+function cellId(a){return String(a.user+'-'+a.name).replace(/[^A-Za-z0-9_-]/g,'_');}
+function tableSignature(apps){
+  return apps.map(a=>[a.user,a.name,a.type,a.host,a.status,a.pid].join('|')).join('~');
+}
+let lastTableSig=null;
+function fmtBytes(b){
+  if(!b)return'—';
+  const mb=b/1048576;
+  return mb>=1024?(mb/1024).toFixed(1)+' GB':Math.round(mb)+' MB';
+}
+function cpuCell(key,usec){
+  if(usec==null)return null;
+  const now=Date.now(),prev=cpuPrev[key];
+  cpuPrev[key]={usec,at:now};
+  if(!prev||now<=prev.at||usec<prev.usec)return null;
+  return((usec-prev.usec)/((now-prev.at)*1000)*100).toFixed(1)+'%';
+}
+
 async function load(){
   const r=await fetch('/CMD_PLUGINS_ADMIN/selynt_panel/api/overview.raw').then(r=>r.json()).catch(()=>null);
-  if(!r||!r.ok){document.getElementById('sly-table').innerHTML='<p class="alert-error">Erro ao carregar dados.</p>';return;}
+  if(!r||!r.ok){document.getElementById('sly-table').innerHTML='<p class="alert-error">'+esc(t('errors.load_apps'))+'</p>';return;}
   const apps=r.apps||[];
   const users=[...new Set(apps.map(a=>a.user))];
   const run=apps.filter(a=>a.status==='RUNNING').length;
   document.getElementById('stat-users').textContent=users.length;
   document.getElementById('stat-total').textContent=apps.length;
   document.getElementById('stat-run').textContent=run;
-  if(!apps.length){document.getElementById('sly-table').innerHTML='<p class="text-muted">Nenhum app no servidor.</p>';return;}
-  document.getElementById('sly-table').innerHTML=`<div class="table-scroll"><table class="apps-table"><thead><tr><th>Usuário</th><th>App</th><th>Tipo</th><th>Host</th><th>Status</th><th>Uptime</th><th>PID</th></tr></thead><tbody>${
-    apps.map(a=>`<tr><td>${esc(a.user)}</td><td>${esc(a.name)}</td><td>${typeIcon(a.type)} ${typeLabel(a.type)}</td><td><code class="code-muted">${esc(a.host)}</code></td><td><span class="badge ${a.status==='RUNNING'?'badge-online':'badge-offline'}">${a.status==='RUNNING'?'Online':'Offline'}</span></td><td>${a.status==='RUNNING'&&a.started_at?uptime(a.started_at):'—'}</td><td>${a.pid||'—'}</td></tr>`).join('')
+  if(!apps.length){document.getElementById('sly-table').innerHTML='<p class="text-muted">'+esc(t('admin.overview.none'))+'</p>';return;}
+  const dash=t('app.log.dash');
+  // Só remonta a tabela quando algo estrutural muda; caso contrário atualiza
+  // apenas as células de CPU e memória, para não piscar a cada 15s.
+  const sig=tableSignature(apps);
+  if(sig===lastTableSig&&document.querySelector('#sly-table tbody')){
+    apps.forEach(a=>{
+      const id=cellId(a);
+      const c=document.getElementById('cpu-'+id);
+      const m=document.getElementById('mem-'+id);
+      if(c)c.textContent=cpuCell(a.user+'/'+a.name,a.cpu_usec)||dash;
+      if(m)m.textContent=a.memory?fmtBytes(a.memory):dash;
+    });
+    return;
+  }
+  lastTableSig=sig;
+  document.getElementById('sly-table').innerHTML=`<div class="table-scroll"><table class="apps-table"><thead><tr><th>${esc(t('admin.overview.col.user'))}</th><th>${esc(t('admin.overview.col.app'))}</th><th>${esc(t('admin.overview.col.type'))}</th><th>${esc(t('admin.overview.col.host'))}</th><th>${esc(t('admin.overview.col.status'))}</th><th>${esc(t('admin.overview.col.uptime'))}</th><th>${esc(t('admin.overview.col.cpu'))}</th><th>${esc(t('admin.overview.col.memory'))}</th><th>${esc(t('admin.overview.col.pid'))}</th></tr></thead><tbody>${
+    apps.map(a=>`<tr><td>${esc(a.user)}</td><td>${esc(a.name)}</td><td>${typeIcon(a.type)} ${esc(typeLabel(a.type))}</td><td><code class="code-muted">${esc(a.host)}</code></td><td><span class="badge ${a.status==='RUNNING'?'badge-online':'badge-offline'}">${esc(a.status==='RUNNING'?t('apps.online'):t('apps.offline'))}</span></td><td>${a.status==='RUNNING'&&a.started_at?uptime(a.started_at):dash}</td><td id="cpu-${cellId(a)}">${cpuCell(a.user+'/'+a.name,a.cpu_usec)||dash}</td><td id="mem-${cellId(a)}">${a.memory?esc(fmtBytes(a.memory)):dash}</td><td>${a.pid||dash}</td></tr>`).join('')
   }</tbody></table></div>`;
 }
 load();setInterval(load,15000);

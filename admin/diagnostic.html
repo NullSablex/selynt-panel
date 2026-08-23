@@ -1,0 +1,149 @@
+#!/usr/local/bin/php
+<?php
+declare(strict_types=1);
+
+require_once dirname(__DIR__) . '/lib/common.php';
+$bin_ok = is_executable(SELYNT_BIN);
+$pluginBase = '/CMD_PLUGINS_ADMIN/selynt_panel';
+$v = SELYNT_VERSION;
+?>
+
+<link rel="stylesheet" href="<?= $pluginBase ?>/images/assets/css/panel.min.css?v=<?= $v ?>">
+
+<div class="selynt-panel">
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="header-left">
+        <img src="<?= $pluginBase ?>/images/assets/img/logo.png" class="brand-mini" alt="Selynt Panel">
+
+        <nav class="main-nav">
+          <a href="<?= $pluginBase ?>"><?= selynt_t_html('nav.overview') ?></a>
+          <a href="<?= $pluginBase ?>/config.html"><?= selynt_t_html('nav.settings') ?></a>
+          <a href="<?= $pluginBase ?>/diagnostic.html" class="active"><?= selynt_t_html('nav.diagnostic') ?></a>
+        </nav>
+      </div>
+
+      <div class="header-right">
+        <button type="button" class="lang-button" id="sly-lang-btn" aria-label="<?= selynt_t_html('locale.label') ?>">
+          <i class="fa-solid fa-globe"></i>
+          <span class="lang-button-label"><?= htmlspecialchars(selynt_i18n_active_name(), ENT_QUOTES, 'UTF-8') ?></span>
+        </button>
+
+        <button type="button" class="theme-toggle" id="sly-theme-btn" aria-label="<?= selynt_t_html('theme.toggle') ?>">
+          <i class="fa-solid fa-moon icon-moon"></i>
+          <i class="fa-solid fa-sun icon-sun"></i>
+        </button>
+
+        <a href="/" class="lang-button" title="<?= selynt_t_html('nav.back_da') ?>">
+          <i class="fa-solid fa-arrow-left-long"></i>
+          <span class="lang-button-label"><?= selynt_t_html('nav.back_da') ?></span>
+        </a>
+      </div>
+    </header>
+
+    <main class="app-main">
+      <header class="app-main-header">
+        <div>
+          <h1><?= selynt_t_html('diagnostic.title') ?></h1>
+          <p><?= selynt_t_html('diagnostic.subtitle') ?></p>
+        </div>
+      </header>
+
+      <div class="content-pad">
+        <div class="cfg-card">
+          <h4><?= selynt_t_html('diagnostic.full_title') ?></h4>
+          <p class="cfg-desc"><?= selynt_t_html('diagnostic.full_desc') ?></p>
+          <div class="cfg-cmd-block">
+            <div class="cfg-cmd-label"><?= selynt_t_html('diagnostic.run_label') ?></div>
+            <div class="cfg-cmd-row">
+              <code class="cfg-cmd" id="diag-cmd">sudo bash /usr/local/directadmin/plugins/selynt_panel/scripts/diag-proxy.sh</code>
+              <button type="button" class="btn-xs btn-soft" onclick="copyCmd('diag-cmd')"><i class="fa-regular fa-copy"></i> <?= selynt_t_html('diagnostic.copy') ?></button>
+            </div>
+          </div>
+        </div>
+
+        <div class="cfg-card">
+          <h4><?= selynt_t_html('diagnostic.logs_title') ?></h4>
+          <p class="cfg-desc"><?= selynt_t_html('diagnostic.logs_desc') ?></p>
+          <div class="cfg-cmd-block">
+            <div class="cfg-cmd-label"><?= selynt_t_html('diagnostic.boot_label') ?></div>
+            <div class="cfg-cmd-row">
+              <code class="cfg-cmd" id="diag-boot">sudo tail -f /usr/local/directadmin/plugins/selynt_panel/etc/boot-recover.log</code>
+              <button type="button" class="btn-xs btn-soft" onclick="copyCmd('diag-boot')"><i class="fa-regular fa-copy"></i> <?= selynt_t_html('diagnostic.copy') ?></button>
+            </div>
+          </div>
+          <div class="cfg-cmd-block">
+            <div class="cfg-cmd-label"><?= selynt_t_html('diagnostic.stderr_label') ?></div>
+            <div class="cfg-cmd-row">
+              <code class="cfg-cmd" id="diag-stderr">sudo tail -f /usr/local/directadmin/plugins/selynt_panel/etc/stderr.log</code>
+              <button type="button" class="btn-xs btn-soft" onclick="copyCmd('diag-stderr')"><i class="fa-regular fa-copy"></i> <?= selynt_t_html('diagnostic.copy') ?></button>
+            </div>
+          </div>
+          <div class="cfg-cmd-block">
+            <div class="cfg-cmd-label"><?= selynt_t_html('diagnostic.ols_label') ?></div>
+            <div class="cfg-cmd-row">
+              <code class="cfg-cmd" id="diag-ols">sudo tail -f /var/log/openlitespeed/error_log</code>
+              <button type="button" class="btn-xs btn-soft" onclick="copyCmd('diag-ols')"><i class="fa-regular fa-copy"></i> <?= selynt_t_html('diagnostic.copy') ?></button>
+            </div>
+          </div>
+        </div>
+
+        <div class="cfg-card">
+          <h4><?= selynt_t_html('diagnostic.fixes_title') ?></h4>
+          <p class="cfg-desc"><?= selynt_t_html('diagnostic.fixes_desc') ?></p>
+          <div class="cfg-cmd-block">
+            <div class="cfg-cmd-label"><?= selynt_t_html('diagnostic.reapply_label') ?></div>
+            <div class="cfg-cmd-row">
+              <code class="cfg-cmd" id="diag-setup">sudo bash /usr/local/directadmin/plugins/selynt_panel/scripts/setup-ols.sh</code>
+              <button type="button" class="btn-xs btn-soft" onclick="copyCmd('diag-setup')"><i class="fa-regular fa-copy"></i> <?= selynt_t_html('diagnostic.copy') ?></button>
+            </div>
+          </div>
+          <div class="cfg-cmd-block">
+            <div class="cfg-cmd-label"><?= selynt_t_html('diagnostic.rewrite_label') ?></div>
+            <div class="cfg-cmd-row">
+              <code class="cfg-cmd" id="diag-rewrite">cd /usr/local/directadmin/custombuild &amp;&amp; sudo ./build rewrite_confs</code>
+              <button type="button" class="btn-xs btn-soft" onclick="copyCmd('diag-rewrite')"><i class="fa-regular fa-copy"></i> <?= selynt_t_html('diagnostic.copy') ?></button>
+            </div>
+          </div>
+          <div class="cfg-cmd-block">
+            <div class="cfg-cmd-label"><?= selynt_t_html('diagnostic.restart_label') ?></div>
+            <div class="cfg-cmd-row">
+              <code class="cfg-cmd" id="diag-restart">sudo systemctl restart lsws</code>
+              <button type="button" class="btn-xs btn-soft" onclick="copyCmd('diag-restart')"><i class="fa-regular fa-copy"></i> <?= selynt_t_html('diagnostic.copy') ?></button>
+            </div>
+          </div>
+          <div class="cfg-cmd-block">
+            <div class="cfg-cmd-label"><?= selynt_t_html('diagnostic.refresh_label') ?></div>
+            <div class="cfg-cmd-row">
+              <code class="cfg-cmd" id="diag-update">sudo bash /usr/local/directadmin/plugins/selynt_panel/scripts/update.sh</code>
+              <button type="button" class="btn-xs btn-soft" onclick="copyCmd('diag-update')"><i class="fa-regular fa-copy"></i> <?= selynt_t_html('diagnostic.copy') ?></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<?= selynt_i18n_script_tag() ?>
+<script src="<?= $pluginBase ?>/images/assets/js/fontawesome.min.js?v=<?= $v ?>"></script>
+<script src="<?= $pluginBase ?>/images/assets/js/solid.min.js?v=<?= $v ?>"></script>
+<script src="<?= $pluginBase ?>/images/assets/js/regular.min.js?v=<?= $v ?>"></script>
+<script src="<?= $pluginBase ?>/images/assets/js/brands.min.js?v=<?= $v ?>"></script>
+<script type="module" src="<?= $pluginBase ?>/images/assets/js/script.min.js?v=<?= $v ?>"></script>
+<script type="module" src="<?= $pluginBase ?>/images/assets/js/panel.min.js?v=<?= $v ?>"></script>
+<script type="module">
+async function copyCmd(id){
+  const el=document.getElementById(id);
+  if(!el)return;
+  try{
+    await navigator.clipboard.writeText(el.textContent.trim());
+  } catch(e){
+    const r=document.createRange();r.selectNode(el);
+    const sel=window.getSelection();sel.removeAllRanges();sel.addRange(r);
+    try{document.execCommand('copy');}catch(_){}
+    sel.removeAllRanges();
+  }
+}
+window.copyCmd=copyCmd;
+</script>

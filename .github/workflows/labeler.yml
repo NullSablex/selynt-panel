@@ -1,4 +1,4 @@
-name: Auto Label PRs
+name: Labeler
 
 on:
   pull_request_target:
@@ -10,10 +10,10 @@ permissions:
 
 jobs:
   label:
-    name: Apply labels
+    name: Auto-label PR
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/labeler@v5
+      - uses: actions/labeler@b8dd2d9be0f68b860e7dae5dae7d772984eacd6d # v6
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           configuration-path: .github/labeler.yml

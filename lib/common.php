@@ -1,7 +1,11 @@
 <?php
-define('SELYNT_VERSION',    '1.1.2');
+declare(strict_types=1);
+
+define('SELYNT_VERSION',    '1.2.0');
 define('SELYNT_BIN',        dirname(__DIR__) . '/bin/core-selynt');
 define('SELYNT_PLUGIN_DIR', dirname(__DIR__));
+
+require_once __DIR__ . '/i18n.php';
 
 function selynt_debug_mode(): bool {
     return getenv('SELYNT_DEBUG') !== false
@@ -36,12 +40,12 @@ function selynt_home(): string {
 
 function selynt_run(array $args): array {
     if (!is_executable(SELYNT_BIN)) {
-        return ['ok' => false, 'error' => 'binary_missing', 'message' => 'Binário Core Selynt não encontrado.'];
+        return ['ok' => false, 'error' => 'binary_missing', 'message' => selynt_t('errors.binary_missing')];
     }
 
     $home = selynt_home();
     if ($home === '') {
-        return ['ok' => false, 'error' => 'home_not_found', 'message' => 'Não foi possível determinar o home do usuário.'];
+        return ['ok' => false, 'error' => 'home_not_found', 'message' => selynt_t('errors.home_not_found')];
     }
 
     $debug     = selynt_debug_mode();
@@ -54,6 +58,7 @@ function selynt_run(array $args): array {
     $cmd  = 'HOME=' . escapeshellarg($home);
     $cmd .= ' USERNAME=' . escapeshellarg($username);
     $cmd .= ' SELYNT_STATE_DIR=' . escapeshellarg($state_dir);
+    $cmd .= ' SELYNT_LOCALE=' . escapeshellarg(selynt_locale());
     $cmd .= ' ' . SELYNT_BIN;
     foreach ($args as $arg) {
         $cmd .= ' ' . escapeshellarg((string)$arg);
@@ -67,7 +72,7 @@ function selynt_run(array $args): array {
     ];
     $proc = @proc_open($cmd, $desc, $pipes);
     if (!is_resource($proc)) {
-        return ['ok' => false, 'error' => 'exec_failed', 'message' => 'Falha ao executar o binário.'];
+        return ['ok' => false, 'error' => 'exec_failed', 'message' => selynt_t('errors.exec_failed')];
     }
     fclose($pipes[0]);
     $stdout = stream_get_contents($pipes[1]); fclose($pipes[1]);
@@ -82,7 +87,7 @@ function selynt_run(array $args): array {
         return [
             'ok'      => false,
             'error'   => 'binary_error',
-            'message' => $stdout !== '' ? $stdout : ($stderr !== '' ? $stderr : 'Sem saída (exit=' . $exit_code . ')'),
+            'message' => $stdout !== '' ? $stdout : ($stderr !== '' ? $stderr : selynt_t('errors.no_output', ['exit' => $exit_code])),
             'exit'    => $exit_code,
         ];
     }
@@ -146,7 +151,7 @@ function selynt_input(): array {
  */
 function selynt_require_post(): void {
     if (selynt_method() !== 'POST') {
-        selynt_json(['ok' => false, 'error' => 'method_not_allowed', 'message' => 'POST obrigatório.'], 405);
+        selynt_json(['ok' => false, 'error' => 'method_not_allowed', 'message' => selynt_t('errors.method_not_allowed')], 405);
         exit(0);
     }
 }

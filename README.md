@@ -12,6 +12,7 @@
 <p align="center">
   <a href="https://github.com/NullSablex/selynt-panel/actions/workflows/ci.yml"><img src="https://github.com/NullSablex/selynt-panel/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://github.com/NullSablex/selynt-panel/releases/latest"><img src="https://img.shields.io/github/v/release/NullSablex/selynt-panel" alt="Última release"></a>
+  <a href="https://scorecard.dev/viewer/?uri=github.com/NullSablex/selynt-panel"><img src="https://api.scorecard.dev/projects/github.com/NullSablex/selynt-panel/badge?style=flat-square" alt="OpenSSF Scorecard"></a>
   <a href="LICENSE"><img src="https://img.shields.io/github/license/NullSablex/selynt-panel" alt="Licença"></a>
 </p>
 
@@ -69,7 +70,7 @@ O núcleo de execução é o binário [Core Selynt](https://github.com/NullSable
 No DirectAdmin, acesse **Plugin Manager** e forneça a URL de instalação:
 
 ```
-https://nullsablex.com/download/selynt_panel
+https://github.com/NullSablex/selynt-panel/releases/latest/download/selynt_panel.tar.gz
 ```
 
 ### Via linha de comando
