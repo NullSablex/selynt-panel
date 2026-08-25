@@ -2570,12 +2570,15 @@ table.apps-table {
     pointer-events: auto;
 }
 
+/* Fixed width on purpose: the row below grows when "custom" reveals the number
+   field, and a percentage width here would make the usage bar grow with it —
+   the bar would rescale on every change, as if the reading had moved. */
 .mem-usage {
     display: flex;
     flex-direction: column;
     gap: 5px;
-    width: 100%;
-    min-width: 160px;
+    width: 220px;
+    max-width: 100%;
 }
 
 .mem-usage .metric-bar {
