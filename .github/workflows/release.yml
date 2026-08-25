@@ -110,8 +110,6 @@ jobs:
             --exclude='docs' \
             --exclude='notes' \
             --exclude='mkdocs.yml' \
-            --exclude='scripts/package.sh' \
-            --exclude='scripts/fetch-core-selynt.sh' \
             --exclude='*.tmp' \
             --exclude='dist' \
             .
@@ -122,7 +120,7 @@ jobs:
           ARCHIVE="dist/${PACKAGE_NAME}.tar.gz"
 
           echo "Ensuring no dev/build artefacts leaked into the archive..."
-          FORBIDDEN="node_modules|assets-src|package\.json|package-lock|build-assets|assets\.manifest|\.github|\.gitignore|^\./install\.sh$|README\.md|CHANGELOG\.md|^\./docs/|^\./notes/|mkdocs\.yml|scripts/package\.sh|scripts/fetch-core-selynt\.sh"
+          FORBIDDEN="node_modules|assets-src|package\.json|package-lock|build-assets|assets\.manifest|\.github|\.gitignore|^\./install\.sh$|README\.md|CHANGELOG\.md|^\./docs/|^\./notes/|mkdocs\.yml"
           if tar -tzf "$ARCHIVE" | grep -qE "$FORBIDDEN"; then
             echo "::error::Forbidden files found in the package:"
             tar -tzf "$ARCHIVE" | grep -E "$FORBIDDEN"

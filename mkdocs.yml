@@ -1,7 +1,7 @@
 site_name: Selynt Panel
 site_description: DirectAdmin plugin for managing Node.js and Rust applications behind OpenLiteSpeed.
 site_author: NullSablex
-site_url: https://nullsablex.github.io/selynt-panel/
+site_url: https://selynt-panel.nullsablex.com/
 repo_url: https://github.com/NullSablex/selynt-panel
 repo_name: NullSablex/selynt-panel
 edit_uri: edit/master/docs/
