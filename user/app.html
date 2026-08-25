@@ -153,12 +153,12 @@ await fetch(`${API}/nodes.raw`).then(r=>r.json()).then(r=>{if(r&&r.ok)nodeVersio
 
 function iconFor(type){
   if(type==='node') return {icon:'fa-brands fa-node-js',cls:'icon-node'};
-  if(type==='rust') return {icon:'fa-solid fa-gears',cls:''};
+  if(type==='binary') return {icon:'fa-solid fa-gears',cls:''};
   return {icon:'fa-solid fa-cube',cls:''};
 }
 function typeLabel(ty){
   if(ty==='node') return t('type.node');
-  if(ty==='rust') return t('type.rust');
+  if(ty==='binary') return t('type.binary');
   return ty.charAt(0).toUpperCase()+ty.slice(1);
 }
 

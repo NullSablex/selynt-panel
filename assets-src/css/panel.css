@@ -1016,7 +1016,7 @@ Paleta base (tema escuro padrão)
     color: #0ea5e9;
 }
 
-.app-icon-rust {
+.app-icon-binary {
     color: #f97316;
 }
 
@@ -1668,7 +1668,7 @@ table.apps-table {
     color: #0ea5e9;
 }
 
-.apps-table .app-icon-rust {
+.apps-table .app-icon-binary {
     color: #f97316;
 }
 

@@ -21,7 +21,7 @@ foreach (['name','type','cwd','entry','host'] as $f) {
 if (!preg_match('/^[A-Za-z0-9._\-]{1,64}$/', $name)) {
     selynt_json(['ok'=>false,'error'=>'invalid_name','message'=>selynt_t('errors.invalid_name')]); exit(0);
 }
-if (!in_array($type, ['node', 'rust'], true)) {
+if (!in_array($type, ['node', 'binary'], true)) {
     selynt_json(['ok'=>false,'error'=>'invalid_type','message'=>selynt_t('errors.invalid_type')]); exit(0);
 }
 
