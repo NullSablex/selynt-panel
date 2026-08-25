@@ -1,39 +1,26 @@
 name: Welcome
 
 on:
-  pull_request_target:
-    types: [opened]
   issues:
+    types: [opened]
+  pull_request_target:
     types: [opened]
 
 permissions:
-  pull-requests: write
   issues: write
+  pull-requests: write
 
 jobs:
   welcome:
-    name: Welcome new contributor
+    name: Greet new contributors
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/first-interaction@2ec0f0fd78838633cd1c1342e4536d49ef72be54 # v1
+      - uses: actions/first-interaction@v3
         with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          issue-message: |
-            Hi! Thanks for opening this issue. 👋
-
-            Before we look into it, please make sure that:
-            - The issue clearly describes the problem or request
-            - You included steps to reproduce (for bugs)
-            - No other open issue already covers the same subject
-
-            Thanks for contributing to **Selynt Panel**!
-          pr-message: |
-            Hi! Thanks for sending this Pull Request. 👋
-
-            Before review, please check that:
-            - `npm run build` produces the minified assets without errors
-            - PHP files pass `php -l` (no syntax errors)
-            - Shell scripts pass `bash -n`
-            - CHANGELOG has been updated if user-visible behaviour changed
-
-            Thanks for contributing to **Selynt Panel**!
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          issue_message: |
+            Obrigado por abrir sua primeira issue! 🎉
+            A equipe vai analisar o mais breve possível.
+          pr_message: |
+            Obrigado pela sua primeira contribuição! 🎉
+            Vamos revisar seu PR o mais breve possível.
