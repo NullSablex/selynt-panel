@@ -153,11 +153,21 @@ btn.addEventListener('click', async () => {
   render();
 
   // Applications are restarted for us, so the message says what happened
-  // rather than asking the user to go and do it.
+  // rather than asking the user to go and do it. Applying the mode stops each
+  // app first, so one that failed to come back is down right now — reporting
+  // only the successes would leave the user to discover that on their own.
   const n = (r.restarted || []).length;
-  toast('success', n
-    ? t('settings.isolation.saved_restarted', { n })
-    : t('settings.isolation.saved'));
+  const failed = r.failed || [];
+  if (failed.length) {
+    toast('error', t('settings.isolation.saved_failed', {
+      n: failed.length,
+      apps: failed.join(', '),
+    }));
+  } else {
+    toast('success', n
+      ? t('settings.isolation.saved_restarted', { n })
+      : t('settings.isolation.saved'));
+  }
 });
 
 load();
