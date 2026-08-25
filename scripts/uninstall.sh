@@ -14,8 +14,8 @@ BIN="$PLUGIN_DIR/bin/core-selynt"
 sly_header "Selynt Panel" "uninstalling"
 
 # ── Undoing the server-side configuration ──
-# The binary owns this: it is the mirror of `setup`, and removing a block from a
-# template is done by the code that knows how it was written.
+# The binary owns this: removing a block from a template is done by the code
+# that wrote it.
 sly_act "Removing" "server configuration"
 if [ -x "$BIN" ]; then
     if OUT="$("$BIN" teardown 2>&1)"; then
@@ -33,12 +33,11 @@ else
 fi
 
 # ── Removing cron job ──
-# Only leftovers now: the proxy sync moved into the binary and runs on demand.
-# Both spellings: the sync was a shell script before it moved into the binary.
+# Leftovers only — the proxy sync moved into the binary. Both spellings,
+# because it used to be a shell script.
 if crontab -l 2>/dev/null | grep -qE "sync-extprocessors\.sh|core-selynt sync-proxy"; then
     sly_act "Removing" "cron job"
-    # Same reason as the installer: the filter removing every line is a normal
-    # outcome, not an error.
+    # A filter that removes every line is a normal outcome, not an error.
     { crontab -l 2>/dev/null \
         | grep -vE "sync-extprocessors\.sh|core-selynt sync-proxy" || true
     } | crontab - 2>/dev/null || true

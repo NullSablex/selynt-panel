@@ -1,12 +1,9 @@
 #!/bin/sh
 # Selynt Panel — DirectAdmin plugin installer.
-# Intentionally without `set -e`: the DA plugin install hook must never fail
-# or the plugin won't be registered.
 #
-# Steps that decide whether the panel works go through `sly_try`, which warns
-# and carries on. A bare `|| true` is reserved for genuinely optional work —
-# an informational file, a log the code creates on demand, a cache nudge —
-# where failing silently costs nothing.
+# No `set -e` on purpose: the DA install hook must exit 0 or the plugin is never
+# registered. Steps that decide whether the panel works go through `sly_try`,
+# which warns and carries on; a bare `|| true` is for genuinely optional work.
 
 PLUGIN_DIR="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
 
@@ -15,9 +12,8 @@ PLUGIN_DIR="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
 
 sly_header "Selynt Panel" "installing"
 
-# Not a hard exit — the DA plugin hook must return 0 or the plugin is never
-# registered — but the run has to say plainly that it did nothing, instead of
-# reporting success after every privileged step was refused.
+# Says plainly that it did nothing, rather than reporting success after every
+# privileged step was refused.
 if [ "$(id -u)" -ne 0 ]; then
     sly_err "must run as root — nothing was installed"
     exit 0
@@ -28,10 +24,9 @@ INSTALL_FAILED=0
 sly_try "creating etc/" mkdir -p "$PLUGIN_DIR/etc"
 
 # ── Preparing the environment ──
-# The binary owns this: it records which accounts DirectAdmin uses, creates the
-# state directory and installs the vhost templates. Those files decide who the
-# panel trusts at runtime, and it is the binary that reads them back — detecting
-# them here in shell only created a second place for the answer to drift.
+# The binary owns this — it records the accounts, creates the state directory
+# and installs the vhost templates. It is what reads those files back, so
+# detecting them here too would be a second answer free to drift.
 sly_act "Preparing" "environment"
 if [ -x "$BIN" ]; then
     if SETUP_OUT="$("$BIN" setup 2>&1)"; then
@@ -62,24 +57,16 @@ fi
 
 touch "$PLUGIN_DIR/etc/stderr.log" "$PLUGIN_DIR/etc/debug.log" 2>/dev/null || true
 
-# Ownership and permissions are applied by `setup` above, using the same rules
-# the diagnostic checks against — keeping them here as well would be a second
-# copy to drift.
-
 # ── Verifying the install ──
-# The binary already knows how to check this — same diagnostic the admin panel
-# runs — so the installer asks it instead of re-implementing the checks in
-# shell, where they would drift apart.
+# Asks the binary for the same diagnostic the admin panel runs.
 if [ -x "$BIN" ]; then
     sly_act "Verifying" "installation"
-    # The account DirectAdmin runs as, not root: the binary refuses root as a
-    # target — the privilege drop cannot leave uid 0 — so `USERNAME=root` came
-    # back as an error the old check happily read as success.
+    # Not root: the binary refuses it as a target, and that error used to be
+    # read as success.
     DA_USER="$(cat "$PLUGIN_DIR/etc/da_user" 2>/dev/null || echo diradmin)"
     DIAG="$(USERNAME="$DA_USER" "$BIN" admin diagnose 2>/dev/null)"
-    # Require positive evidence that the checks ran. Looking only for failures
-    # meant a refused or broken diagnostic — which reports neither — was read as
-    # everything being fine.
+    # Positive evidence that the checks ran: looking only for failures read a
+    # refused diagnostic as everything being fine.
     if ! printf '%s' "$DIAG" | grep -q '"level":"pass"'; then
         sly_err "diagnostic did not run — check with: $BIN admin diagnose"
         INSTALL_FAILED=1

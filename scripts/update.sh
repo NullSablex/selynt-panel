@@ -13,9 +13,8 @@ BIN="$PLUGIN_DIR/bin/core-selynt"
 
 sly_act "Refreshing" "ownership and permissions"
 
-# The binary applies this, from the same rules the diagnostic verifies against.
-# Two copies of the permission table — one to apply, one to check — is how they
-# stop agreeing.
+# The binary applies this, from the same rules the diagnostic checks against —
+# two copies of the permission table is how they stop agreeing.
 if [ -x "$BIN" ]; then
     if OUT="$("$BIN" setup 2>&1)"; then
         sly_sub "Binary  " "setuid root applied"

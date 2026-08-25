@@ -30,14 +30,13 @@ command -v directadmin >/dev/null 2>&1 \
     || { err "DirectAdmin not found"; exit 1; }
 
 # ── Checking prerequisites ──
-# Only what the panel cannot work without. Anything optional is reported by the
-# diagnostic after the install, where it can name the specific problem.
+# Only what the panel cannot work without; the rest the diagnostic reports
+# afterwards, where it can name the specific problem.
 act "Checking" "prerequisites"
 
 # The proxy is built out of OpenLiteSpeed's extProcessors, and DirectAdmin only
-# generates the vhost templates it hooks into when OLS is the web server.
-# LiteSpeed Enterprise reads Apache's configuration instead, so those templates
-# are never applied there.
+# generates the vhost templates it hooks into when OLS is the web server —
+# LiteSpeed Enterprise reads Apache's configuration instead.
 if [ ! -f /etc/openlitespeed/httpd_config.conf ] \
     && [ ! -f /usr/local/lsws/conf/httpd_config.conf ]; then
     err "OpenLiteSpeed not found — the panel routes traffic through it"
@@ -50,8 +49,8 @@ if grep -q '^webserver=litespeed$' \
     exit 1
 fi
 
-# Apps are placed in their own systemd scope, which is where their memory limit
-# is enforced; cgroup v2 is what makes that limit real.
+# Each app gets its own systemd scope; cgroup v2 is what makes its memory limit
+# real.
 command -v systemctl >/dev/null 2>&1 || { err "systemd not found"; exit 1; }
 [ -d /sys/fs/cgroup/system.slice ] \
     || { err "cgroup v2 not available — memory limits cannot be enforced"; exit 1; }
