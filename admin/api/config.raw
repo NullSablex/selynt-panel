@@ -58,6 +58,26 @@ if ($action === 'save_node_versions') {
     selynt_json(selynt_run($args)); exit(0);
 }
 
+if ($action === 'get_default_isolated') {
+    $file = SELYNT_PLUGIN_DIR . '/etc/default_isolated';
+    $val  = is_readable($file) ? trim((string)file_get_contents($file)) : '0';
+    selynt_json(['ok' => true, 'isolated' => $val === '1']);
+    exit(0);
+}
+
+if ($action === 'save_default_isolated') {
+    selynt_require_post();
+    // Only an explicit "1" enables it, so a malformed value cannot turn
+    // isolation on for every new account by accident.
+    $isolated = ((string)($input['isolated'] ?? '')) === '1' ? 'true' : 'false';
+    $res = selynt_run(['admin', 'save-default-isolated', '--isolated', $isolated]);
+    if (!($res['ok'] ?? false) && trim((string)($res['message'] ?? '')) === '') {
+        $res['message'] = selynt_t('errors.generic');
+    }
+    selynt_json($res);
+    exit(0);
+}
+
 if ($action === 'get_locale') {
     selynt_json([
         'ok'      => true,

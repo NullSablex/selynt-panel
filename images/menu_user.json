@@ -16,6 +16,20 @@
         "href": "/CMD_PLUGINS/selynt_panel/apps.html",
         "newTab": true,
         "updates": 0
+      },
+      {
+        "name": "Settings",
+        "icon": "/CMD_PLUGINS/selynt_panel/images/assets/img/logo.png",
+        "href": "/CMD_PLUGINS/selynt_panel/settings.html",
+        "newTab": true,
+        "updates": 0
+      },
+      {
+        "name": "Help",
+        "icon": "/CMD_PLUGINS/selynt_panel/images/assets/img/logo.png",
+        "href": "/CMD_PLUGINS/selynt_panel/help.html",
+        "newTab": true,
+        "updates": 0
       }
     ]
   }

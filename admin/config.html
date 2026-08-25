@@ -22,6 +22,7 @@ $locale_global  = selynt_i18n_global();
           <a href="<?= $pluginBase ?>"><?= selynt_t_html('nav.overview') ?></a>
           <a href="<?= $pluginBase ?>/config.html" class="active"><?= selynt_t_html('nav.settings') ?></a>
           <a href="<?= $pluginBase ?>/diagnostic.html"><?= selynt_t_html('nav.diagnostic') ?></a>
+          <a href="<?= $pluginBase ?>/help.html"><?= selynt_t_html('nav.help') ?></a>
         </nav>
       </div>
 
@@ -75,7 +76,7 @@ $locale_global  = selynt_i18n_global();
                 if ($opt['code'] === $locale_global) { $global_name = $opt['name']; break; }
             }
 ?>
-            <button type="button" class="lang-button" id="sly-lang-btn">
+            <button type="button" class="lang-button" id="sly-global-lang-btn">
               <i class="fa-solid fa-globe"></i>
               <span class="lang-button-label"><?= htmlspecialchars($global_name, ENT_QUOTES, 'UTF-8') ?></span>
             </button>
@@ -83,11 +84,36 @@ $locale_global  = selynt_i18n_global();
         </div>
 
 <?php if ($bin_ok): ?>
-        <div class="cfg-card" id="node-section" style="display:none">
-          <h4><?= selynt_t_html('admin.cfg.node_title') ?></h4>
-          <p class="cfg-desc"><?= selynt_t_html('admin.cfg.node_desc') ?></p>
-          <div id="node-list"><em class="text-faded"><?= selynt_t_html('admin.cfg.node_detect_hint') ?></em></div>
+        <div class="cfg-card">
+          <h4><?= selynt_t_html('admin.cfg.isolation_title') ?></h4>
+          <p class="cfg-desc"><?= selynt_t_html('admin.cfg.isolation_desc') ?></p>
+          <div class="cfg-row">
+            <span class="cfg-lbl"><?= selynt_t_html('admin.cfg.isolation_state') ?></span>
+            <span class="cfg-val" id="iso-default-state">…</span>
+          </div>
           <div class="cfg-actions">
+            <button type="button" class="btn-outline btn-primary" id="iso-default-toggle" disabled>
+              <i class="fa-solid fa-shield-halved"></i>
+              <span id="iso-default-label">…</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="cfg-card" id="runtime-section" style="display:none">
+          <div class="cfg-card-head">
+            <div>
+              <h4><?= selynt_t_html('admin.cfg.runtime_title') ?></h4>
+              <p class="cfg-desc"><?= selynt_t_html('admin.cfg.runtime_desc') ?></p>
+            </div>
+            <select id="runtime-select" class="inline-select" onchange="switchRuntime()">
+              <option value="node"><?= selynt_t_html('type.node') ?></option>
+              <option value="rust"><?= selynt_t_html('type.rust') ?></option>
+            </select>
+          </div>
+
+          <div id="runtime-body"></div>
+
+          <div class="cfg-actions" id="runtime-actions">
             <button class="btn-xs btn-soft" onclick="detect()"><i class="fa-solid fa-magnifying-glass"></i> <?= selynt_t_html('admin.cfg.detect') ?></button>
             <button class="btn-xs btn-soft btn-save-hidden" onclick="save()" id="btn-save"><i class="fa-solid fa-floppy-disk"></i> <?= selynt_t_html('common.save') ?></button>
           </div>
@@ -110,19 +136,56 @@ $locale_global  = selynt_i18n_global();
 <!-- Global language picker (admin), available regardless of the binary. -->
 <script type="module">
 import { langModal } from '<?= $pluginBase ?>/images/assets/js/script.min.js?v=<?= $v ?>';
-langModal({ apiBase: '<?= $pluginBase ?>/api', endpoint: 'config.raw', getAction: 'get_locale', saveAction: 'save_locale' });
+// Dois seletores com alvos distintos, e é importante não confundi-los:
+//  - o do cabeçalho muda apenas o idioma desta conta;
+//  - o do card define o padrão do servidor, herdado por quem não escolheu.
+langModal({ apiBase: '<?= $pluginBase ?>/api', endpoint: 'locale.raw' });
+langModal({
+  apiBase: '<?= $pluginBase ?>/api',
+  endpoint: 'config.raw',
+  getAction: 'get_locale',
+  saveAction: 'save_locale',
+  button: document.getElementById('sly-global-lang-btn'),
+});
 </script>
 
 <?php if ($bin_ok): ?>
 <script type="module">
-import { t } from '<?= $pluginBase ?>/images/assets/js/script.min.js?v=<?= $v ?>';
+import { t, toast } from '<?= $pluginBase ?>/images/assets/js/script.min.js?v=<?= $v ?>';
 const API='/CMD_PLUGINS_ADMIN/selynt_panel/api/config.raw';
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);}
 let allowed=[];
 let detected=[];
+// Ambiente em exibição. Cada um tem sua própria natureza: Node oferece
+// versões que o admin escolhe; Rust roda o binário que o cliente compilou, e
+// portanto não tem nada a configurar aqui.
+let runtime='node';
+
+function switchRuntime(){
+  runtime=document.getElementById('runtime-select').value;
+  detected=[];
+  renderRuntime();
+}
+window.switchRuntime=switchRuntime;
+
+// Desenha o corpo do card conforme o ambiente selecionado.
+function renderRuntime(){
+  const body=document.getElementById('runtime-body');
+  const actions=document.getElementById('runtime-actions');
+  if(runtime!=='node'){
+    body.innerHTML='<p class="cfg-desc">'+esc(t('admin.cfg.runtime_none'))+'</p>';
+    actions.style.display='none';
+    return;
+  }
+  actions.style.display='';
+  body.innerHTML='<div id="node-list"><em class="text-faded">'+
+    esc(t('admin.cfg.node_detect_hint'))+'</em></div>';
+  if(detected.length)render();
+}
 
 async function detect(){
-  document.getElementById('node-list').innerHTML='<em class="text-faded">'+esc(t('admin.cfg.detecting'))+'</em>';
+  const list=document.getElementById('node-list');
+  if(list)list.innerHTML='<em class="text-faded">'+esc(t('admin.cfg.detecting'))+'</em>';
   const [r,a]=await Promise.all([
     fetch(API+'?action=detect_nodes').then(r=>r.json()).catch(()=>null),
     fetch(API+'?action=allowed_versions').then(r=>r.json()).catch(()=>null)
@@ -130,16 +193,24 @@ async function detect(){
   if(a&&a.ok) allowed=a.versions||[];
   if(!r||!r.ok){return;}
   detected=r.versions||[];
-  if(!detected.length){return;}
-  document.getElementById('node-section').style.display='';
+  if(!detected.length){
+    const l=document.getElementById('node-list');
+    if(l)l.innerHTML='<em class="text-faded">'+esc(t('admin.cfg.node_none'))+'</em>';
+    return;
+  }
+  document.getElementById('runtime-section').style.display='';
   render();
   document.getElementById('btn-save').classList.remove('d-none');document.getElementById('btn-save').classList.remove('btn-save-hidden');
 }
 
 function render(){
-  document.getElementById('node-list').innerHTML='<ul class="cfg-node-list">'+detected.map(v=>{
+  const list=document.getElementById('node-list');
+  if(!list)return;
+  list.innerHTML='<ul class="cfg-node-list">'+detected.map(v=>{
     const chk=allowed.includes(v.version)?'checked':'';
-    return `<li><label><input type="checkbox" value="${esc(v.path)}" ${chk}> ${esc(v.version)}</label> <code>${esc(v.path)}</code></li>`;
+    return `<li><label><input type="checkbox" value="${esc(v.path)}" ${chk}>`+
+      `<span class="cfg-node-ver">${esc(v.version)}</span></label>`+
+      `<code class="cfg-node-path">${esc(v.path)}</code></li>`;
   }).join('')+'</ul>';
 }
 
@@ -179,11 +250,43 @@ async function copyCmd(id){
 window.copyCmd=copyCmd;
 
 window.detect=detect;
+window.renderRuntime=renderRuntime;
 window.save=save;
+// Desenha o card no ambiente padrão e já busca o que houver instalado.
+renderRuntime();
 detect();
 fetch(API+'?action=version').then(r=>r.json()).then(r=>{
   const el=document.getElementById('bin-ver');
   if(el){el.textContent=r.ok?r.version:t('admin.cfg.version_err');el.classList.remove('text-half');}
 }).catch(()=>{});
+
+// Server-wide isolation default. Only applies to accounts that never chose for
+// themselves — an explicit per-account setting always wins.
+const isoState=document.getElementById('iso-default-state');
+const isoBtn=document.getElementById('iso-default-toggle');
+let isoDefault=false;
+
+function renderIsoDefault(){
+  isoState.textContent=t(isoDefault?'settings.isolation.on':'settings.isolation.off');
+  isoState.className='cfg-val '+(isoDefault?'ok':'text-half');
+  document.getElementById('iso-default-label').textContent=
+    t(isoDefault?'settings.isolation.disable':'settings.isolation.enable');
+  isoBtn.disabled=false;
+}
+
+fetch(API+'?action=get_default_isolated').then(r=>r.json()).then(r=>{
+  if(!r||!r.ok){isoState.textContent=t('errors.generic');return;}
+  isoDefault=!!r.isolated; renderIsoDefault();
+}).catch(()=>{isoState.textContent=t('errors.generic');});
+
+isoBtn.addEventListener('click',async()=>{
+  isoBtn.disabled=true;
+  const next=isoDefault?'0':'1';
+  const r=await fetch(API+'?action=save_default_isolated&isolated='+next,{method:'POST'})
+    .then(x=>x.json()).catch(()=>null);
+  if(!r||!r.ok){toast('error',(r&&r.message)||t('errors.generic'));isoBtn.disabled=false;return;}
+  isoDefault=!!r.isolated; renderIsoDefault();
+  toast('success',t('settings.isolation.saved'));
+});
 </script>
 <?php endif; ?>

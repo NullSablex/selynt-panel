@@ -23,6 +23,13 @@
         "href": "/CMD_PLUGINS_ADMIN/selynt_panel/diagnostic.html",
         "newTab": true,
         "updates": 0
+      },
+      {
+        "name": "Help",
+        "icon": "/CMD_PLUGINS_ADMIN/selynt_panel/images/assets/img/logo.png",
+        "href": "/CMD_PLUGINS_ADMIN/selynt_panel/help.html",
+        "newTab": true,
+        "updates": 0
       }
     ]
   }

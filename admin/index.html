@@ -20,6 +20,7 @@ $v = SELYNT_VERSION;
           <a href="<?= $pluginBase ?>" class="active"><?= selynt_t_html('nav.overview') ?></a>
           <a href="<?= $pluginBase ?>/config.html"><?= selynt_t_html('nav.settings') ?></a>
           <a href="<?= $pluginBase ?>/diagnostic.html"><?= selynt_t_html('nav.diagnostic') ?></a>
+          <a href="<?= $pluginBase ?>/help.html"><?= selynt_t_html('nav.help') ?></a>
         </nav>
       </div>
 
@@ -54,7 +55,7 @@ $v = SELYNT_VERSION;
         </div>
       </header>
 
-      <section class="stats-grid content-pad">
+      <section class="stats-grid">
         <article class="stat-card stat-card-total">
           <div class="stat-header">
             <div>
@@ -63,8 +64,10 @@ $v = SELYNT_VERSION;
             </div>
             <div class="stat-icon"><i class="fa-solid fa-users"></i></div>
           </div>
+          <div class="stat-subtext"><?= selynt_t_html('admin.overview.users_hint') ?></div>
         </article>
-        <article class="stat-card stat-card-online">
+
+        <article class="stat-card stat-card-total is-filter" data-status="all" role="button" tabindex="0">
           <div class="stat-header">
             <div>
               <div class="stat-title"><?= selynt_t_html('admin.overview.total') ?></div>
@@ -72,8 +75,10 @@ $v = SELYNT_VERSION;
             </div>
             <div class="stat-icon"><i class="fa-solid fa-cubes"></i></div>
           </div>
+          <div class="stat-subtext"><?= selynt_t_html('admin.overview.total_hint') ?></div>
         </article>
-        <article class="stat-card stat-card-online">
+
+        <article class="stat-card stat-card-online is-filter" data-status="RUNNING" role="button" tabindex="0">
           <div class="stat-header">
             <div>
               <div class="stat-title"><?= selynt_t_html('admin.overview.running') ?></div>
@@ -81,14 +86,32 @@ $v = SELYNT_VERSION;
             </div>
             <div class="stat-icon"><i class="fa-solid fa-circle-check"></i></div>
           </div>
+          <div class="stat-subtext"><span id="stat-run-pct">—</span></div>
+        </article>
+
+        <article class="stat-card stat-card-offline is-filter" data-status="STOPPED" role="button" tabindex="0">
+          <div class="stat-header">
+            <div>
+              <div class="stat-title"><?= selynt_t_html('admin.overview.stopped') ?></div>
+              <div class="stat-value" id="stat-stopped">—</div>
+            </div>
+            <div class="stat-icon"><i class="fa-solid fa-circle-xmark"></i></div>
+          </div>
+          <div class="stat-subtext"><?= selynt_t_html('admin.overview.stopped_hint') ?></div>
         </article>
       </section>
 
-      <div class="content-pad">
-        <div class="apps-table-card">
-          <div id="sly-table"><p class="text-muted text-faded"><?= selynt_t_html('common.loading') ?></p></div>
-        </div>
-      </div>
+      <section class="apps-table-card">
+        <header class="apps-table-card-header">
+          <div>
+            <h2><?= selynt_t_html('admin.overview.table_title') ?></h2>
+            <p><?= selynt_t_html('admin.overview.table_hint') ?></p>
+          </div>
+        </header>
+        <div id="sly-table"><p class="text-muted"><?= selynt_t_html('common.loading') ?></p></div>
+        <nav class="pagination" id="sly-pager" hidden></nav>
+        <div class="page-info" id="sly-pageinfo" hidden></div>
+      </section>
 <?php endif; ?>
     </main>
   </div>
@@ -102,6 +125,11 @@ $v = SELYNT_VERSION;
 <script src="<?= $pluginBase ?>/images/assets/js/brands.min.js?v=<?= $v ?>"></script>
 <script type="module" src="<?= $pluginBase ?>/images/assets/js/script.min.js?v=<?= $v ?>"></script>
 <script type="module" src="<?= $pluginBase ?>/images/assets/js/panel.min.js?v=<?= $v ?>"></script>
+<script type="module">
+// Seletor do cabeçalho: muda o idioma desta conta, não o padrão do servidor.
+import { langModal } from '<?= $pluginBase ?>/images/assets/js/script.min.js?v=<?= $v ?>';
+langModal({ apiBase: '<?= $pluginBase ?>/api', endpoint: 'locale.raw' });
+</script>
 <script type="module">
 import { t } from '<?= $pluginBase ?>/images/assets/js/script.min.js?v=<?= $v ?>';
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);}
@@ -123,6 +151,14 @@ function uptime(ts){
   }
   return p.join(t('time.connector'));
 }
+// Ícone em caixa, com a cor do runtime — mesmo componente dos cards.
+function appIcon(ty){
+  const map={node:['app-icon-node','fa-brands fa-node-js'],
+             rust:['app-icon-rust','fa-brands fa-rust']};
+  const [cls,icon]=map[ty]||['','fa-solid fa-cube'];
+  return`<div class="app-icon${cls?' '+cls:''}"><i class="${icon}"></i></div>`;
+}
+
 function typeIcon(ty){
   if(ty==='node') return '<i class="fa-brands fa-node-js icon-node"></i>';
   if(ty==='rust') return '<i class="fa-solid fa-gears"></i>';
@@ -136,9 +172,86 @@ function typeLabel(ty){
 // CPU é contador acumulado: a taxa sai do delta entre dois refreshes da
 // tabela (15s), sem custo extra de requisição.
 const cpuPrev={};
+
+// ─── Filtro e paginação ─────────────────────────────────────────────────
+// Mesmo padrão do painel do usuário: os cards são o filtro, e a lista é
+// paginada no cliente — `admin list` já traz tudo numa requisição.
+const PER_PAGE=15;
+let page=1, statusFilter='all', allApps=[];
+try{
+  const f=localStorage.getItem('selynt.adminFilter');
+  if(f==='RUNNING'||f==='STOPPED')statusFilter=f;
+}catch(e){}
+
+function applyFilter(list){
+  return statusFilter==='all'?list:list.filter(a=>a.status===statusFilter);
+}
+
+function markFilterCards(){
+  document.querySelectorAll('.stat-card.is-filter').forEach(c=>{
+    c.classList.toggle('is-active',c.dataset.status===statusFilter);
+  });
+}
+
+function setFilter(status){
+  // Clicar no card já ativo desmarca, voltando para todas.
+  statusFilter=(statusFilter===status&&status!=='all')?'all':status;
+  page=1;
+  try{localStorage.setItem('selynt.adminFilter',statusFilter);}catch(e){}
+  markFilterCards();
+  lastTableSig=null;
+  load();
+}
+
+// Janela deslizante com elipse quando há muitas páginas.
+function pageWindow(cur,total){
+  if(total<=7)return Array.from({length:total},(_,i)=>i+1);
+  const out=[1];
+  const from=Math.max(2,cur-1),to=Math.min(total-1,cur+1);
+  if(from>2)out.push('…');
+  for(let i=from;i<=to;i++)out.push(i);
+  if(to<total-1)out.push('…');
+  out.push(total);
+  return out;
+}
+
+function renderPager(total){
+  const pager=document.getElementById('sly-pager');
+  const info=document.getElementById('sly-pageinfo');
+  const pages=Math.ceil(total/PER_PAGE);
+  if(pages<=1){pager.hidden=true;info.hidden=true;return;}
+  pager.hidden=false;info.hidden=false;
+  const btn=(label,target,o={})=>
+    `<button type="button" class="page-btn${o.active?' active':''}${o.disabled?' disabled':''}"`+
+    `${o.disabled?' disabled':''} data-page="${target}">${label}</button>`;
+  pager.innerHTML=
+    btn('<i class="fa-solid fa-chevron-left"></i>',page-1,{disabled:page===1})+
+    pageWindow(page,pages).map(n=>
+      n==='…'?'<span class="page-gap">…</span>':btn(n,n,{active:n===page})).join('')+
+    btn('<i class="fa-solid fa-chevron-right"></i>',page+1,{disabled:page===pages});
+  const first=(page-1)*PER_PAGE+1,last=Math.min(page*PER_PAGE,total);
+  info.textContent=t('page.showing',{from:first,to:last,total:total});
+}
+
+document.addEventListener('click',e=>{
+  const card=e.target.closest('.stat-card.is-filter');
+  if(card){setFilter(card.dataset.status);return;}
+  const b=e.target.closest('#sly-pager .page-btn');
+  if(!b||b.disabled)return;
+  const target=parseInt(b.dataset.page,10);
+  if(!target||target===page)return;
+  page=target; lastTableSig=null; load();
+});
+
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Enter'&&e.key!==' ')return;
+  const card=e.target.closest&&e.target.closest('.stat-card.is-filter');
+  if(card){e.preventDefault();setFilter(card.dataset.status);}
+});
 function cellId(a){return String(a.user+'-'+a.name).replace(/[^A-Za-z0-9_-]/g,'_');}
 function tableSignature(apps){
-  return apps.map(a=>[a.user,a.name,a.type,a.host,a.status,a.pid].join('|')).join('~');
+  return statusFilter+':'+page+':'+
+    apps.map(a=>[a.user,a.name,a.type,a.host,a.status,a.pid].join('|')).join('~');
 }
 let lastTableSig=null;
 function fmtBytes(b){
@@ -158,18 +271,42 @@ async function load(){
   const r=await fetch('/CMD_PLUGINS_ADMIN/selynt_panel/api/overview.raw').then(r=>r.json()).catch(()=>null);
   if(!r||!r.ok){document.getElementById('sly-table').innerHTML='<p class="alert-error">'+esc(t('errors.load_apps'))+'</p>';return;}
   const apps=r.apps||[];
+  allApps=apps;
+  const dash=t('app.log.dash');
   const users=[...new Set(apps.map(a=>a.user))];
   const run=apps.filter(a=>a.status==='RUNNING').length;
   document.getElementById('stat-users').textContent=users.length;
   document.getElementById('stat-total').textContent=apps.length;
   document.getElementById('stat-run').textContent=run;
-  if(!apps.length){document.getElementById('sly-table').innerHTML='<p class="text-muted">'+esc(t('admin.overview.none'))+'</p>';return;}
-  const dash=t('app.log.dash');
+  document.getElementById('stat-stopped').textContent=apps.length-run;
+  document.getElementById('stat-run-pct').textContent=
+    apps.length?Math.round(run/apps.length*100)+'% '+t('dash.of_total'):dash;
+  if(!apps.length){
+    document.getElementById('sly-table').innerHTML='<p class="text-muted">'+esc(t('admin.overview.none'))+'</p>';
+    document.getElementById('sly-pager').hidden=true;
+    document.getElementById('sly-pageinfo').hidden=true;
+    return;
+  }
+
+  // A tabela mostra a página atual do filtro; os cards seguem contando tudo.
+  const filtered=applyFilter(apps);
+  const pages=Math.max(1,Math.ceil(filtered.length/PER_PAGE));
+  if(page>pages)page=pages;
+  const slice=filtered.slice((page-1)*PER_PAGE,page*PER_PAGE);
+  markFilterCards();
+
+  if(!filtered.length){
+    document.getElementById('sly-table').innerHTML='<p class="text-muted">'+esc(t('dash.recent_empty_filter'))+'</p>';
+    document.getElementById('sly-pager').hidden=true;
+    document.getElementById('sly-pageinfo').hidden=true;
+    lastTableSig=tableSignature(apps);
+    return;
+  }
   // Só remonta a tabela quando algo estrutural muda; caso contrário atualiza
   // apenas as células de CPU e memória, para não piscar a cada 15s.
-  const sig=tableSignature(apps);
+  const sig=tableSignature(slice);
   if(sig===lastTableSig&&document.querySelector('#sly-table tbody')){
-    apps.forEach(a=>{
+    slice.forEach(a=>{
       const id=cellId(a);
       const c=document.getElementById('cpu-'+id);
       const m=document.getElementById('mem-'+id);
@@ -179,8 +316,24 @@ async function load(){
     return;
   }
   lastTableSig=sig;
-  document.getElementById('sly-table').innerHTML=`<div class="table-scroll"><table class="apps-table"><thead><tr><th>${esc(t('admin.overview.col.user'))}</th><th>${esc(t('admin.overview.col.app'))}</th><th>${esc(t('admin.overview.col.type'))}</th><th>${esc(t('admin.overview.col.host'))}</th><th>${esc(t('admin.overview.col.status'))}</th><th>${esc(t('admin.overview.col.uptime'))}</th><th>${esc(t('admin.overview.col.cpu'))}</th><th>${esc(t('admin.overview.col.memory'))}</th><th>${esc(t('admin.overview.col.pid'))}</th></tr></thead><tbody>${
-    apps.map(a=>`<tr><td>${esc(a.user)}</td><td>${esc(a.name)}</td><td>${typeIcon(a.type)} ${esc(typeLabel(a.type))}</td><td><code class="code-muted">${esc(a.host)}</code></td><td><span class="badge ${a.status==='RUNNING'?'badge-online':'badge-offline'}">${esc(a.status==='RUNNING'?t('apps.online'):t('apps.offline'))}</span></td><td>${a.status==='RUNNING'&&a.started_at?uptime(a.started_at):dash}</td><td id="cpu-${cellId(a)}">${cpuCell(a.user+'/'+a.name,a.cpu_usec)||dash}</td><td id="mem-${cellId(a)}">${a.memory?esc(fmtBytes(a.memory)):dash}</td><td>${a.pid||dash}</td></tr>`).join('')
+  renderPager(filtered.length);
+  document.getElementById('sly-table').innerHTML=`<div class="table-scroll"><table class="apps-table"><thead><tr><th>${esc(t('admin.overview.col.user'))}</th><th>${esc(t('admin.overview.col.app'))}</th><th>${esc(t('admin.overview.col.status'))}</th><th>${esc(t('admin.overview.col.uptime'))}</th><th>${esc(t('admin.overview.col.cpu'))}</th><th>${esc(t('admin.overview.col.memory'))}</th><th>${esc(t('admin.overview.col.pid'))}</th></tr></thead><tbody>${
+    slice.map(a=>{
+      const run=a.status==='RUNNING';
+      return`<tr>`+
+        `<td data-label="${esc(t('admin.overview.col.user'))}">${esc(a.user)}</td>`+
+        `<td data-label="${esc(t('admin.overview.col.app'))}"><div class="app-row-main">${appIcon(a.type)}`+
+          `<div><span class="app-name-plain">${esc(a.name)}</span>`+
+          `<div class="app-row-host">${esc(a.host)}</div></div></div></td>`+
+        `<td data-label="${esc(t('admin.overview.col.status'))}"><span class="status-pill ${run?'online':'offline'}">`+
+          `<i class="fa-solid ${run?'fa-circle':'fa-circle-xmark'}"></i> `+
+          `${esc(run?t('apps.online'):t('apps.offline'))}</span></td>`+
+        `<td data-label="${esc(t('admin.overview.col.uptime'))}">${run&&a.started_at?esc(uptime(a.started_at)):dash}</td>`+
+        `<td data-label="${esc(t('admin.overview.col.cpu'))}" id="cpu-${cellId(a)}">${cpuCell(a.user+'/'+a.name,a.cpu_usec)||dash}</td>`+
+        `<td data-label="${esc(t('admin.overview.col.memory'))}" id="mem-${cellId(a)}">${a.memory?esc(fmtBytes(a.memory)):dash}</td>`+
+        `<td data-label="${esc(t('admin.overview.col.pid'))}">${a.pid||dash}</td>`+
+      `</tr>`;
+    }).join('')
   }</tbody></table></div>`;
 }
 load();setInterval(load,15000);

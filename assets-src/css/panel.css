@@ -2581,3 +2581,214 @@ table.apps-table {
 .mem-usage .metric-bar {
     margin-top: 0;
 }
+
+/* App name in the admin table. Unlinked — the admin overview is read-only and
+   an admin cannot open another account's app page. */
+.apps-table .app-name-plain {
+    font-size: 0.88rem;
+    font-weight: 500;
+}
+
+/* Help page: collapsible question list. Uses <details>, so it works without
+   JavaScript and stays keyboard-accessible for free. */
+.faq {
+    display: flex;
+    flex-direction: column;
+}
+
+.faq-item {
+    border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+.faq-item:last-child {
+    border-bottom: 0;
+}
+
+.faq-item summary {
+    padding: 12px 4px;
+    cursor: pointer;
+    font-size: 0.88rem;
+    font-weight: 500;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: color 0.15s ease;
+}
+
+.faq-item summary::-webkit-details-marker {
+    display: none;
+}
+
+/* Chevron drawn here rather than relying on the browser's default marker,
+   which differs across engines. */
+.faq-item summary::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    flex-shrink: 0;
+    border-right: 2px solid var(--color-text-muted);
+    border-bottom: 2px solid var(--color-text-muted);
+    transform: rotate(-45deg);
+    transition: transform 0.2s ease;
+}
+
+.faq-item[open] summary::before {
+    transform: rotate(45deg);
+}
+
+.faq-item summary:hover {
+    color: var(--color-primary);
+}
+
+.faq-answer {
+    padding: 0 4px 14px 24px;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: var(--color-text-muted);
+}
+
+.faq-answer code {
+    font-size: 0.82em;
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: rgba(148, 163, 184, 0.16);
+    color: var(--color-text);
+}
+
+.faq-answer strong {
+    color: var(--color-text);
+    font-weight: 600;
+}
+
+/* Help page: cards linking into the documentation. The detailed content lives
+   there, in one language — translating it all into the panel would multiply
+   the maintenance by the number of locales. */
+.help-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.help-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background-color: var(--color-card-bg);
+    border: 1px solid var(--color-card-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-soft);
+    text-decoration: none;
+    color: inherit;
+    transition:
+        transform 0.15s ease,
+        box-shadow 0.15s ease,
+        border-color 0.15s ease;
+}
+
+.help-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 18px 35px -20px rgba(15, 23, 42, 0.9);
+    border-color: rgba(129, 140, 248, 0.9);
+}
+
+.help-card-icon {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    border-radius: 12px;
+    background: rgba(148, 163, 184, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-primary);
+    font-size: 1rem;
+}
+
+.help-card-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.help-card-title {
+    font-size: 0.92rem;
+    font-weight: 600;
+}
+
+.help-card-desc {
+    font-size: 0.78rem;
+    color: var(--color-text-muted);
+    line-height: 1.4;
+}
+
+.help-card-go {
+    margin-left: auto;
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    flex-shrink: 0;
+}
+
+/* Diagnostic report: one row per check, grouped by area. */
+.diag-group + .diag-group {
+    margin-top: 16px;
+}
+
+.diag-group h3 {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-text-muted);
+    margin-bottom: 6px;
+}
+
+.diag-row {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    padding: 7px 4px;
+    font-size: 0.82rem;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.diag-group .diag-row:last-child {
+    border-bottom: 0;
+}
+
+.diag-row i {
+    font-size: 0.78rem;
+    flex-shrink: 0;
+}
+
+.diag-row.is-pass i { color: #22c55e; }
+.diag-row.is-warn i { color: #f59e0b; }
+.diag-row.is-fail i { color: var(--color-error); }
+
+.diag-detail {
+    color: var(--color-text-muted);
+    word-break: break-word;
+}
+
+/* Settings card with a selector in its header. */
+.cfg-card-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+
+/* Runtime paths: version and path on one line, path muted and wrapping. */
+.cfg-node-ver {
+    font-weight: 500;
+}
+
+.cfg-node-path {
+    font-size: 0.78rem;
+    color: var(--color-text-muted);
+    word-break: break-all;
+}

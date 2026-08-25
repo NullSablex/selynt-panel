@@ -20,6 +20,7 @@ $v = SELYNT_VERSION;
           <a href="<?= $pluginBase ?>"><?= selynt_t_html('nav.overview') ?></a>
           <a href="<?= $pluginBase ?>/config.html"><?= selynt_t_html('nav.settings') ?></a>
           <a href="<?= $pluginBase ?>/diagnostic.html" class="active"><?= selynt_t_html('nav.diagnostic') ?></a>
+          <a href="<?= $pluginBase ?>/help.html"><?= selynt_t_html('nav.help') ?></a>
         </nav>
       </div>
 
@@ -47,80 +48,20 @@ $v = SELYNT_VERSION;
           <h1><?= selynt_t_html('diagnostic.title') ?></h1>
           <p><?= selynt_t_html('diagnostic.subtitle') ?></p>
         </div>
+        <div class="main-header-actions">
+          <button type="button" class="btn-outline" id="run-diag">
+            <i class="fa-solid fa-play"></i> <?= selynt_t_html('diagnostic.run') ?>
+          </button>
+        </div>
       </header>
 
-      <div class="content-pad">
-        <div class="cfg-card">
-          <h4><?= selynt_t_html('diagnostic.full_title') ?></h4>
-          <p class="cfg-desc"><?= selynt_t_html('diagnostic.full_desc') ?></p>
-          <div class="cfg-cmd-block">
-            <div class="cfg-cmd-label"><?= selynt_t_html('diagnostic.run_label') ?></div>
-            <div class="cfg-cmd-row">
-              <code class="cfg-cmd" id="diag-cmd">sudo bash /usr/local/directadmin/plugins/selynt_panel/scripts/diag-proxy.sh</code>
-              <button type="button" class="btn-xs btn-soft" onclick="copyCmd('diag-cmd')"><i class="fa-regular fa-copy"></i> <?= selynt_t_html('diagnostic.copy') ?></button>
-            </div>
-          </div>
-        </div>
-
-        <div class="cfg-card">
-          <h4><?= selynt_t_html('diagnostic.logs_title') ?></h4>
-          <p class="cfg-desc"><?= selynt_t_html('diagnostic.logs_desc') ?></p>
-          <div class="cfg-cmd-block">
-            <div class="cfg-cmd-label"><?= selynt_t_html('diagnostic.boot_label') ?></div>
-            <div class="cfg-cmd-row">
-              <code class="cfg-cmd" id="diag-boot">sudo tail -f /usr/local/directadmin/plugins/selynt_panel/etc/boot-recover.log</code>
-              <button type="button" class="btn-xs btn-soft" onclick="copyCmd('diag-boot')"><i class="fa-regular fa-copy"></i> <?= selynt_t_html('diagnostic.copy') ?></button>
-            </div>
-          </div>
-          <div class="cfg-cmd-block">
-            <div class="cfg-cmd-label"><?= selynt_t_html('diagnostic.stderr_label') ?></div>
-            <div class="cfg-cmd-row">
-              <code class="cfg-cmd" id="diag-stderr">sudo tail -f /usr/local/directadmin/plugins/selynt_panel/etc/stderr.log</code>
-              <button type="button" class="btn-xs btn-soft" onclick="copyCmd('diag-stderr')"><i class="fa-regular fa-copy"></i> <?= selynt_t_html('diagnostic.copy') ?></button>
-            </div>
-          </div>
-          <div class="cfg-cmd-block">
-            <div class="cfg-cmd-label"><?= selynt_t_html('diagnostic.ols_label') ?></div>
-            <div class="cfg-cmd-row">
-              <code class="cfg-cmd" id="diag-ols">sudo tail -f /var/log/openlitespeed/error_log</code>
-              <button type="button" class="btn-xs btn-soft" onclick="copyCmd('diag-ols')"><i class="fa-regular fa-copy"></i> <?= selynt_t_html('diagnostic.copy') ?></button>
-            </div>
-          </div>
-        </div>
-
-        <div class="cfg-card">
-          <h4><?= selynt_t_html('diagnostic.fixes_title') ?></h4>
-          <p class="cfg-desc"><?= selynt_t_html('diagnostic.fixes_desc') ?></p>
-          <div class="cfg-cmd-block">
-            <div class="cfg-cmd-label"><?= selynt_t_html('diagnostic.reapply_label') ?></div>
-            <div class="cfg-cmd-row">
-              <code class="cfg-cmd" id="diag-setup">sudo bash /usr/local/directadmin/plugins/selynt_panel/scripts/setup-ols.sh</code>
-              <button type="button" class="btn-xs btn-soft" onclick="copyCmd('diag-setup')"><i class="fa-regular fa-copy"></i> <?= selynt_t_html('diagnostic.copy') ?></button>
-            </div>
-          </div>
-          <div class="cfg-cmd-block">
-            <div class="cfg-cmd-label"><?= selynt_t_html('diagnostic.rewrite_label') ?></div>
-            <div class="cfg-cmd-row">
-              <code class="cfg-cmd" id="diag-rewrite">cd /usr/local/directadmin/custombuild &amp;&amp; sudo ./build rewrite_confs</code>
-              <button type="button" class="btn-xs btn-soft" onclick="copyCmd('diag-rewrite')"><i class="fa-regular fa-copy"></i> <?= selynt_t_html('diagnostic.copy') ?></button>
-            </div>
-          </div>
-          <div class="cfg-cmd-block">
-            <div class="cfg-cmd-label"><?= selynt_t_html('diagnostic.restart_label') ?></div>
-            <div class="cfg-cmd-row">
-              <code class="cfg-cmd" id="diag-restart">sudo systemctl restart lsws</code>
-              <button type="button" class="btn-xs btn-soft" onclick="copyCmd('diag-restart')"><i class="fa-regular fa-copy"></i> <?= selynt_t_html('diagnostic.copy') ?></button>
-            </div>
-          </div>
-          <div class="cfg-cmd-block">
-            <div class="cfg-cmd-label"><?= selynt_t_html('diagnostic.refresh_label') ?></div>
-            <div class="cfg-cmd-row">
-              <code class="cfg-cmd" id="diag-update">sudo bash /usr/local/directadmin/plugins/selynt_panel/scripts/update.sh</code>
-              <button type="button" class="btn-xs btn-soft" onclick="copyCmd('diag-update')"><i class="fa-regular fa-copy"></i> <?= selynt_t_html('diagnostic.copy') ?></button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <section class="apps-table-card">
+        <header class="apps-table-card-header">
+          <h2><?= selynt_t_html('diagnostic.report') ?></h2>
+          <span id="diag-summary"></span>
+        </header>
+        <div id="diag-output"><p class="text-muted"><?= selynt_t_html('diagnostic.idle') ?></p></div>
+      </section>
     </main>
   </div>
 </div>
@@ -133,17 +74,73 @@ $v = SELYNT_VERSION;
 <script type="module" src="<?= $pluginBase ?>/images/assets/js/script.min.js?v=<?= $v ?>"></script>
 <script type="module" src="<?= $pluginBase ?>/images/assets/js/panel.min.js?v=<?= $v ?>"></script>
 <script type="module">
-async function copyCmd(id){
-  const el=document.getElementById(id);
-  if(!el)return;
-  try{
-    await navigator.clipboard.writeText(el.textContent.trim());
-  } catch(e){
-    const r=document.createRange();r.selectNode(el);
-    const sel=window.getSelection();sel.removeAllRanges();sel.addRange(r);
-    try{document.execCommand('copy');}catch(_){}
-    sel.removeAllRanges();
+// Seletor do cabeçalho: muda o idioma desta conta, não o padrão do servidor.
+import { langModal } from '<?= $pluginBase ?>/images/assets/js/script.min.js?v=<?= $v ?>';
+langModal({ apiBase: '<?= $pluginBase ?>/api', endpoint: 'locale.raw' });
+</script>
+<script type="module">
+import { t } from '<?= $pluginBase ?>/images/assets/js/script.min.js?v=<?= $v ?>';
+const API='<?= $pluginBase ?>/api';
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);}
+
+const btn=document.getElementById('run-diag');
+const out=document.getElementById('diag-output');
+const summary=document.getElementById('diag-summary');
+
+const ICON={pass:'fa-circle-check',warn:'fa-triangle-exclamation',fail:'fa-circle-xmark'};
+
+btn.addEventListener('click',async()=>{
+  btn.disabled=true;
+  summary.textContent='';
+  out.innerHTML='<p class="text-muted">'+esc(t('diagnostic.running'))+'</p>';
+
+  const r=await fetch(`${API}/diagnostic.raw`,{method:'POST'})
+    .then(r=>r.json()).catch(()=>null);
+  btn.disabled=false;
+
+  if(!r||!r.ok){
+    out.innerHTML='<p class="alert-error">'+esc((r&&(r.message||r.error))||t('errors.generic'))+'</p>';
+    return;
   }
-}
-window.copyCmd=copyCmd;
+
+  // Agrupa por área para o relatório ser lido por seção, não como uma lista
+  // corrida de trinta linhas.
+  const groups={};
+  for(const c of r.checks||[]) (groups[c.group]??=[]).push(c);
+
+  // O binário devolve a chave e, quando há, um valor; o texto vem do idioma
+  // ativo. Antes ele mandava a frase pronta, em inglês e cheia de detalhe
+  // interno ("setuid root", "diradmin", "CUSTOM.5 present").
+  out.innerHTML=Object.entries(groups).map(([g,items])=>
+    `<div class="diag-group"><h3>${esc(t('diagnostic.group.'+g))}</h3>`+
+    items.map(c=>{
+      let vars={};
+      if(c.arg!=null){
+        // Algumas chaves carregam dois números; o resto, um só.
+        if(c.key==='registered'){
+          const [apps,accounts]=String(c.arg).split('|');
+          vars={apps,accounts};
+        } else if(c.key==='vhosts_ok'){
+          const [n,total]=String(c.arg).split('|');
+          vars={n,total};
+        } else {
+          vars={n:c.arg};
+        }
+      }
+      return`<div class="diag-row is-${esc(c.level)}">`+
+        `<i class="fa-solid ${ICON[c.level]||'fa-circle'}"></i>`+
+        `<span class="diag-detail">${esc(t('diag.'+c.key,vars))}</span>`+
+      `</div>`;
+    }).join('')+
+    `</div>`).join('');
+
+  const s=r.summary||{};
+  const clean=!s.fail&&!s.warn;
+  const parts=[t('diagnostic.passed',{n:s.pass||0})];
+  if(s.warn)parts.push(t('diagnostic.warnings',{n:s.warn}));
+  if(s.fail)parts.push(t('diagnostic.failures',{n:s.fail}));
+  summary.innerHTML='<span class="status-pill '+(clean?'online':'offline')+'">'+
+    '<i class="fa-solid '+(clean?'fa-circle-check':'fa-triangle-exclamation')+'"></i> '+
+    esc(parts.join(' · '))+'</span>';
+});
 </script>

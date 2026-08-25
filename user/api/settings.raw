@@ -1,0 +1,35 @@
+#!/usr/local/bin/php -n
+<?php
+declare(strict_types=1);
+
+require_once dirname(__DIR__, 2) . '/lib/common.php';
+
+$input  = selynt_input();
+$action = (string)($input['action'] ?? 'get');
+
+if ($action === 'get') {
+    selynt_json(selynt_run(['status-isolated']));
+    exit(0);
+}
+
+if ($action === 'set') {
+    selynt_require_post();
+    // Anything other than an explicit "1" turns isolation off, so a malformed
+    // value can never silently enable it.
+    $isolated = ((string)($input['isolated'] ?? '')) === '1' ? 'true' : 'false';
+    $res = selynt_run(['set-isolated', '--isolated', $isolated]);
+
+    if (!($res['ok'] ?? false)) {
+        // The binary answers with an i18n key when the failure is one the
+        // account can act on — isolation unavailable, say — so it is translated
+        // here rather than shown raw.
+        $msg = trim((string)($res['message'] ?? ''));
+        $res['message'] = $msg === ''
+            ? selynt_t('errors.generic')
+            : selynt_t($msg);
+    }
+    selynt_json($res);
+    exit(0);
+}
+
+selynt_json(['ok' => false, 'error' => 'unknown_action']);
