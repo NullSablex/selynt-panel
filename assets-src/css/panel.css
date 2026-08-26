@@ -134,13 +134,6 @@ Paleta base (tema escuro padrão)
     gap: 16px;
 }
 
-.header-logo {
-    width: 36px;
-    height: 36px;
-    display: block;
-    flex-shrink: 0;
-}
-
 .main-nav {
     display: flex;
     align-items: center;
@@ -253,18 +246,6 @@ Paleta base (tema escuro padrão)
     background: #ffffff;
 }
 
-/* Link perigoso (Sair) - tema claro */
-.selynt-boot-light .selynt-panel .user-menu-link-danger,
-.selynt-panel.theme-light .user-menu-link-danger {
-    color: #b91c1c; /* vermelho mais escuro e legível no fundo claro */
-}
-
-.selynt-boot-light .selynt-panel .user-menu-link-danger:hover,
-.selynt-panel.theme-light .user-menu-link-danger:hover {
-    background-color: #fee2e2; /* fundo vermelho bem suave */
-    color: #7f1d1d;           /* texto mais escuro no hover */
-}
-
 .theme-toggle:hover {
     color: var(--color-text);
     transform: translateY(-1px);
@@ -291,154 +272,6 @@ Paleta base (tema escuro padrão)
 .selynt-boot-light .selynt-panel .theme-toggle .icon-moon,
 .selynt-panel.theme-light .theme-toggle .icon-moon {
     display: none;
-}
-
-/* USER DROPDOWN (só conta / sair) */
-
-.user-dropdown {
-    position: relative;
-}
-
-.user-profile {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 4px 8px;
-    border-radius: 999px;
-    background-color: rgba(15, 23, 42, 0.9);
-    border: 1px solid rgba(148, 163, 184, 0.6);
-    cursor: pointer;
-    transition:
-        background-color 0.2s ease,
-        border-color 0.2s ease,
-        box-shadow 0.2s ease;
-}
-
-.selynt-boot-light .selynt-panel .user-profile,
-.selynt-panel.theme-light .user-profile {
-    background-color: #ffffff;
-}
-
-.user-profile:hover {
-    box-shadow: 0 6px 14px -8px rgba(15, 23, 42, 0.7);
-}
-
-.user-avatar {
-    width: 28px;
-    height: 28px;
-    border-radius: 999px;
-    background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.8rem;
-    color: #f9fafb;
-}
-
-.user-meta {
-    display: flex;
-    flex-direction: column;
-    line-height: 1.2;
-}
-
-.user-name {
-    font-size: 0.85rem;
-    color: var(--color-text);
-}
-
-.user-role {
-    font-size: 0.7rem;
-    color: var(--color-text-muted);
-}
-
-.user-caret {
-    margin-left: 2px;
-    font-size: 0.7rem;
-    color: var(--color-text-muted);
-}
-
-.user-menu {
-    position: absolute;
-    right: 0;
-    top: calc(100% + 6px);
-    min-width: 180px;
-    background-color: var(--color-card-bg);
-    border-radius: 10px;
-    border: 1px solid var(--color-card-border);
-    box-shadow: 0 18px 40px -24px rgba(15, 23, 42, 0.9);
-    opacity: 0;
-    transform: translateY(-4px);
-    pointer-events: none;
-    transition:
-        opacity 0.15s ease,
-        transform 0.15s ease;
-    overflow: hidden;
-}
-
-.user-dropdown.open .user-menu {
-    opacity: 1;
-    transform: translateY(0);
-    pointer-events: auto;
-}
-
-.user-menu-list {
-    list-style: none;
-    padding: 6px;
-}
-
-.user-menu-label {
-    font-size: 0.7rem;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--color-text-muted);
-    padding: 4px 8px 2px;
-}
-
-.user-menu-separator {
-    border-top: 1px solid rgba(148, 163, 184, 0.2);
-    margin: 4px 6px;
-}
-
-.user-menu-link {
-    width: 100%;
-    border: 0;
-    background: transparent;
-    padding: 6px 8px;
-    border-radius: 8px;
-    font-size: 0.8rem;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    text-decoration: none;
-    color: var(--color-text-muted);
-    cursor: pointer;
-    transition:
-        background-color 0.15s ease,
-        color 0.15s ease;
-}
-
-.user-menu-link i {
-    font-size: 0.85rem;
-    width: 14px;
-    text-align: center;
-}
-
-.user-menu-link span {
-    flex: 1;
-}
-
-.user-menu-link:hover {
-    background-color: rgba(148, 163, 184, 0.16);
-    color: var(--color-text);
-}
-
-.user-menu-link-danger {
-    color: #fecaca;
-}
-
-.user-menu-link-danger:hover {
-    background-color: rgba(239, 68, 68, 0.25);
-    color: #fee2e2;
 }
 
 /* MAIN */
@@ -750,25 +583,10 @@ Paleta base (tema escuro padrão)
     box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.18);
 }
 
-/* Layout de formulário */
-.selynt-panel .app-card-title {
-    font-size: 1rem;
-    font-weight: 600;
-    margin-bottom: 12px;
-}
-
 .selynt-panel .selynt-form {
     display: flex;
     flex-direction: column;
     gap: clamp(12px, 3vw, 18px);
-}
-
-.selynt-panel .selynt-form > .form-section {
-    margin-top: 14px;
-}
-
-.selynt-panel .selynt-form > .form-section:first-child {
-    margin-top: 0;
 }
 
 .selynt-panel .form-grid {
@@ -815,76 +633,6 @@ Paleta base (tema escuro padrão)
     align-items: center;
 }
 
-.selynt-panel .form-note {
-    margin-top: 12px;
-    font-size: 0.8rem;
-    color: var(--color-text-muted);
-}
-
-.selynt-panel .cwd-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
-}
-
-.selynt-panel .cwd-preview[readonly] {
-    cursor: default;
-    opacity: 0.95;
-}
-
-.selynt-panel .cwd-actions {
-    margin-top: 8px;
-    display: flex;
-    gap: 14px;
-    flex-wrap: wrap;
-    align-items: center;
-}
-
-.selynt-panel .cwd-link {
-    appearance: none;
-    background: transparent;
-    border: 0;
-    padding: 0;
-    font: inherit;
-    font-size: 0.85rem;
-    color: rgba(129, 140, 248, 0.95);
-    cursor: pointer;
-    text-decoration: none;
-}
-
-.selynt-panel .cwd-link:hover {
-    text-decoration: underline;
-}
-
-.selynt-panel .cwd-link:focus {
-    outline: none;
-}
-
-.selynt-panel .cwd-toggle {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 0.85rem;
-    color: var(--color-text-muted);
-    cursor: pointer;
-    user-select: none;
-    padding: 6px 10px;
-    border-radius: 999px;
-    border: 1px solid rgba(148, 163, 184, 0.35);
-}
-
-.selynt-panel .cwd-toggle input[type="checkbox"] {
-    width: 16px;
-    height: 16px;
-    accent-color: var(--color-primary);
-}
-
-.selynt-boot-light .selynt-panel .cwd-toggle,
-.selynt-panel.theme-light .cwd-toggle {
-    border-color: rgba(156, 163, 175, 0.7);
-}
-
 /* Tema claro: botões outline (Atualizar / etc.) */
 .selynt-boot-light .selynt-panel .btn-outline,
 .selynt-panel.theme-light .btn-outline {
@@ -900,65 +648,6 @@ Paleta base (tema escuro padrão)
     border-color: rgba(107, 114, 128, 0.9);
 }
 
-/* Switch de visualização (Grade / Lista) */
-
-.view-switcher {
-    display: inline-flex;
-    border-radius: 999px;
-    border: 1px solid rgba(148, 163, 184, 0.7);
-    overflow: hidden;
-}
-
-.view-toggle {
-    border: 0;
-    background: transparent;
-    font-size: 0.78rem;
-    padding: 6px 10px;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    color: var(--color-text-muted);
-    cursor: pointer;
-    transition:
-        background-color 0.15s ease,
-        color 0.15s ease;
-}
-
-.view-toggle i,
-.view-toggle svg {
-    font-size: 0.85rem;
-}
-
-.view-toggle svg {
-    width: 1em;
-    height: 1em;
-    display: inline-block;
-    vertical-align: -0.15em;
-}
-
-.view-toggle.active {
-    background-color: rgba(148, 163, 184, 0.16);
-    color: var(--color-text);
-}
-
-/* Tema claro: switch de visualização */
-.selynt-boot-light .selynt-panel .view-switcher,
-.selynt-panel.theme-light .view-switcher {
-    border-color: rgba(156, 163, 175, 0.9);
-    background-color: #f3f4f6;
-}
-
-.selynt-boot-light .selynt-panel .view-toggle,
-.selynt-panel.theme-light .view-toggle {
-    color: #6b7280;
-}
-
-.selynt-boot-light .selynt-panel .view-toggle.active,
-.selynt-panel.theme-light .view-toggle.active {
-    background-color: #e5e7eb;
-    color: #111827;
-}
-
 /* GRID / LISTA DE APPS */
 
 .app-grid {
@@ -968,10 +657,6 @@ Paleta base (tema escuro padrão)
     padding: 0 1rem 1rem;
     margin-top: 8px;
     margin-bottom: 18px;
-}
-
-.selynt-panel.apps-view-list .app-grid {
-    grid-template-columns: 1fr;
 }
 
 .app-card {
@@ -989,10 +674,6 @@ Paleta base (tema escuro padrão)
         box-shadow 0.15s ease,
         border-color 0.15s ease,
         background-color 0.25s ease;
-}
-
-.selynt-panel.apps-view-list .app-card {
-    padding: 18px 20px;
 }
 
 .app-card:hover {
@@ -1038,10 +719,6 @@ Paleta base (tema escuro padrão)
 
 .app-icon-node {
     color: #22c55e;
-}
-
-.app-icon-docker {
-    color: #0ea5e9;
 }
 
 .app-icon-binary {
@@ -1120,10 +797,6 @@ Paleta base (tema escuro padrão)
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 8px;
-}
-
-.selynt-panel.apps-view-list .app-metrics {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .metric {
@@ -1231,10 +904,6 @@ Paleta base (tema escuro padrão)
     justify-content: center;
     gap: 4px;
     margin-top: 4px;
-}
-
-.selynt-panel.apps-view-list .pagination {
-    justify-content: flex-end;
 }
 
 .page-btn {
@@ -1603,19 +1272,6 @@ Paleta base (tema escuro padrão)
     color: var(--color-text-muted);
 }
 
-.apps-table-link {
-    font-size: 0.8rem;
-    text-decoration: none;
-    color: var(--color-primary);
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.apps-table-link:hover {
-    text-decoration: underline;
-}
-
 table.apps-table {
     width: 100%;
     border-collapse: collapse;
@@ -1704,10 +1360,6 @@ table.apps-table {
 /* Runtime colours re-stated for the table, as in the original stylesheet. */
 .apps-table .app-icon-node {
     color: #22c55e;
-}
-
-.apps-table .app-icon-docker {
-    color: #0ea5e9;
 }
 
 .apps-table .app-icon-binary {
@@ -2039,79 +1691,6 @@ table.apps-table {
     word-break: break-word;
 }
 
-.env-modal-backdrop {
-    position: fixed;
-    inset: 0;
-    background: rgba(15, 23, 42, 0.7);
-    display: none;
-    align-items: center;
-    justify-content: center;
-    z-index: 50;
-}
-
-.env-modal-backdrop.open {
-    display: flex;
-}
-
-.env-modal {
-    width: 100%;
-    max-width: 720px;
-    max-height: 90vh;
-    background-color: var(--color-card-bg);
-    border-radius: 18px;
-    border: 1px solid var(--color-card-border);
-    box-shadow: 0 25px 60px -30px rgba(15, 23, 42, 0.95);
-    padding: 16px 18px 14px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.env-modal-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    padding-bottom: 4px;
-    border-bottom: 1px solid rgba(148, 163, 184, 0.35);
-}
-
-.env-modal-title {
-    font-size: 0.98rem;
-    font-weight: 500;
-}
-
-.env-modal-close {
-    border: 0;
-    background: transparent;
-    width: 30px;
-    height: 30px;
-    border-radius: 999px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    color: var(--color-text-muted);
-    transition:
-        background-color 0.15s ease,
-        color 0.15s ease;
-}
-
-.env-modal-close:hover {
-    background-color: rgba(148, 163, 184, 0.18);
-    color: var(--color-text);
-}
-
-.env-modal-body {
-    margin-top: 6px;
-    overflow-y: auto;
-}
-
-.env-modal-body pre {
-    margin: 0;
-    max-height: 70vh;
-}
-
 
 /* ─── Blocos de erro / alerta ─────────────────────────────────────────────── */
 
@@ -2270,39 +1849,6 @@ table.apps-table {
     margin-bottom: 0.75rem;
 }
 
-/* ─── Diagnóstico (CLI hints) ──────────────────────────────────────────── */
-
-.cfg-cmd-block {
-    margin-top: 0.65rem;
-}
-
-.cfg-cmd-label {
-    font-size: 0.78rem;
-    color: var(--color-text-muted);
-    margin-bottom: 4px;
-}
-
-.cfg-cmd-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-}
-
-.cfg-cmd {
-    flex: 1 1 auto;
-    min-width: 0;
-    background: var(--color-bg);
-    border: 1px solid var(--color-card-border);
-    border-radius: 6px;
-    padding: 6px 10px;
-    font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace;
-    font-size: 0.8rem;
-    color: var(--color-text);
-    word-break: break-all;
-    white-space: pre-wrap;
-}
-
 /* ─── Links com cor primária ──────────────────────────────────────────────── */
 
 .link-primary {
@@ -2313,11 +1859,6 @@ table.apps-table {
 
 .table-scroll {
     overflow-x: auto;
-}
-
-.code-muted {
-    font-size: 0.8em;
-    opacity: 0.7;
 }
 
 /* ─── Ícones de tipo ──────────────────────────────────────────────────────── */
