@@ -189,6 +189,17 @@ O pacote é montado pelo workflow de release, que baixa o binário Core Selynt p
 
 ---
 
+## Contribuindo
+
+Leia o [guia de contribuição](CONTRIBUTING.md) antes de abrir uma issue ou pull
+request. Valem também o [código de conduta](CODE_OF_CONDUCT.md) e a
+[política de uso de IA](AI-POLICY.md) — o uso de IA é permitido, e quem
+contribui responde pelo que envia.
+
+Falha de segurança **não** vai em issue pública: use o
+[relato privado](https://github.com/NullSablex/selynt-panel/security/advisories/new),
+como descrito no [SECURITY.md](SECURITY.md).
+
 ## Autor
 
 **NullSablex** — [github.com/NullSablex](https://github.com/NullSablex)
