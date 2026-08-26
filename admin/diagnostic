@@ -70,7 +70,8 @@ $v = SELYNT_VERSION;
 
 <?= selynt_i18n_script_tag() ?>
 <script src="<?= $pluginBase ?>/images/assets/js/fontawesome.min.js?v=<?= $v ?>"></script>
-<script src="<?= $pluginBase ?>/images/assets/js/icons.min.js?v=<?= $v ?>"></script>
+<script src="<?= $pluginBase ?>/images/assets/js/solid.min.js?v=<?= $v ?>"></script>
+<script src="<?= $pluginBase ?>/images/assets/js/brands.min.js?v=<?= $v ?>"></script>
 <script type="module" src="<?= $pluginBase ?>/images/assets/js/theme.min.js?v=<?= $v ?>"></script>
 <script type="module" src="<?= $pluginBase ?>/images/assets/js/viewport.min.js?v=<?= $v ?>"></script>
 <script type="module">
