@@ -56,7 +56,13 @@ jobs:
             --exclude='assets.manifest.json' \
             --exclude='packages.md' \
             --exclude='.github' \
+            --exclude='.git' \
             --exclude='.gitignore' \
+            --exclude='tools' \
+            --exclude='notes' \
+            --exclude='docs' \
+            --exclude='mkdocs.yml' \
+            --exclude='SECURITY.md' \
             --exclude='version' \
             --exclude='./install.sh' \
             --exclude='README.md' \
@@ -72,7 +78,7 @@ jobs:
           ARCHIVE="selynt_panel.tar.gz"
 
           echo "Verificando ausência de arquivos dev/build..."
-          FORBIDDEN="node_modules|assets-src|package\.json|package-lock|build-assets|assets\.manifest|\.github|\.gitignore|^\./install\.sh$|README\.md|CHANGELOG\.md"
+          FORBIDDEN="node_modules|assets-src|package\.json|package-lock|build-assets|assets\.manifest|\.github/|\.git/|\.gitignore|^\./install\.sh$|README\.md|CHANGELOG\.md|SECURITY\.md|^\./tools/|^\./notes/|^\./docs/|mkdocs\.yml"
           if tar -tzf "$ARCHIVE" | grep -qE "$FORBIDDEN"; then
             echo "ERRO: arquivos indevidos encontrados no pacote:"
             tar -tzf "$ARCHIVE" | grep -E "$FORBIDDEN"
@@ -81,7 +87,11 @@ jobs:
           echo "OK"
 
           echo "Verificando assets minificados..."
-          for f in panel.min.css panel.min.js script.min.js; do
+          for f in panel.min.css fontawesome.min.js solid.min.js brands.min.js \
+                   dom.min.js i18n.min.js notify.min.js lang.min.js theme.min.js \
+                   viewport.min.js ui.min.js page-app.min.js page-apps.min.js \
+                   page-dashboard.min.js page-create.min.js page-settings.min.js \
+                   page-admin.min.js page-config.min.js page-diagnostic.min.js; do
             tar -tzf "$ARCHIVE" | grep -q "$f" || { echo "FALTANDO: $f"; exit 1; }
           done
           echo "OK"
