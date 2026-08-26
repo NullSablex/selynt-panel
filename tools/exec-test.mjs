@@ -5,7 +5,7 @@ import { readdirSync } from 'node:fs';
 import vm from 'node:vm';
 
 const dir = 'images/assets/js';
-const mods = readdirSync(dir).filter(f => /^(page-|ui|i18n|notify|lang|theme|viewport|dom)/.test(f));
+const mods = readdirSync(dir).filter(f => /^(page-|ui|i18n|notify|lang|theme|viewport|dom|icons)/.test(f));
 let falhas = 0;
 
 for (const f of mods) {

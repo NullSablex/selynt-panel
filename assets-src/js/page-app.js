@@ -14,7 +14,7 @@ let activeTab='out',nodeVersions=[],appRunning=false;
 await fetch(`${API}/nodes.raw`).then(r=>r.json()).then(r=>{if(r&&r.ok)nodeVersions=r.versions||[];}).catch(()=>{});
 
 function iconFor(type){
-  if(type==='node') return {icon:'fa-solid fa-cube',cls:'icon-node'};
+  if(type==='node') return {icon:'fa-brands fa-node-js',cls:'icon-node'};
   if(type==='binary') return {icon:'fa-solid fa-gears',cls:''};
   return {icon:'fa-solid fa-cube',cls:''};
 }
@@ -81,9 +81,9 @@ async function loadStatus(){
       // `is-dirty` up front when nothing is configured yet: picking any version
       // is a real change, so the confirm button must be usable right away.
       const dirty=configured&&nv?'':' is-dirty';
-      rows.push(['fa-solid fa-cube',t('app.field.node'),`${warn}<span class="nv-control${dirty}" id="nv-control" data-current="${esc(configured?a.node_version:'')}"><select id="nv-select" class="inline-select" onchange="markNvDirty()">${opts}</select><button class="btn-xs btn-soft" onclick="changeNodeVersion()" title="${esc(tip)}"><i class="fa-solid fa-check"></i></button></span>`]);
+      rows.push(['fa-brands fa-node-js',t('app.field.node'),`${warn}<span class="nv-control${dirty}" id="nv-control" data-current="${esc(configured?a.node_version:'')}"><select id="nv-select" class="inline-select" onchange="markNvDirty()">${opts}</select><button class="btn-xs btn-soft" onclick="changeNodeVersion()" title="${esc(tip)}"><i class="fa-solid fa-check"></i></button></span>`]);
     } else {
-      rows.push(['fa-solid fa-cube',t('app.field.node'),esc(label)]);
+      rows.push(['fa-brands fa-node-js',t('app.field.node'),esc(label)]);
     }
   }
   rows.push(['fa-solid fa-memory',t('app.field.memlimit'),memLimitControl()]);

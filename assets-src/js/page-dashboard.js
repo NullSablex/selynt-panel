@@ -11,7 +11,7 @@ const { apiBase: API, base: BASE } = window.__SELYNT_DASH ?? {};
 const DASH = '—';
 // Ícone em caixa, igual aos cards: wrapper .app-icon + cor por runtime.
 function appIcon(ty){
-  const map={node:['app-icon-node','fa-solid fa-cube'],
+  const map={node:['app-icon-node','fa-brands fa-node-js'],
              binary:['app-icon-binary','fa-solid fa-gears']};
   const [cls,icon]=map[ty]||['','fa-solid fa-cube'];
   return`<div class="app-icon${cls?' '+cls:''}"><i class="${icon}"></i></div>`;

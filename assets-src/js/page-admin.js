@@ -26,14 +26,14 @@ function uptime(ts){
 }
 // Ícone em caixa, com a cor do runtime — mesmo componente dos cards.
 function appIcon(ty){
-  const map={node:['app-icon-node','fa-solid fa-cube'],
+  const map={node:['app-icon-node','fa-brands fa-node-js'],
              binary:['app-icon-binary','fa-solid fa-gears']};
   const [cls,icon]=map[ty]||['','fa-solid fa-cube'];
   return`<div class="app-icon${cls?' '+cls:''}"><i class="${icon}"></i></div>`;
 }
 
 function typeIcon(ty){
-  if(ty==='node') return '<i class="fa-solid fa-cube icon-node"></i>';
+  if(ty==='node') return '<i class="fa-brands fa-node-js icon-node"></i>';
   if(ty==='binary') return '<i class="fa-solid fa-gears"></i>';
   return '<i class="fa-solid fa-cube"></i>';
 }

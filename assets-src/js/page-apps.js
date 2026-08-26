@@ -10,7 +10,7 @@ const { apiBase: API } = window.__SELYNT_APPS ?? {};
 const BASE='/CMD_PLUGINS/selynt_panel';
 
 function iconFor(type){
-  if(type==='node') return {wrap:'app-icon app-icon-node',icon:'fa-solid fa-cube'};
+  if(type==='node') return {wrap:'app-icon app-icon-node',icon:'fa-brands fa-node-js'};
   if(type==='binary') return {wrap:'app-icon',icon:'fa-solid fa-gears'};
   return {wrap:'app-icon',icon:'fa-solid fa-cube'};
 }
