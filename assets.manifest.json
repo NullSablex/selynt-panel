@@ -32,10 +32,6 @@
       "out": "js/theme.min.js"
     },
     {
-      "src": "assets-src/js/icons.js",
-      "out": "js/icons.min.js"
-    },
-    {
       "src": "assets-src/js/ui.js",
       "out": "js/ui.min.js"
     },
