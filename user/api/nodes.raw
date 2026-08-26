@@ -23,6 +23,18 @@ if (file_exists($nv_file)) {
     }
 }
 
+// Da mais nova para a mais antiga. O core já grava ordenado, mas o arquivo
+// pode ter sido escrito por uma versão anterior, e aqui só se lê o que está
+// gravado: sem isto, o painel exibe a ordem da varredura (v25, v20, v22, v24).
+usort($versions, static function (array $a, array $b): int {
+    $parse = static function (string $v): array {
+        $n = array_map('intval', explode('.', ltrim($v, 'v')));
+        return [$n[0] ?? 0, $n[1] ?? 0, $n[2] ?? 0];
+    };
+    return $parse($b['version']) <=> $parse($a['version'])
+        ?: strcmp($a['path'], $b['path']);
+});
+
 // Se nenhuma versão configurada, oferecer default do PATH
 if (empty($versions)) {
     $ver = trim((string)shell_exec('node --version 2>/dev/null'));

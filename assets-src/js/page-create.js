@@ -6,6 +6,28 @@ import { t } from './i18n.min.js';
 import { esc } from './ui.min.js';
 
 const { user: _user, domains: _domainsData } = window.__SELYNT_CREATE ?? {};
+
+// Preenche o seletor de host com os domínios e subdomínios da conta. A
+// extração do JavaScript para módulos deixou este bloco para trás, e o
+// <select> ficava só com a opção vazia do HTML: não havia o que escolher.
+{
+  const sel = document.getElementById('f-host');
+  if (!_domainsData || !_domainsData.ok || !Array.isArray(_domainsData.domains) || !_domainsData.domains.length) {
+    sel.innerHTML = '<option value="">' + esc(t('create.field.host_empty')) + '</option>';
+  } else {
+    const opts = ['<option value="">' + esc(t('create.field.host_select')) + '</option>'];
+    for (const d of _domainsData.domains) {
+      opts.push(`<option value="${esc(d.host)}">${esc(d.host)}</option>`);
+      if (Array.isArray(d.subdomains)) {
+        for (const s of d.subdomains) {
+          opts.push(`<option value="${esc(s.host)}">  ↳ ${esc(s.host)}</option>`);
+        }
+      }
+    }
+    sel.innerHTML = opts.join('');
+  }
+}
+
 function buildCwd() {
   const name = document.getElementById('f-name').value.trim() || 'app';
   return `/home/${_user}/apps/${name}`;
