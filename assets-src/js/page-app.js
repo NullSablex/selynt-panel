@@ -273,6 +273,7 @@ function markNvDirty(){
   const current=box.getAttribute('data-current')||'';
   box.classList.toggle('is-dirty',sel.value!==current);
 }
+window.markNvDirty=markNvDirty;
 
 async function changeNodeVersion(){
   const sel=document.getElementById('nv-select');

@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "description": "Selynt Panel — DirectAdmin plugin for Node.js & Rust app management",
   "scripts": {
-    "build": "node build-assets.mjs"
+    "build": "node build-assets.mjs",
+    "check": "node --experimental-vm-modules tools/exec-test.mjs"
   },
   "repository": {
     "type": "git",

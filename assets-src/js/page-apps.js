@@ -15,6 +15,39 @@ function iconFor(type){
   return {wrap:'app-icon',icon:'fa-solid fa-cube'};
 }
 
+async function action(name,act){
+  const actionLabel=t('apps.action.'+act);
+  const actionDone=t('apps.action.'+act+'_done');
+  const ok=await slyConfirm({
+    title:t('apps.confirm.title',{action:actionLabel}),
+    text:t('apps.confirm.text',{action_lower:actionLabel.toLowerCase(),name}),
+    okText:actionLabel,
+    cancelText:t('common.cancel')
+  });
+  if(!ok)return;
+  const p=new URLSearchParams({name,action:act});
+  if(act==='remove'){
+    const del=await slyConfirm({
+      title:t('apps.confirm.delete_title'),
+      text:t('apps.confirm.delete_text'),
+      okText:t('apps.confirm.delete_yes'),
+      cancelText:t('apps.confirm.delete_no')
+    });
+    if(del)p.set('delete_dir','1');
+  }
+  const r=await fetch(`${API}/action.raw?${p}`,{method:'POST'}).then(r=>r.json()).catch(()=>({ok:false}));
+  if(r.ok){
+    toast('success',t('apps.confirm.success',{action_done:actionDone}));
+  } else {
+    toast('error',r.message||r.error||t('errors.action_failed'));
+  }
+  load();
+}
+window.action=action;
+
+// ─── Métricas de recursos ───────────────────────────────────────────────
+// O card é reescrito a cada refresh, então a grade de métricas é montada junto
+
 // ─── Métricas de recursos ───────────────────────────────────────────────
 // O card é reescrito a cada refresh, então a grade de métricas é montada junto
 // com ele (rótulos e travessões estáveis) e só os *valores* são atualizados

@@ -6,6 +6,9 @@ import { t } from './i18n.min.js';
 import { cssId, esc, fmtBytes, uptime } from './ui.min.js';
 
 const { apiBase: API, base: BASE } = window.__SELYNT_DASH ?? {};
+
+/** Travessão para valor ausente, igual em toda a tabela. */
+const DASH = '—';
 // Ícone em caixa, igual aos cards: wrapper .app-icon + cor por runtime.
 function appIcon(ty){
   const map={node:['app-icon-node','fa-solid fa-cube'],
