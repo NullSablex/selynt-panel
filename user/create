@@ -151,95 +151,11 @@ langModal({ apiBase: '<?= $pluginBase ?>/api', endpoint: 'locale.raw' });
 
 <?php if ($bin_ok): ?>
 
-<script type="module">
-import { t } from '<?= $pluginBase ?>/images/assets/js/script.min.js?v=<?= $v ?>';
-const _user = <?= json_encode($username) ?>;
-const _domainsData = <?= json_encode($domains_result) ?>;
-function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);}
-
-{
-  const sel = document.getElementById('f-host');
-  if (!_domainsData || !_domainsData.ok || !Array.isArray(_domainsData.domains) || !_domainsData.domains.length) {
-    sel.innerHTML = '<option value="">'+esc(t('create.field.host_empty'))+'</option>';
-  } else {
-    const opts = ['<option value="">'+esc(t('create.field.host_select'))+'</option>'];
-    for (const d of _domainsData.domains) {
-      opts.push(`<option value="${esc(d.host)}">${esc(d.host)}</option>`);
-      if (Array.isArray(d.subdomains)) {
-        for (const s of d.subdomains) {
-          opts.push(`<option value="${esc(s.host)}">  ↳ ${esc(s.host)}</option>`);
-        }
-      }
-    }
-    sel.innerHTML = opts.join('');
-  }
-}
-
-function buildCwd() {
-  const name = document.getElementById('f-name').value.trim() || 'app';
-  return `/home/${_user}/apps/${name}`;
-}
-
-function syncEntry() {
-  const el = document.getElementById('f-entry');
-  if (el.dataset.auto !== '0') {
-    el.value = document.getElementById('f-type').value === 'node' ? 'index.js' : 'app';
-    el.dataset.auto = '1';
-  }
-}
-
-function onFormChange() {
-  document.getElementById('f-cwd').value = buildCwd();
-  syncEntry();
-  const nvEl = document.getElementById('fg-node-version');
-  nvEl.style.display = document.getElementById('f-type').value === 'node' ? '' : 'none';
-}
-
-const nvRes = await fetch('/CMD_PLUGINS/selynt_panel/api/nodes.raw').then(r=>r.json()).catch(()=>null);
-{
-  const sel = document.getElementById('f-node-version');
-  if (!nvRes || !nvRes.ok || !nvRes.versions || !nvRes.versions.length) {
-    sel.innerHTML = '<option value="">'+esc(t('create.field.node_default'))+'</option>';
-  } else {
-    sel.innerHTML = nvRes.versions.map(v =>
-      `<option value="${esc(v.path)}">${esc(v.label)}</option>`
-    ).join('');
-  }
-}
-
-document.getElementById('f-entry').addEventListener('input', function() { this.dataset.auto = '0'; });
-['f-host', 'f-type'].forEach(id => document.getElementById(id).addEventListener('change', onFormChange));
-document.getElementById('f-name').addEventListener('input', onFormChange);
-
-document.getElementById('sly-form').addEventListener('submit', async function(e) {
-  e.preventDefault();
-  const btn = this.querySelector('button[type=submit]');
-  const msg = document.getElementById('sly-msg');
-  btn.disabled = true; btn.textContent = t('create.submitting'); msg.classList.add('d-none');
-  const type = document.getElementById('f-type').value;
-  const params = new URLSearchParams({
-    name:  document.getElementById('f-name').value.trim(),
-    type:  type,
-    host:  document.getElementById('f-host').value,
-    cwd:   document.getElementById('f-cwd').value.trim(),
-    entry: document.getElementById('f-entry').value.trim(),
-    env:   document.getElementById('f-env').value.trim(),
-  });
-  if (type === 'node') {
-    params.set('node_version', document.getElementById('f-node-version').value);
-  }
-  const r = await fetch(`/CMD_PLUGINS/selynt_panel/api/create.raw?${params}`, {
-    method: 'POST'
-  }).then(r => r.json()).catch(() => ({ok:false, message:t('errors.network')}));
-  if (r.ok) {
-    window.location.href = '/CMD_PLUGINS/selynt_panel';
-  } else {
-    msg.textContent = r.message || r.error || t('errors.create_failed');
-    msg.classList.remove('d-none');
-    btn.disabled = false; btn.textContent = t('create.submit');
-  }
-});
-
-onFormChange();
+<script>
+  window.__SELYNT_CREATE = {
+    user: <?= json_encode($username) ?>,
+    domains: <?= json_encode($domains_result) ?>,
+  };
 </script>
+<script type="module" src="<?= $pluginBase ?>/images/assets/js/page-create.min.js?v=<?= $v ?>"></script>
 <?php endif; ?>

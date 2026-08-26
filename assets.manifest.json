@@ -1,10 +1,55 @@
 {
   "outDir": "images/assets",
   "css": [
-    { "src": "assets-src/css/panel.css", "out": "css/panel.min.css" }
+    {
+      "src": "assets-src/css/panel.css",
+      "out": "css/panel.min.css"
+    }
   ],
   "js": [
-    { "src": "assets-src/js/panel.js", "out": "js/panel.min.js" },
-    { "src": "assets-src/js/script.js", "out": "js/script.min.js" }
+    {
+      "src": "assets-src/js/panel.js",
+      "out": "js/panel.min.js"
+    },
+    {
+      "src": "assets-src/js/script.js",
+      "out": "js/script.min.js"
+    },
+    {
+      "src": "assets-src/js/ui.js",
+      "out": "js/ui.min.js"
+    },
+    {
+      "src": "assets-src/js/page-app.js",
+      "out": "js/page-app.min.js"
+    },
+    {
+      "src": "assets-src/js/page-apps.js",
+      "out": "js/page-apps.min.js"
+    },
+    {
+      "src": "assets-src/js/page-dashboard.js",
+      "out": "js/page-dashboard.min.js"
+    },
+    {
+      "src": "assets-src/js/page-create.js",
+      "out": "js/page-create.min.js"
+    },
+    {
+      "src": "assets-src/js/page-settings.js",
+      "out": "js/page-settings.min.js"
+    },
+    {
+      "src": "assets-src/js/page-admin.js",
+      "out": "js/page-admin.min.js"
+    },
+    {
+      "src": "assets-src/js/page-config.js",
+      "out": "js/page-config.min.js"
+    },
+    {
+      "src": "assets-src/js/page-diagnostic.js",
+      "out": "js/page-diagnostic.min.js"
+    }
   ]
 }
