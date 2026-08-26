@@ -137,12 +137,15 @@ selynt_panel/
 ├── user/              Painel do usuário (páginas e API)
 ├── lib/
 │   ├── common.php     Utilitários compartilhados (CGI, execução do binário)
+│   ├── i18n.php       Tradução das páginas
+│   ├── i18n/          Dicionários por idioma
 │   └── node-loader.js Loader ESM — intercepta rede para Unix sockets
 ├── bin/               Binário Core Selynt (setuid root)
 ├── scripts/           Hooks de instalação do DirectAdmin
 ├── hooks/             Hooks do DirectAdmin (regeneração de permissões)
 ├── templates/         Templates para novas aplicações
 ├── assets-src/        Código-fonte CSS/JS (pré-minificação)
+├── tools/             Ferramentas de desenvolvimento (fora do pacote)
 └── images/            Menus JSON e assets compilados
 ```
 
@@ -161,7 +164,9 @@ selynt_panel/
 ## Segurança
 
 - **Isolamento de privilégios** — cada aplicação roda sob o UID/GID do respectivo usuário do DirectAdmin
-- **Bloqueio de rede** — interceptação de chamadas de rede, impedindo bind direto em portas TCP/UDP
+- **Isolamento entre aplicações da conta** — opcional, por conta, com padrão definido pelo administrador. Ligado, cada aplicação roda sem enxergar arquivos, processos ou sockets das demais
+- **Bloqueio de rede** — interceptação de chamadas de rede, impedindo bind direto em portas TCP/UDP. Uma varredura periódica derruba aplicação que exponha porta alcançável de fora; ouvir em `127.0.0.1` continua permitido
+- **Nada roda como root fora do binário** — o plugin não executa shell script privilegiado; recuperação de boot, varredura de portas e sincronização do proxy ficam dentro do Core Selynt
 - **Setuid controlado** — o binário Core Selynt opera com setuid root apenas para criar estruturas de estado e realizar drop de privilégio para o usuário real antes de spawnar a aplicação
 - **Proxy condicional** — o LiteSpeed só encaminha tráfego se o marker de proxy existir, evitando conflitos com sites estáticos ou PHP
 
@@ -171,10 +176,15 @@ selynt_panel/
 
 ```bash
 npm install
-npm run build
+npm run build     # compila e minifica assets-src/ em images/assets/
+npm run check     # executa cada módulo do painel
 ```
 
-Compila e minifica os arquivos de `assets-src/` via [esbuild](https://esbuild.github.io/), gerando os assets finais em `images/assets/`.
+O `build` usa o [esbuild](https://esbuild.github.io/). Edite sempre `assets-src/`: `images/assets/` é gerado e qualquer alteração à mão se perde no próximo build.
+
+O `check` executa cada módulo num DOM mínimo e cobra no `window` os handlers citados nos `onclick`. Serve para o que o build não pega: uma função pode compilar, rodar sem erro e mesmo assim o botão não fazer nada, porque o atributo é resolvido no escopo global e o módulo tem o seu próprio.
+
+As páginas de `user/` e `admin/` **não têm extensão** — o DirectAdmin executa o arquivo cujo nome bate com o caminho pedido. São scripts PHP mesmo assim, e entram no `php -l` como os demais.
 
 ### Empacotamento
 
