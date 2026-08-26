@@ -1,0 +1,45 @@
+name: Sugerir uma melhoria
+description: Propor uma funcionalidade ou mudança no painel.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Descreva o problema que a ideia resolve, não só a solução.
+
+  - type: textarea
+    id: problema
+    attributes:
+      label: Problema ou motivação
+      description: Que dificuldade ou necessidade a proposta atende?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposta
+    attributes:
+      label: Solução proposta
+      description: Como você imagina que funcionaria.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternativas
+    attributes:
+      label: Alternativas consideradas
+      description: Outras formas de resolver o mesmo problema, e por que não servem.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Área
+      options:
+        - Painel do usuário
+        - Painel do administrador
+        - Instalação ou atualização
+        - Segurança e isolamento
+        - Outra
+    validations:
+      required: false

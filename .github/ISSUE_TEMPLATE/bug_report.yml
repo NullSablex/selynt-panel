@@ -1,0 +1,91 @@
+name: Relatar um bug
+description: Comportamento incorreto no painel.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Antes de continuar, rode o **Diagnóstico** no painel do administrador —
+        ele costuma apontar a causa e a saída ajuda no relato.
+
+        Para vulnerabilidades de segurança, **não** abra uma issue: use o
+        [relato privado](https://github.com/NullSablex/selynt-panel/security/advisories/new).
+
+  - type: textarea
+    id: descricao
+    attributes:
+      label: Descrição
+      description: O que aconteceu e o que você esperava que acontecesse.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproducao
+    attributes:
+      label: Passos para reproduzir
+      placeholder: |
+        1. Entrar no painel como ...
+        2. Clicar em ...
+        3. Observar ...
+    validations:
+      required: true
+
+  - type: input
+    id: versao-plugin
+    attributes:
+      label: Versão do plugin
+      description: 'Campo `version=` em `plugin.conf`, no diretório do plugin.'
+      placeholder: "1.2.0"
+    validations:
+      required: true
+
+  - type: input
+    id: versao-core
+    attributes:
+      label: Versão do core-selynt
+      description: 'Saída de `core-selynt --version`.'
+      placeholder: "core_selynt 1.2.0"
+    validations:
+      required: false
+
+  - type: input
+    id: directadmin
+    attributes:
+      label: Versão do DirectAdmin
+      placeholder: "1.708"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: webserver
+    attributes:
+      label: Servidor web
+      options:
+        - OpenLiteSpeed
+        - LiteSpeed Enterprise
+        - Apache
+        - Nginx
+        - Outro (informe na descrição)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: painel
+    attributes:
+      label: Onde acontece
+      options:
+        - Painel do usuário
+        - Painel do administrador
+        - Ambos
+        - Instalação ou atualização
+    validations:
+      required: true
+
+  - type: textarea
+    id: diagnostico
+    attributes:
+      label: Saída do Diagnóstico
+      description: Painel do administrador → Diagnóstico (será formatado como código).
+      render: shell
+    validations:
+      required: false
