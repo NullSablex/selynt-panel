@@ -111,3 +111,9 @@ foreach ($topics as [$path, $icon, $key]):
 <script type="module" src="<?= $pluginBase ?>/images/assets/js/panel.min.js?v=<?= $v ?>"></script>
 
 <!-- Language picker: available even when the binary is missing. -->
+<script type="module">
+import { langModal } from '<?= $pluginBase ?>/images/assets/js/script.min.js?v=<?= $v ?>';
+langModal({ apiBase: '<?= $pluginBase ?>/api', endpoint: 'locale.raw' });
+</script>
+
+

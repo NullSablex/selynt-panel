@@ -116,7 +116,6 @@ $v = SELYNT_VERSION;
   </div>
 </div>
 
-<?php if ($bin_ok && $name !== ''): ?>
 <?= selynt_i18n_script_tag() ?>
 <script src="<?= $pluginBase ?>/images/assets/js/fontawesome.min.js?v=<?= $v ?>"></script>
 <script src="<?= $pluginBase ?>/images/assets/js/solid.min.js?v=<?= $v ?>"></script>
@@ -124,6 +123,15 @@ $v = SELYNT_VERSION;
 <script src="<?= $pluginBase ?>/images/assets/js/brands.min.js?v=<?= $v ?>"></script>
 <script type="module" src="<?= $pluginBase ?>/images/assets/js/script.min.js?v=<?= $v ?>"></script>
 <script type="module" src="<?= $pluginBase ?>/images/assets/js/panel.min.js?v=<?= $v ?>"></script>
+
+<!-- Language picker: available even when the binary is missing. -->
+<script type="module">
+import { langModal } from '<?= $pluginBase ?>/images/assets/js/script.min.js?v=<?= $v ?>';
+langModal({ apiBase: '<?= $pluginBase ?>/api', endpoint: 'locale.raw' });
+</script>
+
+<?php if ($bin_ok && $name !== ''): ?>
+
 <script type="module">
 import { toast, confirm as slyConfirm, t } from '<?= $pluginBase ?>/images/assets/js/script.min.js?v=<?= $v ?>';
 

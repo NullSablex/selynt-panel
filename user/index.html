@@ -139,6 +139,12 @@ $locale_active  = selynt_locale();
 
 <!-- Language picker: available even when the binary is missing. -->
 <script type="module">
+import { langModal } from '<?= $pluginBase ?>/images/assets/js/script.min.js?v=<?= $v ?>';
+langModal({ apiBase: '<?= $pluginBase ?>/api', endpoint: 'locale.raw' });
+</script>
+
+
+<script type="module">
 import { t } from '<?= $pluginBase ?>/images/assets/js/script.min.js?v=<?= $v ?>';
 const API='<?= $pluginBase ?>/api', BASE='<?= $pluginBase ?>', DASH='—';
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);}
