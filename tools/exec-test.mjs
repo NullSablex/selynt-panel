@@ -16,6 +16,16 @@ const paginas = { 'page-app':'user/app', 'page-apps':'user/apps',
   'page-settings':'user/settings', 'page-admin':'admin/index.html',
   'page-config':'admin/config', 'page-diagnostic':'admin/diagnostic' };
 
+// Elementos que o HTML entrega vazios e o módulo precisa preencher na carga.
+// Não é derivável do HTML: um container vazio pode ser preenchido só depois de
+// uma ação do usuário. Esta lista é dos que devem estar prontos ao abrir a
+// página — foi um destes, o seletor de host, que a extração do JavaScript
+// deixou sem quem o preenchesse.
+const preenchidos = {
+  'page-create': ['f-host', 'f-node-version'],
+  'page-config': ['runtime-body'],
+};
+
 // Handlers citados no HTML da página e no HTML que o próprio módulo gera.
 function handlersExigidos(nome) {
   const fontes = [];
@@ -35,18 +45,34 @@ for (const f of mods) {
                           format: 'esm', platform: 'browser', logLevel: 'silent' });
   const src = r.outputFiles[0].text;
 
-  const el = () => ({ classList:Object.assign([],{toggle(){},add(){},remove(){},contains:()=>false}),
-    style:{setProperty(){}}, addEventListener(){}, appendChild(){}, setAttribute(){},
-    getAttribute:()=>null, querySelector:()=>null, querySelectorAll:()=>[],
-    getBoundingClientRect:()=>({top:0}), innerHTML:'', textContent:'', value:'',
-    dataset:{}, focus(){}, blur(){}, remove(){}, closest:()=>null });
+  // Cada elemento registra se recebeu conteúdo. Um <select> ou container que o
+  // HTML entrega vazio e ninguém preenche fica invisível ao teste de execução:
+  // o módulo roda inteiro sem erro, e a tela chega vazia ao usuário.
+  const escrito = new Set();
+  const el = (id) => {
+    const marca = () => { if (id) escrito.add(id); };
+    const o = { classList:Object.assign([],{toggle(){},add(){},remove(){},contains:()=>false}),
+      style:{setProperty(){}}, addEventListener(){}, setAttribute(){},
+      appendChild(){ marca(); },
+      getAttribute:()=>null, querySelector:()=>null, querySelectorAll:()=>[],
+      getBoundingClientRect:()=>({top:0}), textContent:'', value:'',
+      dataset:{}, focus(){}, blur(){}, remove(){}, closest:()=>null };
+    let _html = '';
+    Object.defineProperty(o, 'innerHTML', {
+      get: () => _html,
+      set: (v) => { _html = v; if (String(v).trim()) marca(); },
+    });
+    return o;
+  };
+  const cache = new Map();
   const doc = { readyState:'complete', documentElement:el(), body:el(),
-    getElementById:()=>el(), querySelector:()=>null, querySelectorAll:()=>[],
+    getElementById:(id)=>{ if(!cache.has(id)) cache.set(id, el(id)); return cache.get(id); },
+    querySelector:()=>null, querySelectorAll:()=>[],
     createElement:el, addEventListener(){}, execCommand(){}, getSelection:()=>({removeAllRanges(){},addRange(){}}),
     createRange:()=>({selectNode(){}}) };
   const win = { __SELYNT_I18N:{locale:'pt-br',dict:{}}, __SELYNT_APP:{name:'x',apiBase:'/a'},
     __SELYNT_APPS:{apiBase:'/a'}, __SELYNT_DASH:{apiBase:'/a',base:'/b'},
-    __SELYNT_CREATE:{user:'u',domains:{ok:true,domains:[]}}, __SELYNT_SETTINGS:{endpoint:'/e'},
+    __SELYNT_CREATE:{user:'u',domains:{ok:true,domains:[{host:'exemplo.com',subdomains:[{host:'app.exemplo.com'}]}]}}, __SELYNT_SETTINGS:{endpoint:'/e'},
     __SELYNT_ADMIN:{apiBase:'/a'}, __SELYNT_CONFIG:{apiBase:'/a'}, __SELYNT_DIAG:{apiBase:'/a'},
     addEventListener(){}, matchMedia:()=>({matches:false}),
     localStorage:{getItem:()=>null,setItem(){},removeItem(){}},
@@ -64,6 +90,14 @@ for (const f of mods) {
     await new Promise(r => globalThis.setTimeout(r, 60));
 
     const nome = f.replace(/\.min\.js$/, '');
+
+    const vazios = (preenchidos[nome] ?? []).filter(id => !escrito.has(id));
+    if (vazios.length) {
+      console.log(`  FALHA ${f}: elemento sem conteúdo após a carga: ${vazios.join(', ')}`);
+      falhas++;
+      continue;
+    }
+
     const faltando = [...handlersExigidos(nome)]
       .filter(h => typeof win[h] !== 'function' && typeof ctx[h] !== 'function');
     if (faltando.length) {
