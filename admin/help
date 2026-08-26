@@ -10,6 +10,8 @@ $v = SELYNT_VERSION;
 
 <link rel="stylesheet" href="<?= $pluginBase ?>/images/assets/css/panel.min.css?v=<?= $v ?>">
 
+<?= selynt_theme_boot_tag() ?>
+
 <div class="selynt-panel">
   <div class="app-shell">
     <header class="app-header">
@@ -59,7 +61,7 @@ $v = SELYNT_VERSION;
 <?php
 $topics = [
     ['install/',         'fa-solid fa-download',    'install'],
-    ['runtimes/',        'fa-brands fa-node-js',    'runtimes'],
+    ['runtimes/',        'fa-solid fa-cube',    'runtimes'],
     ['resources/',       'fa-solid fa-gauge-high',  'limits'],
     ['proxy/',           'fa-solid fa-network-wired','proxy'],
     ['troubleshooting/', 'fa-solid fa-wrench',      'trouble'],
@@ -101,8 +103,6 @@ foreach ($topics as [$path, $icon, $key]):
 <?= selynt_i18n_script_tag() ?>
 <script src="<?= $pluginBase ?>/images/assets/js/fontawesome.min.js?v=<?= $v ?>"></script>
 <script src="<?= $pluginBase ?>/images/assets/js/solid.min.js?v=<?= $v ?>"></script>
-<script src="<?= $pluginBase ?>/images/assets/js/regular.min.js?v=<?= $v ?>"></script>
-<script src="<?= $pluginBase ?>/images/assets/js/brands.min.js?v=<?= $v ?>"></script>
 <script type="module" src="<?= $pluginBase ?>/images/assets/js/script.min.js?v=<?= $v ?>"></script>
 <script type="module" src="<?= $pluginBase ?>/images/assets/js/panel.min.js?v=<?= $v ?>"></script>
 <script type="module">

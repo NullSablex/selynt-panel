@@ -12,6 +12,8 @@ $locale_active  = selynt_locale();
 
 <link rel="stylesheet" href="<?= $pluginBase ?>/images/assets/css/panel.min.css?v=<?= $v ?>">
 
+<?= selynt_theme_boot_tag() ?>
+
 <div class="selynt-panel">
   <div class="app-shell">
     <header class="app-header">
@@ -78,8 +80,6 @@ $locale_active  = selynt_locale();
 <?= selynt_i18n_script_tag() ?>
 <script src="<?= $pluginBase ?>/images/assets/js/fontawesome.min.js?v=<?= $v ?>"></script>
 <script src="<?= $pluginBase ?>/images/assets/js/solid.min.js?v=<?= $v ?>"></script>
-<script src="<?= $pluginBase ?>/images/assets/js/regular.min.js?v=<?= $v ?>"></script>
-<script src="<?= $pluginBase ?>/images/assets/js/brands.min.js?v=<?= $v ?>"></script>
 <script type="module" src="<?= $pluginBase ?>/images/assets/js/script.min.js?v=<?= $v ?>"></script>
 <script type="module" src="<?= $pluginBase ?>/images/assets/js/panel.min.js?v=<?= $v ?>"></script>
 
@@ -97,7 +97,7 @@ const API='/CMD_PLUGINS/selynt_panel/api';
 const BASE='/CMD_PLUGINS/selynt_panel';
 
 function iconFor(type){
-  if(type==='node') return {wrap:'app-icon app-icon-node',icon:'fa-brands fa-node-js'};
+  if(type==='node') return {wrap:'app-icon app-icon-node',icon:'fa-solid fa-cube'};
   if(type==='binary') return {wrap:'app-icon',icon:'fa-solid fa-gears'};
   return {wrap:'app-icon',icon:'fa-solid fa-cube'};
 }

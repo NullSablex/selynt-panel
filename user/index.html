@@ -12,6 +12,8 @@ $locale_active  = selynt_locale();
 
 <link rel="stylesheet" href="<?= $pluginBase ?>/images/assets/css/panel.min.css?v=<?= $v ?>">
 
+<?= selynt_theme_boot_tag() ?>
+
 <div class="selynt-panel">
   <div class="app-shell">
     <header class="app-header">
@@ -132,8 +134,6 @@ $locale_active  = selynt_locale();
 <?= selynt_i18n_script_tag() ?>
 <script src="<?= $pluginBase ?>/images/assets/js/fontawesome.min.js?v=<?= $v ?>"></script>
 <script src="<?= $pluginBase ?>/images/assets/js/solid.min.js?v=<?= $v ?>"></script>
-<script src="<?= $pluginBase ?>/images/assets/js/regular.min.js?v=<?= $v ?>"></script>
-<script src="<?= $pluginBase ?>/images/assets/js/brands.min.js?v=<?= $v ?>"></script>
 <script type="module" src="<?= $pluginBase ?>/images/assets/js/script.min.js?v=<?= $v ?>"></script>
 <script type="module" src="<?= $pluginBase ?>/images/assets/js/panel.min.js?v=<?= $v ?>"></script>
 
@@ -161,7 +161,7 @@ function uptime(ts){
 }
 // Ícone em caixa, igual aos cards: wrapper .app-icon + cor por runtime.
 function appIcon(ty){
-  const map={node:['app-icon-node','fa-brands fa-node-js'],
+  const map={node:['app-icon-node','fa-solid fa-cube'],
              binary:['app-icon-binary','fa-solid fa-gears']};
   const [cls,icon]=map[ty]||['','fa-solid fa-cube'];
   return`<div class="app-icon${cls?' '+cls:''}"><i class="${icon}"></i></div>`;

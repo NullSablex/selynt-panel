@@ -23,6 +23,9 @@ function storeTheme(theme) {
 
 export function applyTheme(theme) {
   if (!ROOT) return;
+  // A marca do boot fica no <html> e vale só até aqui: mantê-la significaria
+  // duas fontes decidindo a mesma cor, e a do boot não muda ao alternar.
+  document.documentElement.classList.remove('selynt-boot-light');
   ROOT.classList.toggle('theme-light', theme === 'light');
   // O backdrop de modais vive fora de .selynt-panel; mantém-se em sincronia.
   const backdrop = document.getElementById('selynt-modal-backdrop');
@@ -89,7 +92,7 @@ function applyDirectAdminTheme() {
   }
 
   const chosen = storedTheme();
-  ROOT.classList.toggle('theme-light', chosen ? chosen === 'light' : isProbablyLight());
+  applyTheme(chosen ?? (isProbablyLight() ? 'light' : 'dark'));
 }
 
 if (ROOT) {

@@ -33,7 +33,11 @@ Paleta base (tema escuro padrão)
     width: 1.25em;
 }
 
-/* Tema claro (ativar com class="theme-light" no <body>) */
+/* Tema claro.
+   `.selynt-boot-light` é posta no <html> antes do primeiro paint, quando
+   `.selynt-panel` ainda não existe; `.theme-light` é o que `panel.js` aplica
+   depois. As duas valem para a página não pintar escura e clarear em seguida. */
+.selynt-boot-light .selynt-panel,
 .selynt-panel.theme-light {
     --color-bg: #f3f4f6;
     --color-bg-soft: #e5e7eb;
@@ -191,6 +195,7 @@ Paleta base (tema escuro padrão)
         transform 0.1s ease;
 }
 
+.selynt-boot-light .selynt-panel .lang-button,
 .selynt-panel.theme-light .lang-button {
     background-color: #ffffff;
 }
@@ -243,15 +248,18 @@ Paleta base (tema escuro padrão)
     box-shadow: 0 0 0 1px rgba(148, 163, 184, 0.6);
 }
 
+.selynt-boot-light .selynt-panel .theme-toggle,
 .selynt-panel.theme-light .theme-toggle {
     background: #ffffff;
 }
 
 /* Link perigoso (Sair) - tema claro */
+.selynt-boot-light .selynt-panel .user-menu-link-danger,
 .selynt-panel.theme-light .user-menu-link-danger {
     color: #b91c1c; /* vermelho mais escuro e legível no fundo claro */
 }
 
+.selynt-boot-light .selynt-panel .user-menu-link-danger:hover,
 .selynt-panel.theme-light .user-menu-link-danger:hover {
     background-color: #fee2e2; /* fundo vermelho bem suave */
     color: #7f1d1d;           /* texto mais escuro no hover */
@@ -275,10 +283,12 @@ Paleta base (tema escuro padrão)
     display: inline-block;
 }
 
+.selynt-boot-light .selynt-panel .theme-toggle .icon-sun,
 .selynt-panel.theme-light .theme-toggle .icon-sun {
     display: inline-block;
 }
 
+.selynt-boot-light .selynt-panel .theme-toggle .icon-moon,
 .selynt-panel.theme-light .theme-toggle .icon-moon {
     display: none;
 }
@@ -304,6 +314,7 @@ Paleta base (tema escuro padrão)
         box-shadow 0.2s ease;
 }
 
+.selynt-boot-light .selynt-panel .user-profile,
 .selynt-panel.theme-light .user-profile {
     background-color: #ffffff;
 }
@@ -538,6 +549,7 @@ Paleta base (tema escuro padrão)
     animation: selyntToastIn 0.18s ease-out;
 }
 
+.selynt-boot-light .selynt-panel .selynt-toast,
 .selynt-panel.theme-light .selynt-toast {
     background: rgba(255, 255, 255, 0.95);
     box-shadow: 0 14px 30px -20px rgba(15, 23, 42, 0.25);
@@ -610,6 +622,7 @@ Paleta base (tema escuro padrão)
     background: rgba(15, 23, 42, 0.35);
 }
 
+.selynt-boot-light .selynt-panel .selynt-modal-backdrop,
 .selynt-panel.theme-light .selynt-modal-backdrop {
     background: rgba(15, 23, 42, 0.35);
 }
@@ -662,6 +675,7 @@ Paleta base (tema escuro padrão)
     color-scheme: dark;
 }
 
+.selynt-boot-light .selynt-panel select,
 .selynt-panel.theme-light select {
     color-scheme: light;
 }
@@ -709,6 +723,9 @@ Paleta base (tema escuro padrão)
     box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.22);
 }
 
+.selynt-boot-light .selynt-panel input,
+.selynt-panel.theme-light select,
+.selynt-panel.theme-light textarea,
 .selynt-panel.theme-light input,
 .selynt-panel.theme-light select,
 .selynt-panel.theme-light textarea {
@@ -717,11 +734,16 @@ Paleta base (tema escuro padrão)
     color: #111827;
 }
 
+.selynt-boot-light .selynt-panel input::placeholder,
+.selynt-panel.theme-light textarea::placeholder,
 .selynt-panel.theme-light input::placeholder,
 .selynt-panel.theme-light textarea::placeholder {
     color: rgba(107, 114, 128, 0.9);
 }
 
+.selynt-boot-light .selynt-panel input:focus,
+.selynt-panel.theme-light select:focus,
+.selynt-panel.theme-light textarea:focus,
 .selynt-panel.theme-light input:focus,
 .selynt-panel.theme-light select:focus,
 .selynt-panel.theme-light textarea:focus {
@@ -858,17 +880,20 @@ Paleta base (tema escuro padrão)
     accent-color: var(--color-primary);
 }
 
+.selynt-boot-light .selynt-panel .cwd-toggle,
 .selynt-panel.theme-light .cwd-toggle {
     border-color: rgba(156, 163, 175, 0.7);
 }
 
 /* Tema claro: botões outline (Atualizar / etc.) */
+.selynt-boot-light .selynt-panel .btn-outline,
 .selynt-panel.theme-light .btn-outline {
     background-color: #f9fafb;
     border-color: rgba(156, 163, 175, 0.9);
     color: #374151;
 }
 
+.selynt-boot-light .selynt-panel .btn-outline:hover,
 .selynt-panel.theme-light .btn-outline:hover {
     background-color: #e5e7eb;
     color: #111827;
@@ -917,15 +942,18 @@ Paleta base (tema escuro padrão)
 }
 
 /* Tema claro: switch de visualização */
+.selynt-boot-light .selynt-panel .view-switcher,
 .selynt-panel.theme-light .view-switcher {
     border-color: rgba(156, 163, 175, 0.9);
     background-color: #f3f4f6;
 }
 
+.selynt-boot-light .selynt-panel .view-toggle,
 .selynt-panel.theme-light .view-toggle {
     color: #6b7280;
 }
 
+.selynt-boot-light .selynt-panel .view-toggle.active,
 .selynt-panel.theme-light .view-toggle.active {
     background-color: #e5e7eb;
     color: #111827;
@@ -1073,11 +1101,13 @@ Paleta base (tema escuro padrão)
 }
 
 /* Correções para tema claro: badges mais legíveis */
+.selynt-boot-light .selynt-panel .badge-online,
 .selynt-panel.theme-light .badge-online {
     background-color: #dcfce7;
     color: #166534;
 }
 
+.selynt-boot-light .selynt-panel .badge-offline,
 .selynt-panel.theme-light .badge-offline {
     background-color: #fee2e2;
     color: #991b1b;
@@ -1170,21 +1200,25 @@ Paleta base (tema escuro padrão)
 }
 
 /* Correções para tema claro: botões do footer */
+.selynt-boot-light .selynt-panel .btn-soft,
 .selynt-panel.theme-light .btn-soft {
     background-color: #e5e7eb;
     color: #111827;
 }
 
+.selynt-boot-light .selynt-panel .btn-soft:hover,
 .selynt-panel.theme-light .btn-soft:hover {
     background-color: #d1d5db;
     box-shadow: 0 8px 20px -14px rgba(15, 23, 42, 0.25);
 }
 
+.selynt-boot-light .selynt-panel .btn-danger,
 .selynt-panel.theme-light .btn-danger {
     background-color: #fee2e2;
     color: #b91c1c;
 }
 
+.selynt-boot-light .selynt-panel .btn-danger:hover,
 .selynt-panel.theme-light .btn-danger:hover {
     background-color: #fecaca;
     box-shadow: 0 8px 20px -14px rgba(248, 113, 113, 0.65);
@@ -1239,18 +1273,21 @@ Paleta base (tema escuro padrão)
 }
 
 /* Tema claro: paginação */
+.selynt-boot-light .selynt-panel .page-btn,
 .selynt-panel.theme-light .page-btn {
     background-color: #ffffff;
     border-color: rgba(156, 163, 175, 0.9);
     color: #4b5563;
 }
 
+.selynt-boot-light .selynt-panel .page-btn:hover:not(.disabled):not(.active),
 .selynt-panel.theme-light .page-btn:hover:not(.disabled):not(.active) {
     background-color: #e5e7eb;
     color: #111827;
     border-color: rgba(107, 114, 128, 0.9);
 }
 
+.selynt-boot-light .selynt-panel .page-btn.active,
 .selynt-panel.theme-light .page-btn.active {
     background-image: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
     background-color: transparent;
@@ -1490,16 +1527,19 @@ Paleta base (tema escuro padrão)
     color: #fecaca;
 }
 
+.selynt-boot-light .selynt-panel .stat-card-total .stat-icon,
 .selynt-panel.theme-light .stat-card-total .stat-icon {
     background-color: #e0f2fe;
     color: #0369a1;
 }
 
+.selynt-boot-light .selynt-panel .stat-card-online .stat-icon,
 .selynt-panel.theme-light .stat-card-online .stat-icon {
     background-color: #dcfce7;
     color: #166534;
 }
 
+.selynt-boot-light .selynt-panel .stat-card-offline .stat-icon,
 .selynt-panel.theme-light .stat-card-offline .stat-icon {
     background-color: #fee2e2;
     color: #b91c1c;
@@ -1621,11 +1661,13 @@ table.apps-table {
     color: #fca5a5;
 }
 
+.selynt-boot-light .selynt-panel .status-pill.online,
 .selynt-panel.theme-light .status-pill.online {
     background-color: #dcfce7;
     color: #166534;
 }
 
+.selynt-boot-light .selynt-panel .status-pill.offline,
 .selynt-panel.theme-light .status-pill.offline {
     background-color: #fee2e2;
     color: #991b1b;
@@ -1821,10 +1863,12 @@ table.apps-table {
     border-color: rgba(129, 140, 248, 0.9);
 }
 
+.selynt-boot-light .selynt-panel .inline-select,
 .selynt-panel.theme-light .inline-select {
     background-color: rgba(0, 0, 0, 0.03);
 }
 
+.selynt-boot-light .selynt-panel .inline-select:hover,
 .selynt-panel.theme-light .inline-select:hover {
     background-color: rgba(0, 0, 0, 0.06);
 }
@@ -1900,6 +1944,7 @@ table.apps-table {
     background-color: rgba(15, 23, 42, 0.9);
 }
 
+.selynt-boot-light .selynt-panel .log-tabs,
 .selynt-panel.theme-light .log-tabs {
     background-color: #ffffff;
 }
@@ -1980,6 +2025,7 @@ table.apps-table {
     overflow-y: auto;
 }
 
+.selynt-boot-light .selynt-panel .log-code,
 .selynt-panel.theme-light .log-code {
     background-color: #111827;
     border-color: rgba(15, 23, 42, 0.8);
@@ -2416,17 +2462,20 @@ table.apps-table {
     margin-top: 8px;
 }
 
+.selynt-boot-light .selynt-panel .page-btn,
 .selynt-panel.theme-light .page-btn {
     background-color: #ffffff;
     border-color: rgba(156, 163, 175, 0.9);
     color: #4b5563;
 }
 
+.selynt-boot-light .selynt-panel .page-btn:hover:not(.disabled):not(.active),
 .selynt-panel.theme-light .page-btn:hover:not(.disabled):not(.active) {
     background-color: #e5e7eb;
     color: #111827;
 }
 
+.selynt-boot-light .selynt-panel .page-btn.active,
 .selynt-panel.theme-light .page-btn.active {
     background-color: rgba(129, 140, 248, 0.25);
     color: #111827;
@@ -2471,6 +2520,7 @@ table.apps-table {
     border-color: rgba(129, 140, 248, 0.9);
 }
 
+.selynt-boot-light .selynt-panel .stat-card.is-filter.is-active,
 .selynt-panel.theme-light .stat-card.is-filter.is-active {
     border-color: rgba(79, 70, 229, 0.7);
 }
@@ -2535,6 +2585,7 @@ table.apps-table {
     border-color: rgba(129, 140, 248, 0.9);
 }
 
+.selynt-boot-light .selynt-panel .inline-input,
 .selynt-panel.theme-light .inline-input {
     background-color: rgba(0, 0, 0, 0.03);
 }

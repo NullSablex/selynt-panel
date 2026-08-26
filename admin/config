@@ -12,6 +12,8 @@ $locale_global  = selynt_i18n_global();
 
 <link rel="stylesheet" href="<?= $pluginBase ?>/images/assets/css/panel.min.css?v=<?= $v ?>">
 
+<?= selynt_theme_boot_tag() ?>
+
 <div class="selynt-panel">
   <div class="app-shell">
     <header class="app-header">
@@ -107,7 +109,7 @@ $locale_global  = selynt_i18n_global();
             </div>
             <select id="runtime-select" class="inline-select" onchange="switchRuntime()">
               <option value="node"><?= selynt_t_html('type.node') ?></option>
-              <option value="rust"><?= selynt_t_html('type.rust') ?></option>
+              <option value="binary"><?= selynt_t_html('type.binary') ?></option>
             </select>
           </div>
 
@@ -128,8 +130,6 @@ $locale_global  = selynt_i18n_global();
 <?= selynt_i18n_script_tag() ?>
 <script src="<?= $pluginBase ?>/images/assets/js/fontawesome.min.js?v=<?= $v ?>"></script>
 <script src="<?= $pluginBase ?>/images/assets/js/solid.min.js?v=<?= $v ?>"></script>
-<script src="<?= $pluginBase ?>/images/assets/js/regular.min.js?v=<?= $v ?>"></script>
-<script src="<?= $pluginBase ?>/images/assets/js/brands.min.js?v=<?= $v ?>"></script>
 <script type="module" src="<?= $pluginBase ?>/images/assets/js/script.min.js?v=<?= $v ?>"></script>
 <script type="module" src="<?= $pluginBase ?>/images/assets/js/panel.min.js?v=<?= $v ?>"></script>
 
@@ -157,8 +157,8 @@ function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;',
 let allowed=[];
 let detected=[];
 // Ambiente em exibição. Cada um tem sua própria natureza: Node oferece
-// versões que o admin escolhe; Rust roda o binário que o cliente compilou, e
-// portanto não tem nada a configurar aqui.
+// versões que o admin escolhe; um binário roda o executável que o cliente
+// enviou, e portanto não tem nada a configurar aqui.
 let runtime='node';
 
 function switchRuntime(){

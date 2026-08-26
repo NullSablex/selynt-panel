@@ -13,6 +13,8 @@ $v = SELYNT_VERSION;
 <link rel="stylesheet" href="<?= $pluginBase ?>/images/assets/css/panel.min.css?v=<?= $v ?>">
 
 
+<?= selynt_theme_boot_tag() ?>
+
 <div class="selynt-panel">
   <div class="app-shell">
     <header class="app-header">
@@ -119,8 +121,6 @@ $v = SELYNT_VERSION;
 <?= selynt_i18n_script_tag() ?>
 <script src="<?= $pluginBase ?>/images/assets/js/fontawesome.min.js?v=<?= $v ?>"></script>
 <script src="<?= $pluginBase ?>/images/assets/js/solid.min.js?v=<?= $v ?>"></script>
-<script src="<?= $pluginBase ?>/images/assets/js/regular.min.js?v=<?= $v ?>"></script>
-<script src="<?= $pluginBase ?>/images/assets/js/brands.min.js?v=<?= $v ?>"></script>
 <script type="module" src="<?= $pluginBase ?>/images/assets/js/script.min.js?v=<?= $v ?>"></script>
 <script type="module" src="<?= $pluginBase ?>/images/assets/js/panel.min.js?v=<?= $v ?>"></script>
 
@@ -160,7 +160,7 @@ function uptime(ts){
 await fetch(`${API}/nodes.raw`).then(r=>r.json()).then(r=>{if(r&&r.ok)nodeVersions=r.versions||[];}).catch(()=>{});
 
 function iconFor(type){
-  if(type==='node') return {icon:'fa-brands fa-node-js',cls:'icon-node'};
+  if(type==='node') return {icon:'fa-solid fa-cube',cls:'icon-node'};
   if(type==='binary') return {icon:'fa-solid fa-gears',cls:''};
   return {icon:'fa-solid fa-cube',cls:''};
 }
@@ -232,14 +232,14 @@ async function loadStatus(){
       // `is-dirty` up front when nothing is configured yet: picking any version
       // is a real change, so the confirm button must be usable right away.
       const dirty=configured&&nv?'':' is-dirty';
-      rows.push(['fa-brands fa-node-js',t('app.field.node'),`${warn}<span class="nv-control${dirty}" id="nv-control" data-current="${esc(configured?a.node_version:'')}"><select id="nv-select" class="inline-select" onchange="markNvDirty()">${opts}</select><button class="btn-xs btn-soft" onclick="changeNodeVersion()" title="${esc(tip)}"><i class="fa-solid fa-check"></i></button></span>`]);
+      rows.push(['fa-solid fa-cube',t('app.field.node'),`${warn}<span class="nv-control${dirty}" id="nv-control" data-current="${esc(configured?a.node_version:'')}"><select id="nv-select" class="inline-select" onchange="markNvDirty()">${opts}</select><button class="btn-xs btn-soft" onclick="changeNodeVersion()" title="${esc(tip)}"><i class="fa-solid fa-check"></i></button></span>`]);
     } else {
-      rows.push(['fa-brands fa-node-js',t('app.field.node'),esc(label)]);
+      rows.push(['fa-solid fa-cube',t('app.field.node'),esc(label)]);
     }
   }
   rows.push(['fa-solid fa-memory',t('app.field.memlimit'),memLimitControl()]);
   if(run&&a.started_at) rows.push(['fa-solid fa-clock',t('app.field.uptime'),uptime(a.started_at)]);
-  rows.push(['fa-regular fa-calendar',t('app.field.created'),a.created_at?new Date(a.created_at*1000).toLocaleString():t('app.log.dash')]);
+  rows.push(['fa-solid fa-calendar',t('app.field.created'),a.created_at?new Date(a.created_at*1000).toLocaleString():t('app.log.dash')]);
   // O refresh periódico não pode apagar uma edição em andamento: se o controle
   // de limite está sujo ou com foco, guardamos o *nó* e o recolocamos depois.
   // Guardar `outerHTML` não bastaria: o valor escolhido num <select> e o texto

@@ -10,6 +10,8 @@ $v = SELYNT_VERSION;
 
 <link rel="stylesheet" href="<?= $pluginBase ?>/images/assets/css/panel.min.css?v=<?= $v ?>">
 
+<?= selynt_theme_boot_tag() ?>
+
 <div class="selynt-panel">
   <div class="app-shell">
     <header class="app-header">
@@ -121,8 +123,6 @@ $v = SELYNT_VERSION;
 <?= selynt_i18n_script_tag() ?>
 <script src="<?= $pluginBase ?>/images/assets/js/fontawesome.min.js?v=<?= $v ?>"></script>
 <script src="<?= $pluginBase ?>/images/assets/js/solid.min.js?v=<?= $v ?>"></script>
-<script src="<?= $pluginBase ?>/images/assets/js/regular.min.js?v=<?= $v ?>"></script>
-<script src="<?= $pluginBase ?>/images/assets/js/brands.min.js?v=<?= $v ?>"></script>
 <script type="module" src="<?= $pluginBase ?>/images/assets/js/script.min.js?v=<?= $v ?>"></script>
 <script type="module" src="<?= $pluginBase ?>/images/assets/js/panel.min.js?v=<?= $v ?>"></script>
 <script type="module">
@@ -153,20 +153,20 @@ function uptime(ts){
 }
 // Ícone em caixa, com a cor do runtime — mesmo componente dos cards.
 function appIcon(ty){
-  const map={node:['app-icon-node','fa-brands fa-node-js'],
-             rust:['app-icon-rust','fa-brands fa-rust']};
+  const map={node:['app-icon-node','fa-solid fa-cube'],
+             binary:['app-icon-binary','fa-solid fa-gears']};
   const [cls,icon]=map[ty]||['','fa-solid fa-cube'];
   return`<div class="app-icon${cls?' '+cls:''}"><i class="${icon}"></i></div>`;
 }
 
 function typeIcon(ty){
-  if(ty==='node') return '<i class="fa-brands fa-node-js icon-node"></i>';
-  if(ty==='rust') return '<i class="fa-solid fa-gears"></i>';
+  if(ty==='node') return '<i class="fa-solid fa-cube icon-node"></i>';
+  if(ty==='binary') return '<i class="fa-solid fa-gears"></i>';
   return '<i class="fa-solid fa-cube"></i>';
 }
 function typeLabel(ty){
   if(ty==='node') return t('type.node');
-  if(ty==='rust') return t('type.rust');
+  if(ty==='binary') return t('type.binary');
   return ty.charAt(0).toUpperCase()+ty.slice(1);
 }
 // CPU é contador acumulado: a taxa sai do delta entre dois refreshes da

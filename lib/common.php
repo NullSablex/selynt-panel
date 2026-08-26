@@ -167,3 +167,22 @@ function selynt_username(): string {
     }
     return '';
 }
+
+/**
+ * Marca o tema no <html> antes do primeiro paint.
+ *
+ * O CSS assume escuro; o claro depende de uma classe. Quem a aplicava era um
+ * módulo no fim do body — e módulo é adiado, então a página pintava escura e
+ * clareava depois. Inline e antes do markup, a decisão já está tomada quando o
+ * navegador desenha.
+ *
+ * A marca vai no <html> porque `.selynt-panel` ainda não existe neste ponto;
+ * o CSS casa com ela por herança. `panel.js` continua dono da troca em si.
+ */
+function selynt_theme_boot_tag(): string {
+    return '<script>(function(){try{'
+        . 'var v=localStorage.getItem("selynt.theme");'
+        . 'var dark=v==="dark"||(v!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches);'
+        . 'if(!dark)document.documentElement.classList.add("selynt-boot-light");'
+        . '}catch(e){}})();</script>';
+}
