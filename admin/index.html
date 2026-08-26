@@ -123,11 +123,11 @@ $v = SELYNT_VERSION;
 <?= selynt_i18n_script_tag() ?>
 <script src="<?= $pluginBase ?>/images/assets/js/fontawesome.min.js?v=<?= $v ?>"></script>
 <script src="<?= $pluginBase ?>/images/assets/js/solid.min.js?v=<?= $v ?>"></script>
-<script type="module" src="<?= $pluginBase ?>/images/assets/js/script.min.js?v=<?= $v ?>"></script>
-<script type="module" src="<?= $pluginBase ?>/images/assets/js/panel.min.js?v=<?= $v ?>"></script>
+<script type="module" src="<?= $pluginBase ?>/images/assets/js/theme.min.js?v=<?= $v ?>"></script>
+<script type="module" src="<?= $pluginBase ?>/images/assets/js/viewport.min.js?v=<?= $v ?>"></script>
 <script type="module">
 // Seletor do cabeçalho: muda o idioma desta conta, não o padrão do servidor.
-import { langModal } from '<?= $pluginBase ?>/images/assets/js/script.min.js?v=<?= $v ?>';
+import { langModal } from '<?= $pluginBase ?>/images/assets/js/lang.min.js?v=<?= $v ?>';
 langModal({ apiBase: '<?= $pluginBase ?>/api', endpoint: 'locale.raw' });
 </script>
 <script>

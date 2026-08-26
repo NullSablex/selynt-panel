@@ -2,7 +2,8 @@
 //
 // A página entrega os dados em `window.__SELYNT_APPS`; o resto vive aqui.
 
-import { toast, confirm as slyConfirm, t } from './script.min.js';
+import { t } from './i18n.min.js';
+import { toast, confirm as slyConfirm } from './notify.min.js';
 import { cssId, esc, fmtBytes } from './ui.min.js';
 
 const { apiBase: API } = window.__SELYNT_APPS ?? {};

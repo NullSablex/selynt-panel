@@ -2,7 +2,7 @@
 //
 // A página entrega os dados em `window.__SELYNT_DASH`; o resto vive aqui.
 
-import { t } from './script.min.js';
+import { t } from './i18n.min.js';
 import { cssId, esc, fmtBytes, uptime } from './ui.min.js';
 
 const { apiBase: API, base: BASE } = window.__SELYNT_DASH ?? {};

@@ -2,7 +2,8 @@
 //
 // A página entrega os dados em `window.__SELYNT_SETTINGS`; o resto vive aqui.
 
-import { t, toast } from './script.min.js';
+import { t } from './i18n.min.js';
+import { toast } from './notify.min.js';
 
 const { endpoint: API } = window.__SELYNT_SETTINGS ?? {};
 const stateEl = document.getElementById('iso-state');

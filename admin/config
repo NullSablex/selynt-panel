@@ -130,12 +130,12 @@ $locale_global  = selynt_i18n_global();
 <?= selynt_i18n_script_tag() ?>
 <script src="<?= $pluginBase ?>/images/assets/js/fontawesome.min.js?v=<?= $v ?>"></script>
 <script src="<?= $pluginBase ?>/images/assets/js/solid.min.js?v=<?= $v ?>"></script>
-<script type="module" src="<?= $pluginBase ?>/images/assets/js/script.min.js?v=<?= $v ?>"></script>
-<script type="module" src="<?= $pluginBase ?>/images/assets/js/panel.min.js?v=<?= $v ?>"></script>
+<script type="module" src="<?= $pluginBase ?>/images/assets/js/theme.min.js?v=<?= $v ?>"></script>
+<script type="module" src="<?= $pluginBase ?>/images/assets/js/viewport.min.js?v=<?= $v ?>"></script>
 
 <!-- Global language picker (admin), available regardless of the binary. -->
 <script type="module">
-import { langModal } from '<?= $pluginBase ?>/images/assets/js/script.min.js?v=<?= $v ?>';
+import { langModal } from '<?= $pluginBase ?>/images/assets/js/lang.min.js?v=<?= $v ?>';
 // Dois seletores com alvos distintos, e é importante não confundi-los:
 //  - o do cabeçalho muda apenas o idioma desta conta;
 //  - o do card define o padrão do servidor, herdado por quem não escolheu.

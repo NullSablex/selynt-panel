@@ -2,7 +2,7 @@
 //
 // A página entrega os dados em `window.__SELYNT_ADMIN`; o resto vive aqui.
 
-import { t } from './script.min.js';
+import { t } from './i18n.min.js';
 import { esc, fmtBytes, typeLabel } from './ui.min.js';
 
 const { apiBase: API } = window.__SELYNT_ADMIN ?? {};

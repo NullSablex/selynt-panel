@@ -2,7 +2,8 @@
 //
 // A página entrega os dados em `window.__SELYNT_CONFIG`; o resto vive aqui.
 
-import { t, toast } from './script.min.js';
+import { t } from './i18n.min.js';
+import { toast } from './notify.min.js';
 import { esc } from './ui.min.js';
 
 const { apiBase: API } = window.__SELYNT_CONFIG ?? {};

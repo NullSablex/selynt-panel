@@ -2,7 +2,7 @@
 //
 // A página entrega os dados em `window.__SELYNT_CREATE`; o resto vive aqui.
 
-import { t } from './script.min.js';
+import { t } from './i18n.min.js';
 import { esc } from './ui.min.js';
 
 const { user: _user, domains: _domainsData } = window.__SELYNT_CREATE ?? {};

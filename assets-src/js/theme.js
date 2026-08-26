@@ -1,4 +1,6 @@
-const ROOT = document.querySelector('.selynt-panel');
+import { getRoot } from './dom.min.js';
+
+const ROOT = getRoot();
 
 // Tema escolhido pelo usuário, quando houver. O painel espelha o tema do
 // DirectAdmin por padrão, mas fora da skin não há DA na página para observar —
@@ -21,7 +23,7 @@ function storeTheme(theme) {
   } catch (e) {}
 }
 
-export function applyTheme(theme) {
+function applyTheme(theme) {
   if (!ROOT) return;
   // A marca do boot fica no <html> e vale só até aqui: mantê-la significaria
   // duas fontes decidindo a mesma cor, e a do boot não muda ao alternar.
@@ -32,11 +34,11 @@ export function applyTheme(theme) {
   if (backdrop) backdrop.classList.toggle('theme-light', theme === 'light');
 }
 
-export function currentTheme() {
+function currentTheme() {
   return ROOT && ROOT.classList.contains('theme-light') ? 'light' : 'dark';
 }
 
-export function toggleTheme() {
+function toggleTheme() {
   const next = currentTheme() === 'light' ? 'dark' : 'light';
   storeTheme(next);
   applyTheme(next);

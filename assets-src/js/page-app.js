@@ -3,31 +3,13 @@
 // A página entrega o nome da aplicação e o caminho da API em
 // `window.__SELYNT_APP`; tudo o mais vive aqui.
 
-import { toast, confirm as slyConfirm, t } from './script.min.js';
-import { esc, fmtMB, typeLabel } from './ui.min.js';
+import { t } from './i18n.min.js';
+import { toast, confirm as slyConfirm } from './notify.min.js';
+import { esc, fmtMB, typeLabel, uptime } from './ui.min.js';
 
 const { name: NAME, apiBase: API } = window.__SELYNT_APP ?? {};
 
-
 let activeTab='out',nodeVersions=[],appRunning=false;
-function uptime(ts){
-  let s=Math.floor(Date.now()/1000-ts);
-  if(s<60)return t('time.now');
-  const u=[
-    [31536000,'time.year','time.years'],
-    [2592000,'time.month','time.months'],
-    [86400,'time.day','time.days'],
-    [3600,'time.hour','time.hours'],
-    [60,'time.minute','time.minutes'],
-  ];
-  const p=[];
-  for(const[d,sg,pl] of u){
-    const v=Math.floor(s/d);
-    if(v>0){p.push(v+' '+t(v===1?sg:pl));s%=d;}
-    if(p.length===2)break;
-  }
-  return p.join(t('time.connector'));
-}
 
 await fetch(`${API}/nodes.raw`).then(r=>r.json()).then(r=>{if(r&&r.ok)nodeVersions=r.versions||[];}).catch(()=>{});
 
@@ -105,7 +87,7 @@ async function loadStatus(){
     }
   }
   rows.push(['fa-solid fa-memory',t('app.field.memlimit'),memLimitControl()]);
-  if(run&&a.started_at) rows.push(['fa-solid fa-clock',t('app.field.uptime'),uptime(a.started_at)]);
+  if(run&&a.started_at) rows.push(['fa-solid fa-clock',t('app.field.uptime'),uptime(a.started_at, 'long')]);
   rows.push(['fa-solid fa-calendar',t('app.field.created'),a.created_at?new Date(a.created_at*1000).toLocaleString():t('app.log.dash')]);
   // O refresh periódico não pode apagar uma edição em andamento: se o controle
   // de limite está sujo ou com foco, guardamos o *nó* e o recolocamos depois.
@@ -178,7 +160,6 @@ const MEM_PRESETS=[0,128,256,512,1024,2048];
 let memPinned=null;      // bytes definidos pelo usuário, ou null
 let memMax=null;         // teto efetivo em vigor
 let memUsed=null;        // consumo atual
-
 
 function memLimitControl(){
   const cur=memPinned?Math.round(memPinned/1048576):0;

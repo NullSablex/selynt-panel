@@ -8,12 +8,28 @@
   ],
   "js": [
     {
-      "src": "assets-src/js/panel.js",
-      "out": "js/panel.min.js"
+      "src": "assets-src/js/dom.js",
+      "out": "js/dom.min.js"
     },
     {
-      "src": "assets-src/js/script.js",
-      "out": "js/script.min.js"
+      "src": "assets-src/js/i18n.js",
+      "out": "js/i18n.min.js"
+    },
+    {
+      "src": "assets-src/js/notify.js",
+      "out": "js/notify.min.js"
+    },
+    {
+      "src": "assets-src/js/viewport.js",
+      "out": "js/viewport.min.js"
+    },
+    {
+      "src": "assets-src/js/lang.js",
+      "out": "js/lang.min.js"
+    },
+    {
+      "src": "assets-src/js/theme.js",
+      "out": "js/theme.min.js"
     },
     {
       "src": "assets-src/js/ui.js",
