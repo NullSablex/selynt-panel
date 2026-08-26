@@ -90,6 +90,25 @@ $v = SELYNT_VERSION;
           <div class="app-summary-footer" id="app-actions"></div>
         </div>
 
+        <!-- Scripts do package.json. Só leitura por enquanto: a lista vem do
+             binário e os botões nascem desligados. -->
+        <div class="logs-card" id="scripts-card" style="display:none">
+          <div class="logs-card-header">
+            <div>
+              <h2><?= selynt_t_html('app.scripts.title') ?></h2>
+              <p class="cfg-desc"><?= selynt_t_html('app.scripts.subtitle') ?></p>
+            </div>
+          </div>
+          <div class="logs-card-body">
+            <div class="form-field">
+              <label class="form-label" for="scripts-args"><?= selynt_t_html('app.scripts.args') ?></label>
+              <input type="text" id="scripts-args" class="inline-input"
+                     placeholder="<?= selynt_t_html('app.scripts.args_ph') ?>" disabled>
+            </div>
+            <div id="scripts-list"></div>
+          </div>
+        </div>
+
         <!-- Coluna direita: logs -->
         <div class="logs-card">
           <div class="logs-card-header">

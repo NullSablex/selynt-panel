@@ -359,3 +359,46 @@ loadStats().then(loadStatus);
 setInterval(()=>loadStats().then(loadStatus),8000);
 loadLog('out');
 setInterval(()=>loadLog(activeTab),5000);
+
+// Scripts do package.json — apenas visual por enquanto.
+//
+// A lista é real (vem do binário), mas os botões nascem desligados: esta etapa
+// é para decidir o desenho, não para executar. O campo de argumentos acompanha
+// os scripts porque é assim que ele será usado — o argumento vale para a
+// execução do script escolhido, como no painel do CloudLinux.
+async function loadScripts() {
+  const card = document.getElementById('scripts-card');
+  const list = document.getElementById('scripts-list');
+  if (!card || !list) return;
+
+  const r = await fetch(`${API}/scripts.raw?name=${encodeURIComponent(NAME)}`)
+    .then(x => x.json()).catch(() => null);
+  if (!r || !r.ok) return;
+
+  // Só aparece para Node: um binário não tem package.json a oferecer.
+  if (r.reason === 'not_node') return;
+  card.style.display = '';
+
+  const aviso = {
+    no_package: 'app.scripts.no_package',
+    invalid_package: 'app.scripts.invalid_package',
+  }[r.reason];
+  if (aviso || !r.scripts || !r.scripts.length) {
+    list.innerHTML = '<p class="cfg-desc">' + esc(t(aviso || 'app.scripts.empty')) + '</p>';
+    return;
+  }
+
+  list.innerHTML = r.scripts.map(nome => (
+    '<div class="cfg-row">' +
+      '<span class="cfg-lbl"><i class="fa-solid fa-terminal"></i> ' + esc(nome) + '</span>' +
+      '<span class="cfg-val">' +
+        '<button type="button" class="btn-xs btn-soft" disabled title="' +
+          esc(t('app.scripts.soon')) + '">' +
+          '<i class="fa-solid fa-play"></i> ' + esc(t('app.scripts.run')) +
+        '</button>' +
+      '</span>' +
+    '</div>'
+  )).join('');
+}
+
+loadScripts();
