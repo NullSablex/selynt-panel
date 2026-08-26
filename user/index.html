@@ -1,146 +1,156 @@
 #!/usr/local/bin/php
 <?php
+declare(strict_types=1);
+
 require_once dirname(__DIR__) . '/lib/common.php';
 $bin_ok = is_executable(SELYNT_BIN);
 $pluginBase = '/CMD_PLUGINS/selynt_panel';
 $v = SELYNT_VERSION;
+$locale_options = selynt_i18n_options();
+$locale_active  = selynt_locale();
 ?>
 
 <link rel="stylesheet" href="<?= $pluginBase ?>/images/assets/css/panel.min.css?v=<?= $v ?>">
+
+<?= selynt_theme_boot_tag() ?>
 
 <div class="selynt-panel">
   <div class="app-shell">
     <header class="app-header">
       <div class="header-left">
-        <a href="<?= $pluginBase ?>">
-          <img class="header-logo" src="<?= $pluginBase ?>/images/assets/img/logo.png" alt="Selynt Panel">
-        </a>
+        <img src="<?= $pluginBase ?>/images/assets/img/logo.png" class="brand-mini" alt="Selynt Panel">
+
         <nav class="main-nav">
-          <a class="active" href="<?= $pluginBase ?>">Aplicações</a>
+          <a href="<?= $pluginBase ?>" class="active"><?= selynt_t_html('nav.dashboard') ?></a>
+          <a href="<?= $pluginBase ?>/apps"><?= selynt_t_html('nav.apps') ?></a>
+          <a href="<?= $pluginBase ?>/settings"><?= selynt_t_html('nav.settings') ?></a>
+          <a href="<?= $pluginBase ?>/help"><?= selynt_t_html('nav.help') ?></a>
         </nav>
+      </div>
+
+      <div class="header-right">
+        <button type="button" class="lang-button" id="sly-lang-btn" aria-label="<?= selynt_t_html('locale.label') ?>">
+          <i class="fa-solid fa-globe"></i>
+          <span class="lang-button-label"><?= htmlspecialchars(selynt_i18n_active_name(), ENT_QUOTES, 'UTF-8') ?></span>
+        </button>
+
+        <button type="button" class="theme-toggle" id="sly-theme-btn" aria-label="<?= selynt_t_html('theme.toggle') ?>">
+          <i class="fa-solid fa-moon icon-moon"></i>
+          <i class="fa-solid fa-sun icon-sun"></i>
+        </button>
+
+        <a href="/" class="lang-button" title="<?= selynt_t_html('nav.back_da') ?>">
+          <i class="fa-solid fa-arrow-left-long"></i>
+          <span class="lang-button-label"><?= selynt_t_html('nav.back_da') ?></span>
+        </a>
       </div>
     </header>
 
     <main class="app-main">
 <?php if (!$bin_ok): ?>
-      <div class="alert-error">
-        Binário <code>Core Selynt</code> não encontrado. Contate o administrador.
-      </div>
+      <p class="alert-error"><?= selynt_t_html('errors.binary_missing') ?></p>
 <?php else: ?>
-      <header class="app-main-header">
-        <div>
-          <h1>Aplicações</h1>
-          <p>Visão geral dos processos gerenciados.</p>
-        </div>
-        <div class="main-header-actions">
-          <button type="button" class="btn-outline" onclick="load()">
-            <i class="fa-solid fa-rotate-right"></i> Atualizar
-          </button>
-          <a href="<?= $pluginBase ?>/create.html" class="btn-outline">
-            <i class="fa-solid fa-plus"></i> Novo App
-          </a>
-        </div>
-      </header>
 
-      <section class="app-grid" id="sly-list">
-        <p class="text-muted">Carregando...</p>
-      </section>
+<header class="app-main-header">
+  <div>
+    <h1><?= selynt_t_html('dash.title') ?></h1>
+    <p><?= selynt_t_html('dash.subtitle') ?></p>
+  </div>
+</header>
+
+<section class="stats-grid">
+  <article class="stat-card stat-card-total is-filter" data-status="all" role="button" tabindex="0">
+    <div class="stat-header">
+      <div>
+        <div class="stat-title"><?= selynt_t_html('dash.total') ?></div>
+        <div class="stat-value" id="s-total">—</div>
+      </div>
+      <div class="stat-icon">
+        <i class="fa-solid fa-cubes"></i>
+      </div>
+    </div>
+    <div class="stat-subtext">
+      <?= selynt_t_html('dash.total_hint') ?>
+    </div>
+  </article>
+
+  <article class="stat-card stat-card-online is-filter" data-status="RUNNING" role="button" tabindex="0">
+    <div class="stat-header">
+      <div>
+        <div class="stat-title"><?= selynt_t_html('dash.online') ?></div>
+        <div class="stat-value" id="s-online">—</div>
+      </div>
+      <div class="stat-icon">
+        <i class="fa-solid fa-circle-check"></i>
+      </div>
+    </div>
+    <div class="stat-subtext">
+      <span class="online-indicator">
+        <span class="online-dot"></span>
+        <span id="s-online-pct">—</span> <?= selynt_t_html('dash.of_total') ?>
+      </span>
+    </div>
+  </article>
+
+  <article class="stat-card stat-card-offline is-filter" data-status="STOPPED" role="button" tabindex="0">
+    <div class="stat-header">
+      <div>
+        <div class="stat-title"><?= selynt_t_html('dash.offline') ?></div>
+        <div class="stat-value" id="s-offline">—</div>
+      </div>
+      <div class="stat-icon">
+        <i class="fa-solid fa-circle-xmark"></i>
+      </div>
+    </div>
+    <div class="stat-subtext">
+      <span class="online-indicator">
+        <span class="offline-dot"></span>
+        Verifique se estão paradas por opção.
+      </span>
+    </div>
+  </article>
+</section>
+
+<section class="apps-table-card">
+  <header class="apps-table-card-header">
+    <div>
+      <h2><?= selynt_t_html('dash.recent') ?></h2>
+      <p><?= selynt_t_html('dash.recent_hint') ?></p>
+    </div>
+    <a href="<?= $pluginBase ?>/apps" style="font-size:0.8rem; text-decoration:none; color:var(--color-primary);">
+      <i class="fa-solid fa-arrow-up-right-from-square"></i>
+      <?= selynt_t_html('dash.see_all') ?>
+    </a>
+  </header>
+
+  <div id="sly-recent">
+    <p style="font-size:0.85rem; color:var(--color-text-muted);"><?= selynt_t_html('common.loading') ?></p>
+  </div>
+</section>
+
 <?php endif; ?>
     </main>
   </div>
 </div>
 
-<?php if ($bin_ok): ?>
+<?= selynt_i18n_script_tag() ?>
 <script src="<?= $pluginBase ?>/images/assets/js/fontawesome.min.js?v=<?= $v ?>"></script>
 <script src="<?= $pluginBase ?>/images/assets/js/solid.min.js?v=<?= $v ?>"></script>
-<script src="<?= $pluginBase ?>/images/assets/js/regular.min.js?v=<?= $v ?>"></script>
 <script src="<?= $pluginBase ?>/images/assets/js/brands.min.js?v=<?= $v ?>"></script>
-<script type="module" src="<?= $pluginBase ?>/images/assets/js/script.min.js?v=<?= $v ?>"></script>
-<script type="module" src="<?= $pluginBase ?>/images/assets/js/panel.min.js?v=<?= $v ?>"></script>
+<script type="module" src="<?= $pluginBase ?>/images/assets/js/theme.min.js?v=<?= $v ?>"></script>
+<script type="module" src="<?= $pluginBase ?>/images/assets/js/viewport.min.js?v=<?= $v ?>"></script>
+
+<!-- Language picker: available even when the binary is missing. -->
 <script type="module">
-import { toast, confirm as slyConfirm } from '<?= $pluginBase ?>/images/assets/js/script.min.js?v=<?= $v ?>';
-
-const API='/CMD_PLUGINS/selynt_panel/api';
-const BASE='/CMD_PLUGINS/selynt_panel';
-
-function iconFor(type){
-  if(type==='node') return {wrap:'app-icon app-icon-node',icon:'fa-brands fa-node-js'};
-  if(type==='rust') return {wrap:'app-icon',icon:'fa-solid fa-gears'};
-  return {wrap:'app-icon',icon:'fa-solid fa-cube'};
-}
-
-function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);}
-
-const actionLabels={start:'iniciado',stop:'parado',restart:'reiniciado',remove:'removido'};
-const actionConfirm={start:'Iniciar',stop:'Parar',restart:'Reiniciar',remove:'Remover'};
-
-async function action(name,act){
-  const ok=await slyConfirm({
-    title:`${actionConfirm[act]||act} app`,
-    text:`Deseja ${(actionConfirm[act]||act).toLowerCase()} "${name}"?`,
-    okText:actionConfirm[act]||'Sim',
-    cancelText:'Cancelar'
-  });
-  if(!ok)return;
-  const p=new URLSearchParams({name,action:act});
-  if(act==='remove'){
-    const del=await slyConfirm({title:'Excluir arquivos',text:'Deseja excluir os arquivos do app também?',okText:'Sim, excluir',cancelText:'Não, manter'});
-    if(del)p.set('delete_dir','1');
-  }
-  const r=await fetch(`${API}/action.raw?${p}`,{method:'POST'}).then(r=>r.json()).catch(()=>({ok:false}));
-  if(r.ok){
-    toast('success',`App ${actionLabels[act]||act} com sucesso.`);
-  } else {
-    toast('error',r.message||r.error||'Erro ao executar ação.');
-  }
-  load();
-}
-window.action=action;
-
-function renderApps(apps){
-  const el=document.getElementById('sly-list');
-  if(!apps.length){
-    el.innerHTML='<p class="text-muted">Nenhuma aplicação encontrada. <a href="'+BASE+'/create.html" class="link-primary">Criar agora</a>.</p>';
-    return;
-  }
-  el.innerHTML=apps.map(a=>{
-    const run=a.status==='RUNNING';
-    const link=`${BASE}/app.html?name=${encodeURIComponent(a.name)}`;
-    const ic=iconFor(a.type);
-    const badge=run?'badge-online':'badge-offline';
-    const statusLabel=run?'Online':'Offline';
-    let buttons='';
-    if(run){
-      buttons+=`<button type="button" class="btn-xs btn-soft" onclick="action('${esc(a.name)}','restart')"><i class="fa-solid fa-arrows-rotate"></i> Reiniciar</button>`;
-      buttons+=`<button type="button" class="btn-xs btn-danger" onclick="action('${esc(a.name)}','stop')"><i class="fa-solid fa-stop"></i> Parar</button>`;
-    } else {
-      buttons+=`<button type="button" class="btn-xs btn-soft" onclick="action('${esc(a.name)}','start')"><i class="fa-solid fa-play"></i> Iniciar</button>`;
-      buttons+=`<button type="button" class="btn-xs btn-danger" onclick="action('${esc(a.name)}','remove')"><i class="fa-solid fa-trash"></i> Remover</button>`;
-    }
-    return`<article class="app-card">
-      <header class="app-card-header">
-        <div class="app-header-main">
-          <div class="${ic.wrap}"><i class="${ic.icon}"></i></div>
-          <div class="app-info">
-            <div class="app-name"><a href="${link}">${esc(a.name)}</a></div>
-            <div class="app-meta">${esc(a.host)}</div>
-          </div>
-        </div>
-        <span class="badge ${badge}">${statusLabel}</span>
-      </header>
-      <footer class="app-card-footer">${buttons}</footer>
-    </article>`;
-  }).join('');
-}
-
-async function load(){
-  const r=await fetch(`${API}/apps.raw`).then(r=>r.json()).catch(()=>null);
-  if(!r){document.getElementById('sly-list').innerHTML='<p class="alert-error">Erro de comunicação com o servidor.</p>';return;}
-  if(Array.isArray(r.apps)){renderApps(r.apps);return;}
-  if(!r.ok&&(r.error==='binary_missing'||!r.error)){renderApps([]);return;}
-  document.getElementById('sly-list').innerHTML=`<p class="alert-error">${r.message||r.error||'Erro ao carregar apps.'}</p>`;
-}
-window.load=load;
-load();setInterval(load,10000);
+import { langModal } from '<?= $pluginBase ?>/images/assets/js/lang.min.js?v=<?= $v ?>';
+langModal({ apiBase: '<?= $pluginBase ?>/api', endpoint: 'locale.raw' });
 </script>
-<?php endif; ?>
+
+
+<script>
+  window.__SELYNT_DASH = {
+    apiBase: '<?= $pluginBase ?>/api',
+    base: '<?= $pluginBase ?>',
+  };
+</script>
+<script type="module" src="<?= $pluginBase ?>/images/assets/js/page-dashboard.min.js?v=<?= $v ?>"></script>

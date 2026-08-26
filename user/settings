@@ -1,0 +1,110 @@
+#!/usr/local/bin/php
+<?php
+declare(strict_types=1);
+
+require_once dirname(__DIR__) . '/lib/common.php';
+$bin_ok = is_executable(SELYNT_BIN);
+$pluginBase = '/CMD_PLUGINS/selynt_panel';
+$v = SELYNT_VERSION;
+$locale_options = selynt_i18n_options();
+$locale_active  = selynt_locale();
+?>
+
+<link rel="stylesheet" href="<?= $pluginBase ?>/images/assets/css/panel.min.css?v=<?= $v ?>">
+
+<?= selynt_theme_boot_tag() ?>
+
+<div class="selynt-panel">
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="header-left">
+        <img src="<?= $pluginBase ?>/images/assets/img/logo.png" class="brand-mini" alt="Selynt Panel">
+
+        <nav class="main-nav">
+          <a href="<?= $pluginBase ?>"><?= selynt_t_html('nav.dashboard') ?></a>
+          <a href="<?= $pluginBase ?>/apps"><?= selynt_t_html('nav.apps') ?></a>
+          <a href="<?= $pluginBase ?>/settings" class="active"><?= selynt_t_html('nav.settings') ?></a>
+          <a href="<?= $pluginBase ?>/help"><?= selynt_t_html('nav.help') ?></a>
+        </nav>
+      </div>
+
+      <div class="header-right">
+        <button type="button" class="lang-button" id="sly-lang-btn" aria-label="<?= selynt_t_html('locale.label') ?>">
+          <i class="fa-solid fa-globe"></i>
+          <span class="lang-button-label"><?= htmlspecialchars(selynt_i18n_active_name(), ENT_QUOTES, 'UTF-8') ?></span>
+        </button>
+
+        <button type="button" class="theme-toggle" id="sly-theme-btn" aria-label="<?= selynt_t_html('theme.toggle') ?>">
+          <i class="fa-solid fa-moon icon-moon"></i>
+          <i class="fa-solid fa-sun icon-sun"></i>
+        </button>
+
+        <a href="/" class="lang-button" title="<?= selynt_t_html('nav.back_da') ?>">
+          <i class="fa-solid fa-arrow-left-long"></i>
+          <span class="lang-button-label"><?= selynt_t_html('nav.back_da') ?></span>
+        </a>
+      </div>
+    </header>
+
+    <main class="app-main">
+      <header class="app-main-header">
+        <div>
+          <h1><?= selynt_t_html('settings.title') ?></h1>
+          <p><?= selynt_t_html('settings.subtitle') ?></p>
+        </div>
+      </header>
+
+      <div class="content-pad">
+<?php if (!$bin_ok): ?>
+        <div class="cfg-card">
+          <div class="cfg-row">
+            <span class="cfg-lbl"><?= selynt_t_html('alert.binary_missing_user') ?></span>
+          </div>
+        </div>
+<?php else: ?>
+        <div class="cfg-card">
+          <h4><?= selynt_t_html('settings.isolation.title') ?></h4>
+          <p class="cfg-desc"><?= selynt_t_html('settings.isolation.desc') ?></p>
+
+          <div class="cfg-row">
+            <span class="cfg-lbl"><?= selynt_t_html('settings.isolation.state') ?></span>
+            <span class="cfg-val" id="iso-state">…</span>
+          </div>
+
+          <div class="cfg-actions">
+            <button type="button" class="btn-outline btn-primary" id="iso-toggle" disabled>
+              <i class="fa-solid fa-shield-halved"></i>
+              <span id="iso-toggle-label">…</span>
+            </button>
+          </div>
+
+          <!-- Shown when the server cannot isolate at all. -->
+          <p class="cfg-desc" id="iso-unsupported" hidden></p>
+        </div>
+<?php endif; ?>
+      </div>
+    </main>
+  </div>
+</div>
+
+<?= selynt_i18n_script_tag() ?>
+<script src="<?= $pluginBase ?>/images/assets/js/fontawesome.min.js?v=<?= $v ?>"></script>
+<script src="<?= $pluginBase ?>/images/assets/js/solid.min.js?v=<?= $v ?>"></script>
+<script src="<?= $pluginBase ?>/images/assets/js/brands.min.js?v=<?= $v ?>"></script>
+<script type="module" src="<?= $pluginBase ?>/images/assets/js/theme.min.js?v=<?= $v ?>"></script>
+<script type="module" src="<?= $pluginBase ?>/images/assets/js/viewport.min.js?v=<?= $v ?>"></script>
+
+<!-- Language picker: available even when the binary is missing. -->
+<script type="module">
+import { langModal } from '<?= $pluginBase ?>/images/assets/js/lang.min.js?v=<?= $v ?>';
+langModal({ apiBase: '<?= $pluginBase ?>/api', endpoint: 'locale.raw' });
+</script>
+
+<?php if ($bin_ok): ?>
+<script>
+  window.__SELYNT_SETTINGS = {
+    endpoint: '<?= $pluginBase ?>/api/settings.raw',
+  };
+</script>
+<script type="module" src="<?= $pluginBase ?>/images/assets/js/page-settings.min.js?v=<?= $v ?>"></script>
+<?php endif; ?>

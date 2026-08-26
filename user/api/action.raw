@@ -1,25 +1,36 @@
 #!/usr/local/bin/php -n
 <?php
+declare(strict_types=1);
+
 require_once dirname(__DIR__, 2) . '/lib/common.php';
 
 selynt_require_post();
 $input  = selynt_input();
-$name   = trim($input['name']   ?? '');
-$action = trim($input['action'] ?? '');
+$name   = trim((string)($input['name']   ?? ''));
+$action = trim((string)($input['action'] ?? ''));
 if ($name === '' || $action === '') {
-    selynt_json(['ok' => false, 'error' => 'missing_fields', 'message' => 'Campos name e action são obrigatórios.']); exit(0);
+    selynt_json(['ok' => false, 'error' => 'missing_fields', 'message' => selynt_t('errors.missing_fields')]); exit(0);
 }
-if (!in_array($action, ['start','stop','restart','remove','set-node-version'], true)) {
-    selynt_json(['ok' => false, 'error' => 'invalid_action', 'message' => 'Ação inválida.']); exit(0);
+if (!in_array($action, ['start','stop','restart','remove','set-node-version','set-memory-max'], true)) {
+    selynt_json(['ok' => false, 'error' => 'invalid_action', 'message' => selynt_t('errors.invalid_action')]); exit(0);
 }
 $args = [$action, $name];
 if ($action === 'remove' && !empty($input['delete_dir'])) $args[] = '--delete-dir';
 if ($action === 'set-node-version') {
-    $nv = trim($input['node_version'] ?? '');
+    $nv = trim((string)($input['node_version'] ?? ''));
     if ($nv === '') {
-        selynt_json(['ok' => false, 'error' => 'missing_fields', 'message' => 'Campo node_version é obrigatório.']); exit(0);
+        selynt_json(['ok' => false, 'error' => 'missing_fields', 'message' => selynt_t('errors.missing_node_version')]); exit(0);
     }
     $args[] = '--node-version';
     $args[] = $nv;
+}
+if ($action === 'set-memory-max') {
+    // 0 restaura o modo automático; o binário rejeita valores muito baixos.
+    $mb = (int)($input['megabytes'] ?? -1);
+    if ($mb < 0) {
+        selynt_json(['ok' => false, 'error' => 'missing_fields', 'message' => selynt_t('errors.invalid_memory_max')]); exit(0);
+    }
+    $args[] = '--megabytes';
+    $args[] = (string)$mb;
 }
 selynt_json(selynt_run($args));

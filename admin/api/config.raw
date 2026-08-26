@@ -1,39 +1,24 @@
 #!/usr/local/bin/php -n
 <?php
+declare(strict_types=1);
+
 require_once dirname(__DIR__, 2) . '/lib/common.php';
 
 $input  = selynt_input();
-$action = $input['action'] ?? '';
-
-if ($action === 'diag') {
-    $script = SELYNT_PLUGIN_DIR . '/scripts/diag-proxy.sh';
-    if (!is_executable($script)) {
-        selynt_json(['ok' => false, 'error' => 'script_missing', 'message' => 'diag-proxy.sh não encontrado ou não executável.']); exit(0);
-    }
-    $output = []; $exit_code = 0;
-    exec('bash ' . escapeshellarg($script) . ' 2>&1', $output, $exit_code);
-    // Remover códigos ANSI para exibir no painel
-    $raw = implode("\n", $output);
-    $clean = preg_replace('/\033\[[0-9;]*m/', '', $raw);
-    selynt_json([
-        'ok'     => true,
-        'output' => $clean,
-        'exit'   => $exit_code,
-    ]); exit(0);
-}
+$action = (string)($input['action'] ?? '');
 
 if ($action === 'setup_ols') {
     selynt_require_post();
     $script = SELYNT_PLUGIN_DIR . '/scripts/setup-ols.sh';
     if (!is_executable($script)) {
-        selynt_json(['ok' => false, 'error' => 'script_missing', 'message' => 'setup-ols.sh não encontrado ou não executável.']); exit(0);
+        selynt_json(['ok' => false, 'error' => 'script_missing', 'message' => selynt_t('errors.script_missing', ['script' => 'setup-ols.sh'])]); exit(0);
     }
     $output = []; $exit_code = 0;
     exec('bash ' . escapeshellarg($script) . ' 2>&1', $output, $exit_code);
     selynt_json([
         'ok'      => $exit_code === 0,
         'output'  => implode("\n", $output),
-        'message' => $exit_code !== 0 ? 'setup-ols.sh retornou erro (exit=' . $exit_code . ').' : null,
+        'message' => $exit_code !== 0 ? selynt_t('errors.setup_ols_failed', ['exit' => $exit_code]) : null,
     ]); exit(0);
 }
 
@@ -49,9 +34,12 @@ if ($action === 'allowed_versions') {
     $nv_file = SELYNT_PLUGIN_DIR . '/etc/node_versions';
     $versions = [];
     if (file_exists($nv_file)) {
-        foreach (file($nv_file) as $line) {
-            $parts = preg_split('/\s+/', trim($line), 2);
-            if (!empty($parts[1])) $versions[] = $parts[1];
+        $lines = file($nv_file);
+        if ($lines !== false) {
+            foreach ($lines as $line) {
+                $parts = preg_split('/\s+/', trim($line), 2);
+                if (is_array($parts) && !empty($parts[1])) $versions[] = $parts[1];
+            }
         }
     }
     selynt_json(['ok' => true, 'versions' => $versions]); exit(0);
@@ -61,13 +49,63 @@ if ($action === 'save_node_versions') {
     selynt_require_post();
     $s = trim((string)($input['s'] ?? ''));
     if ($s === '') {
-        selynt_json(['ok' => false, 'error' => 'no_selection', 'message' => 'Nenhuma versão selecionada.']); exit(0);
+        selynt_json(['ok' => false, 'error' => 'no_selection', 'message' => selynt_t('errors.no_selection')]); exit(0);
     }
     $args = ['admin', 'save-node-versions'];
     foreach (explode('-', $s) as $idx) {
         $args[] = (string)(int)$idx;
     }
     selynt_json(selynt_run($args)); exit(0);
+}
+
+if ($action === 'get_default_isolated') {
+    $file = SELYNT_PLUGIN_DIR . '/etc/default_isolated';
+    $val  = is_readable($file) ? trim((string)file_get_contents($file)) : '0';
+    selynt_json(['ok' => true, 'isolated' => $val === '1']);
+    exit(0);
+}
+
+if ($action === 'save_default_isolated') {
+    selynt_require_post();
+    // Only an explicit "1" enables it, so a malformed value cannot turn
+    // isolation on for every new account by accident.
+    $isolated = ((string)($input['isolated'] ?? '')) === '1' ? 'true' : 'false';
+    $res = selynt_run(['admin', 'save-default-isolated', '--isolated', $isolated]);
+    if (!($res['ok'] ?? false) && trim((string)($res['message'] ?? '')) === '') {
+        $res['message'] = selynt_t('errors.generic');
+    }
+    selynt_json($res);
+    exit(0);
+}
+
+if ($action === 'get_locale') {
+    selynt_json([
+        'ok'      => true,
+        'options' => selynt_i18n_options(),
+        'global'  => selynt_i18n_global(),
+        'active'  => selynt_locale(),
+    ]); exit(0);
+}
+
+if ($action === 'save_locale') {
+    selynt_require_post();
+    $locale = trim((string)($input['locale'] ?? ''));
+    // Reject anything that isn't a shipped dictionary before spending a fork on
+    // the binary. '' is legitimate here — it clears the default.
+    if ($locale !== '' && selynt_normalize_locale($locale, selynt_i18n_available()) === null) {
+        selynt_json(['ok' => false, 'error' => 'invalid_locale', 'message' => selynt_t('errors.invalid_locale')]);
+        exit(0);
+    }
+    $res = selynt_i18n_set_global($locale);
+    if (!($res['ok'] ?? false)) {
+        // Coalesce on empty too: the binary reports argument errors on stderr,
+        // which reaches us as an empty message that ?? would happily keep.
+        if (trim((string)($res['message'] ?? '')) === '') {
+            $res['message'] = selynt_t('errors.invalid_locale');
+        }
+        selynt_json($res); exit(0);
+    }
+    selynt_json(['ok' => true, 'global' => selynt_i18n_global()]); exit(0);
 }
 
 selynt_json(['ok' => false, 'error' => 'unknown_action']);

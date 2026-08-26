@@ -5,7 +5,7 @@ on:
     types: [published]
 
 permissions:
-  contents: write
+  contents: read
   packages: none
   actions: none
   issues: none
@@ -15,10 +15,12 @@ jobs:
   build:
     name: Build Plugin Package
     runs-on: ubuntu-latest
+    permissions:
+      contents: write   # anexa o pacote à release publicada
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: '24'
           cache: 'npm'
@@ -54,7 +56,16 @@ jobs:
             --exclude='assets.manifest.json' \
             --exclude='packages.md' \
             --exclude='.github' \
+            --exclude='.git' \
             --exclude='.gitignore' \
+            --exclude='tools' \
+            --exclude='notes' \
+            --exclude='docs' \
+            --exclude='mkdocs.yml' \
+            --exclude='SECURITY.md' \
+            --exclude='CONTRIBUTING.md' \
+            --exclude='CODE_OF_CONDUCT.md' \
+            --exclude='AI-POLICY.md' \
             --exclude='version' \
             --exclude='./install.sh' \
             --exclude='README.md' \
@@ -70,7 +81,7 @@ jobs:
           ARCHIVE="selynt_panel.tar.gz"
 
           echo "Verificando ausência de arquivos dev/build..."
-          FORBIDDEN="node_modules|assets-src|package\.json|package-lock|build-assets|assets\.manifest|\.github|\.gitignore|^\./install\.sh$|README\.md|CHANGELOG\.md"
+          FORBIDDEN="node_modules|assets-src|package\.json|package-lock|build-assets|assets\.manifest|\.github/|\.git/|\.gitignore|^\./install\.sh$|README\.md|CHANGELOG\.md|SECURITY\.md|CONTRIBUTING\.md|CODE_OF_CONDUCT\.md|AI-POLICY\.md|^\./tools/|^\./notes/|^\./docs/|mkdocs\.yml"
           if tar -tzf "$ARCHIVE" | grep -qE "$FORBIDDEN"; then
             echo "ERRO: arquivos indevidos encontrados no pacote:"
             tar -tzf "$ARCHIVE" | grep -E "$FORBIDDEN"
@@ -79,7 +90,11 @@ jobs:
           echo "OK"
 
           echo "Verificando assets minificados..."
-          for f in panel.min.css panel.min.js script.min.js; do
+          for f in panel.min.css fontawesome.min.js solid.min.js brands.min.js \
+                   dom.min.js i18n.min.js notify.min.js lang.min.js theme.min.js \
+                   viewport.min.js ui.min.js page-app.min.js page-apps.min.js \
+                   page-dashboard.min.js page-create.min.js page-settings.min.js \
+                   page-admin.min.js page-config.min.js page-diagnostic.min.js; do
             tar -tzf "$ARCHIVE" | grep -q "$f" || { echo "FALTANDO: $f"; exit 1; }
           done
           echo "OK"

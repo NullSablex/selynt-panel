@@ -2,8 +2,11 @@ frontend:
   - changed-files:
       - any-glob-to-any-file:
           - 'assets-src/**'
-          - 'user/**/*.html'
-          - 'admin/**/*.html'
+          - 'user/**'
+          - 'admin/**'
+        all-globs-to-all-files:
+          - '!user/api/**'
+          - '!admin/api/**'
 
 backend:
   - changed-files:
@@ -27,10 +30,18 @@ hooks:
       - any-glob-to-any-file:
           - 'hooks/**'
 
-docs:
+documentation:
   - changed-files:
       - any-glob-to-any-file:
-          - 'README.md'
+          - '**/*.md'
           - 'LICENSE'
           - 'COPYRIGHT'
           - 'LICENSES/**'
+          - 'docs/**'
+
+security:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'SECURITY.md'
+          - 'bin/**'
+          - 'etc/**'

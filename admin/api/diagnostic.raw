@@ -1,0 +1,18 @@
+#!/usr/local/bin/php -n
+<?php
+declare(strict_types=1);
+
+require_once dirname(__DIR__, 2) . '/lib/common.php';
+
+selynt_require_post();
+
+// O diagnóstico lê templates do DirectAdmin, config do OpenLiteSpeed e o state
+// dir — tudo fora do alcance do usuário do CGI. Precisa do binário, que sobe a
+// root no prelude; chamar o script daqui direto não leria metade das coisas.
+$res = selynt_run(['admin', 'diagnose']);
+
+if (!($res['ok'] ?? false) && trim((string)($res['message'] ?? '')) === '') {
+    $res['message'] = selynt_t('errors.generic');
+}
+
+selynt_json($res);

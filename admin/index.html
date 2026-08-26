@@ -1,5 +1,7 @@
 #!/usr/local/bin/php
 <?php
+declare(strict_types=1);
+
 require_once dirname(__DIR__) . '/lib/common.php';
 $bin_ok = is_executable(SELYNT_BIN);
 $pluginBase = '/CMD_PLUGINS_ADMIN/selynt_panel';
@@ -8,107 +10,131 @@ $v = SELYNT_VERSION;
 
 <link rel="stylesheet" href="<?= $pluginBase ?>/images/assets/css/panel.min.css?v=<?= $v ?>">
 
+<?= selynt_theme_boot_tag() ?>
+
 <div class="selynt-panel">
   <div class="app-shell">
     <header class="app-header">
       <div class="header-left">
-        <a href="<?= $pluginBase ?>">
-          <img class="header-logo" src="<?= $pluginBase ?>/images/assets/img/logo.png" alt="Selynt Panel">
-        </a>
+        <img src="<?= $pluginBase ?>/images/assets/img/logo.png" class="brand-mini" alt="Selynt Panel">
+
         <nav class="main-nav">
-          <a class="active" href="<?= $pluginBase ?>">Visão Geral</a>
-          <a href="<?= $pluginBase ?>/config.html">Configurações</a>
+          <a href="<?= $pluginBase ?>" class="active"><?= selynt_t_html('nav.overview') ?></a>
+          <a href="<?= $pluginBase ?>/config"><?= selynt_t_html('nav.settings') ?></a>
+          <a href="<?= $pluginBase ?>/diagnostic"><?= selynt_t_html('nav.diagnostic') ?></a>
+          <a href="<?= $pluginBase ?>/help"><?= selynt_t_html('nav.help') ?></a>
         </nav>
+      </div>
+
+      <div class="header-right">
+        <button type="button" class="lang-button" id="sly-lang-btn" aria-label="<?= selynt_t_html('locale.label') ?>">
+          <i class="fa-solid fa-globe"></i>
+          <span class="lang-button-label"><?= htmlspecialchars(selynt_i18n_active_name(), ENT_QUOTES, 'UTF-8') ?></span>
+        </button>
+
+        <button type="button" class="theme-toggle" id="sly-theme-btn" aria-label="<?= selynt_t_html('theme.toggle') ?>">
+          <i class="fa-solid fa-moon icon-moon"></i>
+          <i class="fa-solid fa-sun icon-sun"></i>
+        </button>
+
+        <a href="/" class="lang-button" title="<?= selynt_t_html('nav.back_da') ?>">
+          <i class="fa-solid fa-arrow-left-long"></i>
+          <span class="lang-button-label"><?= selynt_t_html('nav.back_da') ?></span>
+        </a>
       </div>
     </header>
 
     <main class="app-main">
 <?php if (!$bin_ok): ?>
       <div class="alert-error">
-        Binário <code>Core Selynt</code> não encontrado. Execute o script de instalação.
+        <?= selynt_t_html('alert.binary_missing_admin') ?>
       </div>
 <?php else: ?>
       <header class="app-main-header">
         <div>
-          <h1>Visão Geral</h1>
-          <p>Resumo de todos os apps do servidor.</p>
+          <h1><?= selynt_t_html('admin.overview.title') ?></h1>
+          <p><?= selynt_t_html('admin.overview.subtitle') ?></p>
         </div>
       </header>
 
-      <section class="stats-grid content-pad">
+      <section class="stats-grid">
         <article class="stat-card stat-card-total">
           <div class="stat-header">
             <div>
-              <div class="stat-title">Usuários</div>
+              <div class="stat-title"><?= selynt_t_html('admin.overview.users') ?></div>
               <div class="stat-value" id="stat-users">—</div>
             </div>
             <div class="stat-icon"><i class="fa-solid fa-users"></i></div>
           </div>
+          <div class="stat-subtext"><?= selynt_t_html('admin.overview.users_hint') ?></div>
         </article>
-        <article class="stat-card stat-card-online">
+
+        <article class="stat-card stat-card-total is-filter" data-status="all" role="button" tabindex="0">
           <div class="stat-header">
             <div>
-              <div class="stat-title">Total de apps</div>
+              <div class="stat-title"><?= selynt_t_html('admin.overview.total') ?></div>
               <div class="stat-value" id="stat-total">—</div>
             </div>
             <div class="stat-icon"><i class="fa-solid fa-cubes"></i></div>
           </div>
+          <div class="stat-subtext"><?= selynt_t_html('admin.overview.total_hint') ?></div>
         </article>
-        <article class="stat-card stat-card-online">
+
+        <article class="stat-card stat-card-online is-filter" data-status="RUNNING" role="button" tabindex="0">
           <div class="stat-header">
             <div>
-              <div class="stat-title">Em execução</div>
+              <div class="stat-title"><?= selynt_t_html('admin.overview.running') ?></div>
               <div class="stat-value" id="stat-run">—</div>
             </div>
             <div class="stat-icon"><i class="fa-solid fa-circle-check"></i></div>
           </div>
+          <div class="stat-subtext"><span id="stat-run-pct">—</span></div>
+        </article>
+
+        <article class="stat-card stat-card-offline is-filter" data-status="STOPPED" role="button" tabindex="0">
+          <div class="stat-header">
+            <div>
+              <div class="stat-title"><?= selynt_t_html('admin.overview.stopped') ?></div>
+              <div class="stat-value" id="stat-stopped">—</div>
+            </div>
+            <div class="stat-icon"><i class="fa-solid fa-circle-xmark"></i></div>
+          </div>
+          <div class="stat-subtext"><?= selynt_t_html('admin.overview.stopped_hint') ?></div>
         </article>
       </section>
 
-      <div class="content-pad">
-        <div class="apps-table-card">
-          <div id="sly-table"><p class="text-muted text-faded">Carregando...</p></div>
-        </div>
-      </div>
+      <section class="apps-table-card">
+        <header class="apps-table-card-header">
+          <div>
+            <h2><?= selynt_t_html('admin.overview.table_title') ?></h2>
+            <p><?= selynt_t_html('admin.overview.table_hint') ?></p>
+          </div>
+        </header>
+        <div id="sly-table"><p class="text-muted"><?= selynt_t_html('common.loading') ?></p></div>
+        <nav class="pagination" id="sly-pager" hidden></nav>
+        <div class="page-info" id="sly-pageinfo" hidden></div>
+      </section>
 <?php endif; ?>
     </main>
   </div>
 </div>
 
 <?php if ($bin_ok): ?>
+<?= selynt_i18n_script_tag() ?>
 <script src="<?= $pluginBase ?>/images/assets/js/fontawesome.min.js?v=<?= $v ?>"></script>
 <script src="<?= $pluginBase ?>/images/assets/js/solid.min.js?v=<?= $v ?>"></script>
-<script src="<?= $pluginBase ?>/images/assets/js/regular.min.js?v=<?= $v ?>"></script>
 <script src="<?= $pluginBase ?>/images/assets/js/brands.min.js?v=<?= $v ?>"></script>
-<script type="module" src="<?= $pluginBase ?>/images/assets/js/script.min.js?v=<?= $v ?>"></script>
-<script type="module" src="<?= $pluginBase ?>/images/assets/js/panel.min.js?v=<?= $v ?>"></script>
+<script type="module" src="<?= $pluginBase ?>/images/assets/js/theme.min.js?v=<?= $v ?>"></script>
+<script type="module" src="<?= $pluginBase ?>/images/assets/js/viewport.min.js?v=<?= $v ?>"></script>
 <script type="module">
-function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);}
-function uptime(ts){let s=Math.floor(Date.now()/1000-ts);if(s<60)return'agora';const u=[[31536000,'ano','anos'],[2592000,'mês','meses'],[86400,'dia','dias'],[3600,'hora','horas'],[60,'minuto','minutos']];const p=[];for(const[d,sg,pl] of u){const v=Math.floor(s/d);if(v>0){p.push(v+' '+(v===1?sg:pl));s%=d;}if(p.length===2)break;}return p.join(' e ');}
-function typeIcon(t){
-  if(t==='node') return '<i class="fa-brands fa-node-js icon-node"></i>';
-  if(t==='rust') return '<i class="fa-solid fa-gears"></i>';
-  return '<i class="fa-solid fa-cube"></i>';
-}
-function typeLabel(t){
-  if(t==='node') return 'Node.js';
-  if(t==='rust') return 'Binário Rust';
-  return t.charAt(0).toUpperCase()+t.slice(1);
-}
-async function load(){
-  const r=await fetch('/CMD_PLUGINS_ADMIN/selynt_panel/api/overview.raw').then(r=>r.json()).catch(()=>null);
-  if(!r||!r.ok){document.getElementById('sly-table').innerHTML='<p class="alert-error">Erro ao carregar dados.</p>';return;}
-  const apps=r.apps||[];
-  const users=[...new Set(apps.map(a=>a.user))];
-  const run=apps.filter(a=>a.status==='RUNNING').length;
-  document.getElementById('stat-users').textContent=users.length;
-  document.getElementById('stat-total').textContent=apps.length;
-  document.getElementById('stat-run').textContent=run;
-  if(!apps.length){document.getElementById('sly-table').innerHTML='<p class="text-muted">Nenhum app no servidor.</p>';return;}
-  document.getElementById('sly-table').innerHTML=`<div class="table-scroll"><table class="apps-table"><thead><tr><th>Usuário</th><th>App</th><th>Tipo</th><th>Host</th><th>Status</th><th>Uptime</th><th>PID</th></tr></thead><tbody>${
-    apps.map(a=>`<tr><td>${esc(a.user)}</td><td>${esc(a.name)}</td><td>${typeIcon(a.type)} ${typeLabel(a.type)}</td><td><code class="code-muted">${esc(a.host)}</code></td><td><span class="badge ${a.status==='RUNNING'?'badge-online':'badge-offline'}">${a.status==='RUNNING'?'Online':'Offline'}</span></td><td>${a.status==='RUNNING'&&a.started_at?uptime(a.started_at):'—'}</td><td>${a.pid||'—'}</td></tr>`).join('')
-  }</tbody></table></div>`;
-}
-load();setInterval(load,15000);
+// Seletor do cabeçalho: muda o idioma desta conta, não o padrão do servidor.
+import { langModal } from '<?= $pluginBase ?>/images/assets/js/lang.min.js?v=<?= $v ?>';
+langModal({ apiBase: '<?= $pluginBase ?>/api', endpoint: 'locale.raw' });
 </script>
+<script>
+  window.__SELYNT_ADMIN = {
+    apiBase: '<?= $pluginBase ?>/api',
+  };
+</script>
+<script type="module" src="<?= $pluginBase ?>/images/assets/js/page-admin.min.js?v=<?= $v ?>"></script>
 <?php endif; ?>

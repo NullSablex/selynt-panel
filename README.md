@@ -6,18 +6,19 @@
 
 <p align="center">
   <strong>Gerenciamento de aplicações para DirectAdmin</strong><br>
-  Proxy reverso automático via Unix socket com OpenLiteSpeed / LiteSpeed Enterprise
+  Proxy reverso automático via Unix socket com OpenLiteSpeed
 </p>
 
 <p align="center">
   <a href="https://github.com/NullSablex/selynt-panel/actions/workflows/ci.yml"><img src="https://github.com/NullSablex/selynt-panel/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://github.com/NullSablex/selynt-panel/releases/latest"><img src="https://img.shields.io/github/v/release/NullSablex/selynt-panel" alt="Última release"></a>
+  <a href="https://scorecard.dev/viewer/?uri=github.com/NullSablex/selynt-panel"><img src="https://api.scorecard.dev/projects/github.com/NullSablex/selynt-panel/badge?style=flat-square" alt="OpenSSF Scorecard"></a>
   <a href="LICENSE"><img src="https://img.shields.io/github/license/NullSablex/selynt-panel" alt="Licença"></a>
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/DirectAdmin-plugin-2B5797?logo=cpanel&logoColor=white" alt="DirectAdmin">
-  <img src="https://img.shields.io/badge/LiteSpeed-OLS_|_Enterprise-4B8BBE" alt="LiteSpeed">
+  <img src="https://img.shields.io/badge/OpenLiteSpeed-1.9.2-4B8BBE" alt="OpenLiteSpeed">
 </p>
 
 > [!CAUTION]
@@ -27,7 +28,7 @@
 
 ## Visão Geral
 
-O **Selynt Panel** é um plugin para [DirectAdmin](https://www.directadmin.com/) que permite a usuários hospedar e gerenciar aplicações de forma isolada, com proxy reverso automático via Unix socket integrado ao [OpenLiteSpeed](https://openlitespeed.org/) ou LiteSpeed Enterprise.
+O **Selynt Panel** é um plugin para [DirectAdmin](https://www.directadmin.com/) que permite a usuários hospedar e gerenciar aplicações de forma isolada, com proxy reverso automático via Unix socket integrado ao [OpenLiteSpeed](https://openlitespeed.org/).
 
 O núcleo de execução é o binário [Core Selynt](https://github.com/NullSablex/core-selynt), responsável pelo ciclo de vida dos processos, gerenciamento de sockets e isolamento de privilégios.
 
@@ -37,7 +38,7 @@ O núcleo de execução é o binário [Core Selynt](https://github.com/NullSable
 
 ### Painel Administrativo
 - Visão geral consolidada de todas as aplicações do servidor
-- Configuração do LiteSpeed (templates, extProcessors, cron de sincronização)
+- Configuração do OpenLiteSpeed (templates e extProcessors)
 - Detecção e seleção de versões de runtime disponíveis no sistema
 
 ### Painel do Usuário
@@ -52,13 +53,19 @@ O núcleo de execução é o binário [Core Selynt](https://github.com/NullSable
 
 | Componente | Versão |
 |:---|:---|
-| [DirectAdmin](https://www.directadmin.com/) | Qualquer versão com suporte a plugins |
-| [OpenLiteSpeed](https://openlitespeed.org/) ou LiteSpeed Enterprise | — |
+| [DirectAdmin](https://www.directadmin.com/) | 1.708 ou superior |
+| [OpenLiteSpeed](https://openlitespeed.org/) | 1.9.2 ou superior |
 | PHP CLI | 8.0 ou superior |
+| systemd com cgroup v2 | — |
+| `setfacl` (pacote `acl`) | — |
+| [bubblewrap](https://github.com/containers/bubblewrap) | opcional — apenas para o isolamento entre aplicações |
 | [Core Selynt](https://github.com/NullSablex/core-selynt) | Última versão |
 
+> [!NOTE]
+> As versões acima são as **testadas**, não um mínimo verificado. Versões anteriores podem funcionar, mas não foram validadas — a documentação do OpenLiteSpeed não indica desde quando as diretivas usadas existem.
+
 > [!IMPORTANT]
-> Compatível exclusivamente com **OpenLiteSpeed** e **LiteSpeed Enterprise**. Apache e Nginx não são suportados.
+> Requer **OpenLiteSpeed** como servidor web. **LiteSpeed Enterprise não é suportado**: ele lê a configuração do Apache, enquanto o painel injeta seus blocos nos templates `openlitespeed_*` do DirectAdmin, que aquele servidor não utiliza. Apache e Nginx também não são suportados — o proxy é montado sobre `extProcessor`, uma diretiva do OpenLiteSpeed.
 
 ---
 
@@ -69,7 +76,7 @@ O núcleo de execução é o binário [Core Selynt](https://github.com/NullSable
 No DirectAdmin, acesse **Plugin Manager** e forneça a URL de instalação:
 
 ```
-https://nullsablex.com/download/selynt_panel
+https://github.com/NullSablex/selynt-panel/releases/latest/download/selynt_panel.tar.gz
 ```
 
 ### Via linha de comando
@@ -84,7 +91,7 @@ bash <(curl -sL https://raw.githubusercontent.com/NullSablex/selynt-panel/master
 
 - Permissões e setuid do binário Core Selynt
 - Templates de vhost do DirectAdmin (extProcessor + rewrite condicional)
-- Cron de sincronização de extProcessors
+- Serviços do systemd: recuperação após reinício, varredura de portas expostas e sincronização do proxy
 - Diretório de estado em `/var/lib/selynt_panel`
 
 > [!WARNING]
@@ -98,15 +105,15 @@ Scripts de manutenção e diagnóstico — **executar como root**:
 # Corrigir permissões e configuração
 bash /usr/local/directadmin/plugins/selynt_panel/scripts/update.sh
 
-# Reconfigurar templates, cron e servidor web
-bash /usr/local/directadmin/plugins/selynt_panel/scripts/setup-ols.sh
+# Reconfigurar templates e servidor web
+/usr/local/directadmin/plugins/selynt_panel/bin/core-selynt setup-ols
 
-# Diagnóstico completo (com auto-correção)
-bash /usr/local/directadmin/plugins/selynt_panel/scripts/diag-proxy.sh
+# Diagnóstico completo
+/usr/local/directadmin/plugins/selynt_panel/bin/core-selynt admin diagnose
 ```
 
 > [!NOTE]
-> O diagnóstico também está disponível no painel administrativo em **Configurações > Diagnóstico**, mas com permissões limitadas. Para resultados completos e auto-correção, execute via SSH como root.
+> O mesmo diagnóstico está no painel administrativo em **Diagnóstico**, com o resultado já traduzido e formatado. Pela linha de comando ele sai como JSON, útil para inspeção ou automação.
 
 ---
 
@@ -120,7 +127,7 @@ Cliente → LiteSpeed → RewriteRule (condicional) → extProcessor → Unix So
 
 1. **Template CUSTOM.7** — declara um `extProcessor` por vhost, apontando para o socket da aplicação
 2. **Template CUSTOM.5** — aplica um `RewriteRule` condicional: se o marker `.proxy/<domínio>` existir, o tráfego é redirecionado ao extProcessor; caso contrário, segue o fluxo normal (PHP, arquivos estáticos, etc.)
-3. **Cron** — a cada minuto, verifica se há alterações pendentes e regenera o arquivo de extProcessors com reload graceful do LiteSpeed
+3. **Sincronização** — quando o conjunto de aplicações ativas muda, o binário regenera o arquivo de extProcessors e recarrega o servidor web. Um timer do systemd verifica a cada poucos segundos se há alteração pendente
 
 ### Estrutura do plugin
 
@@ -132,7 +139,7 @@ selynt_panel/
 │   ├── common.php     Utilitários compartilhados (CGI, execução do binário)
 │   └── node-loader.js Loader ESM — intercepta rede para Unix sockets
 ├── bin/               Binário Core Selynt (setuid root)
-├── scripts/           Scripts de instalação, configuração e sincronização
+├── scripts/           Hooks de instalação do DirectAdmin
 ├── hooks/             Hooks do DirectAdmin (regeneração de permissões)
 ├── templates/         Templates para novas aplicações
 ├── assets-src/        Código-fonte CSS/JS (pré-minificação)
@@ -171,11 +178,7 @@ Compila e minifica os arquivos de `assets-src/` via [esbuild](https://esbuild.gi
 
 ### Empacotamento
 
-```bash
-scripts/package.sh
-```
-
-Compila o binário Core Selynt (musl, estático) e gera o pacote `selynt_panel.tar.gz` pronto para o Plugin Manager.
+O pacote é montado pelo workflow de release, que baixa o binário Core Selynt publicado e gera o `selynt_panel.tar.gz` pronto para o Plugin Manager. Para gerar um localmente, use o mesmo caminho — publique uma tag e deixe o CI montar — ou reproduza os passos do `.github/workflows/release.yml`.
 
 ### CI/CD
 
@@ -185,6 +188,17 @@ Compila o binário Core Selynt (musl, estático) e gera o pacote `selynt_panel.t
 | **Release** | Gera e publica o pacote `.tar.gz` automaticamente ao criar uma release no GitHub |
 
 ---
+
+## Contribuindo
+
+Leia o [guia de contribuição](CONTRIBUTING.md) antes de abrir uma issue ou pull
+request. Valem também o [código de conduta](CODE_OF_CONDUCT.md) e a
+[política de uso de IA](AI-POLICY.md) — o uso de IA é permitido, e quem
+contribui responde pelo que envia.
+
+Falha de segurança **não** vai em issue pública: use o
+[relato privado](https://github.com/NullSablex/selynt-panel/security/advisories/new),
+como descrito no [SECURITY.md](SECURITY.md).
 
 ## Autor
 

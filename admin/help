@@ -1,0 +1,113 @@
+#!/usr/local/bin/php
+<?php
+declare(strict_types=1);
+
+require_once dirname(__DIR__) . '/lib/common.php';
+$bin_ok = is_executable(SELYNT_BIN);
+$pluginBase = '/CMD_PLUGINS_ADMIN/selynt_panel';
+$v = SELYNT_VERSION;
+?>
+
+<link rel="stylesheet" href="<?= $pluginBase ?>/images/assets/css/panel.min.css?v=<?= $v ?>">
+
+<?= selynt_theme_boot_tag() ?>
+
+<div class="selynt-panel">
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="header-left">
+        <img src="<?= $pluginBase ?>/images/assets/img/logo.png" class="brand-mini" alt="Selynt Panel">
+
+        <nav class="main-nav">
+          <a href="<?= $pluginBase ?>"><?= selynt_t_html('nav.overview') ?></a>
+          <a href="<?= $pluginBase ?>/config"><?= selynt_t_html('nav.settings') ?></a>
+          <a href="<?= $pluginBase ?>/diagnostic"><?= selynt_t_html('nav.diagnostic') ?></a>
+          <a class="active" href="<?= $pluginBase ?>/help"><?= selynt_t_html('nav.help') ?></a>
+        </nav>
+      </div>
+
+      <div class="header-right">
+        <button type="button" class="lang-button" id="sly-lang-btn" aria-label="<?= selynt_t_html('locale.label') ?>">
+          <i class="fa-solid fa-globe"></i>
+          <span class="lang-button-label"><?= htmlspecialchars(selynt_i18n_active_name(), ENT_QUOTES, 'UTF-8') ?></span>
+        </button>
+
+        <button type="button" class="theme-toggle" id="sly-theme-btn" aria-label="<?= selynt_t_html('theme.toggle') ?>">
+          <i class="fa-solid fa-moon icon-moon"></i>
+          <i class="fa-solid fa-sun icon-sun"></i>
+        </button>
+
+        <a href="/" class="lang-button" title="<?= selynt_t_html('nav.back_da') ?>">
+          <i class="fa-solid fa-arrow-left-long"></i>
+          <span class="lang-button-label"><?= selynt_t_html('nav.back_da') ?></span>
+        </a>
+      </div>
+    </header>
+
+    <main class="app-main">
+      <header class="app-main-header">
+        <div>
+          <h1><?= selynt_t_html('help.title') ?></h1>
+          <p><?= selynt_t_html('help.admin.subtitle') ?></p>
+        </div>
+        <div class="main-header-actions">
+          <a href="<?= selynt_t_html('help.docs_url') ?>" target="_blank" rel="noopener" class="btn-outline">
+            <i class="fa-solid fa-book"></i> <?= selynt_t_html('help.docs') ?>
+          </a>
+        </div>
+      </header>
+
+      <section class="help-grid">
+<?php
+$topics = [
+    ['install/',         'fa-solid fa-download',    'install'],
+    ['runtimes/',        'fa-solid fa-cube',    'runtimes'],
+    ['resources/',       'fa-solid fa-gauge-high',  'limits'],
+    ['proxy/',           'fa-solid fa-network-wired','proxy'],
+    ['troubleshooting/', 'fa-solid fa-wrench',      'trouble'],
+];
+$docs = selynt_t('help.docs_url');
+foreach ($topics as [$path, $icon, $key]):
+?>
+        <a class="help-card" href="<?= htmlspecialchars($docs . $path, ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener">
+          <div class="help-card-icon"><i class="<?= $icon ?>"></i></div>
+          <div class="help-card-text">
+            <span class="help-card-title"><?= selynt_t_html("help.admin.topic.$key.t") ?></span>
+            <span class="help-card-desc"><?= selynt_t_html("help.admin.topic.$key.d") ?></span>
+          </div>
+          <i class="fa-solid fa-arrow-up-right-from-square help-card-go"></i>
+        </a>
+<?php endforeach; ?>
+      </section>
+
+      <section class="apps-table-card">
+        <header class="apps-table-card-header">
+          <div>
+            <h2><?= selynt_t_html('help.essentials.title') ?></h2>
+            <p><?= selynt_t_html('help.admin.essentials_hint') ?></p>
+          </div>
+        </header>
+        <div class="faq">
+<?php foreach (['permissions','notstarting','diagnostic'] as $q): ?>
+          <details class="faq-item">
+            <summary><?= selynt_t_html("help.admin.$q.q") ?></summary>
+            <div class="faq-answer"><?= selynt_t("help.admin.$q.a") ?></div>
+          </details>
+<?php endforeach; ?>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<?= selynt_i18n_script_tag() ?>
+<script src="<?= $pluginBase ?>/images/assets/js/fontawesome.min.js?v=<?= $v ?>"></script>
+<script src="<?= $pluginBase ?>/images/assets/js/solid.min.js?v=<?= $v ?>"></script>
+<script src="<?= $pluginBase ?>/images/assets/js/brands.min.js?v=<?= $v ?>"></script>
+<script type="module" src="<?= $pluginBase ?>/images/assets/js/theme.min.js?v=<?= $v ?>"></script>
+<script type="module" src="<?= $pluginBase ?>/images/assets/js/viewport.min.js?v=<?= $v ?>"></script>
+<script type="module">
+// Seletor do cabeçalho: muda o idioma desta conta, não o padrão do servidor.
+import { langModal } from '<?= $pluginBase ?>/images/assets/js/lang.min.js?v=<?= $v ?>';
+langModal({ apiBase: '<?= $pluginBase ?>/api', endpoint: 'locale.raw' });
+</script>

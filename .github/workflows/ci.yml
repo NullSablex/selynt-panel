@@ -18,9 +18,9 @@ jobs:
     name: Build & Verify
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: '24'
           cache: 'npm'
@@ -33,8 +33,11 @@ jobs:
       - name: Verify minified files exist
         run: |
           test -f images/assets/css/panel.min.css || { echo "panel.min.css missing"; exit 1; }
-          test -f images/assets/js/panel.min.js   || { echo "panel.min.js missing"; exit 1; }
-          test -f images/assets/js/script.min.js  || { echo "script.min.js missing"; exit 1; }
+          for f in dom i18n notify lang theme viewport ui \
+                   page-app page-apps page-dashboard page-create page-settings \
+                   page-admin page-config page-diagnostic; do
+            test -f "images/assets/js/$f.min.js" || { echo "$f.min.js missing"; exit 1; }
+          done
 
       - name: Validate plugin.conf
         run: |
@@ -57,7 +60,14 @@ jobs:
           ERR=0
           while IFS= read -r f; do
             php -l "$f" 2>&1 | grep -v 'No syntax errors' && ERR=1 || true
-          done < <(find lib user admin hooks -type f \( -name '*.php' -o -name '*.html' -o -name '*.raw' \))
+          done < <(
+            # As páginas de user/ e admin/ não têm extensão: o DirectAdmin executa
+            # o arquivo cujo nome bate com o caminho pedido. Filtrar por extensão
+            # deixaria justamente os maiores arquivos PHP de fora.
+            { find lib hooks -type f \( -name '*.php' -o -name '*.html' -o -name '*.raw' \)
+              find user admin -type f ! -name '*.md'
+            } | sort -u
+          )
           exit $ERR
 
       - name: Check shell scripts syntax

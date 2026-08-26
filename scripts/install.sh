@@ -1,102 +1,91 @@
 #!/bin/sh
-# Selynt Panel — DirectAdmin Plugin Installer
-# SEM set -e: o install do DA nunca pode falhar ou o plugin não será registrado.
+# Selynt Panel — DirectAdmin plugin installer.
+#
+# No `set -e` on purpose: the DA install hook must exit 0 or the plugin is never
+# registered. Steps that decide whether the panel works go through `sly_try`,
+# which warns and carries on; a bare `|| true` is for genuinely optional work.
 
 PLUGIN_DIR="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
 
-# ── Cores e helpers (compatível com sh) ──
-R="\033[0;31m"; G="\033[0;32m"; Y="\033[0;33m"; B="\033[0;36m"; D="\033[0;90m"; N="\033[0m"; BOLD="\033[1m"
-ok()   { printf "${G}  ✓${N} %s\n" "$1"; }
-erro() { printf "${R}  ✗${N} %s\n" "$1"; }
-warn() { printf "${Y}  ⚠${N} %s\n" "$1"; }
-info() { printf "${D}    %s${N}\n" "$1"; }
-step() { printf "\n${BOLD}${B}── %s ──${N}\n" "$1"; }
+# shellcheck source=lib/output.sh
+. "$PLUGIN_DIR/scripts/lib/output.sh"
 
-printf "\n${BOLD}Selynt Panel${N} — Instalando\n"
+sly_header "Selynt Panel" "installing"
 
-# ── Binário Core Selynt (setuid root) ──
-# O CGI do DA roda como diradmin, não como o user logado.
-# O binário precisa de setuid root (4755) para:
-#   - Criar dirs de estado em /var/lib/selynt_panel/$username/
-#   - Criar logs/ no cwd do app (dentro do home do user)
-#   - Drop de privilégio para o user real antes de spawnar apps
+# Says plainly that it did nothing, rather than reporting success after every
+# privileged step was refused.
+if [ "$(id -u)" -ne 0 ]; then
+    sly_err "must run as root — nothing was installed"
+    exit 0
+fi
+
 BIN="$PLUGIN_DIR/bin/core-selynt"
+INSTALL_FAILED=0
+sly_try "creating etc/" mkdir -p "$PLUGIN_DIR/etc"
 
-# ── Diretório de configuração ──
-mkdir -p "$PLUGIN_DIR/etc" 2>/dev/null || true
-
-step "Ambiente"
-
-# ── Detectar e salvar DA_USER e DA_UID ──
-DA_USER=""
-if id diradmin >/dev/null 2>&1; then
-    DA_USER="diradmin"
-elif pgrep -x directadmin >/dev/null 2>&1; then
-    DA_USER="$(ps -o user= -p "$(pgrep -x directadmin | head -1)" 2>/dev/null | tr -d ' ')"
-fi
-if [ -z "$DA_USER" ] && [ -f /usr/local/directadmin/directadmin ]; then
-    DA_USER="$(stat -c '%U' /usr/local/directadmin/directadmin 2>/dev/null)"
-fi
-[ -z "$DA_USER" ] && DA_USER="diradmin"
-DA_UID="$(id -u "$DA_USER" 2>/dev/null || echo "")"
-ok "Usuário DA: $DA_USER${DA_UID:+ (UID $DA_UID)}"
-printf "%s\n" "$DA_USER"      > "$PLUGIN_DIR/etc/da_user" 2>/dev/null || true
-printf "%s\n" "${DA_UID:-}"   > "$PLUGIN_DIR/etc/da_uid"  2>/dev/null || true
-
-# ── Detectar usuário do servidor web ──
-WEB_USER=""
-for u in lsws www-data apache nginx nobody; do
-    if id "$u" >/dev/null 2>&1; then
-        WEB_USER="$u"
-        break
+# ── Preparing the environment ──
+# The binary owns this — it records the accounts, creates the state directory
+# and installs the vhost templates. It is what reads those files back, so
+# detecting them here too would be a second answer free to drift.
+sly_act "Preparing" "environment"
+if [ -x "$BIN" ]; then
+    if SETUP_OUT="$("$BIN" setup 2>&1)"; then
+        for field in da_user cgi_user web_user; do
+            value="$(printf '%s' "$SETUP_OUT" \
+                | sed -n "s/.*\"$field\":\"\([^\"]*\)\".*/\1/p")"
+            [ -n "$value" ] && sly_sub "$(printf '%-8s' "$field")" "$value"
+        done
+        case "$SETUP_OUT" in
+            *'"vhosts_rebuilt":true'*)
+                sly_sub "vhosts  " "rebuilt"
+                ;;
+            *'"ols":{"ok":false'*)
+                sly_warn "web server not configured — the panel will not route traffic"
+                ;;
+            *)
+                sly_warn "vhosts not rebuilt — run: cd /usr/local/directadmin/custombuild && ./build rewrite_confs"
+                ;;
+        esac
+    else
+        sly_err "environment setup failed: $SETUP_OUT"
+        INSTALL_FAILED=1
     fi
-done
-if [ -n "$WEB_USER" ]; then
-    printf "%s\n" "$WEB_USER" > "$PLUGIN_DIR/etc/ols_web_user" 2>/dev/null || true
-    ok "Usuário web: $WEB_USER"
 else
-    warn "Usuário do servidor web não detectado"
+    sly_err "Core Selynt binary missing: $BIN"
+    INSTALL_FAILED=1
 fi
 
-# ── Logs do plugin (dentro do etc/ do plugin, acessível por diradmin) ──
 touch "$PLUGIN_DIR/etc/stderr.log" "$PLUGIN_DIR/etc/debug.log" 2>/dev/null || true
-info "Logs: $PLUGIN_DIR/etc/"
 
-# ── Diretório de estado (fora do home dos users) ──
-# Dados operacionais (PIDs, sockets, proxy, metadata) ficam aqui.
-# Subdirs por user criados on-demand pelo binário.
-# Logs do APP ficam no cwd do app (criados pelo binário via setuid).
-SELYNT_DATA="/var/lib/selynt_panel"
-mkdir -p "$SELYNT_DATA" 2>/dev/null || true
-if [ -n "$DA_USER" ]; then
-    chown "$DA_USER:$DA_USER" "$SELYNT_DATA" 2>/dev/null || true
-fi
-chmod 711 "$SELYNT_DATA" 2>/dev/null || true
-info "State dir: $SELYNT_DATA"
-
-# ── Configurar OLS (template, extProcessors, cron) ──
-OLS_SETUP="$PLUGIN_DIR/scripts/setup-ols.sh"
-if [ -f "$OLS_SETUP" ] && [ -d /usr/local/lsws ]; then
-    "$OLS_SETUP" 2>&1 || warn "Configuração do OLS falhou (verifique manualmente)"
-fi
-
-step "Permissões"
-
-# ── Permissões (root:root 755) ──
-find "$PLUGIN_DIR" -type d -exec chmod 755 {} \; 2>/dev/null || true
-find "$PLUGIN_DIR" -type f -exec chmod 755 {} \; 2>/dev/null || true
-
-# Binário: setuid root (4755)
-if [ -f "$BIN" ]; then
-    chown root:root "$BIN"  2>/dev/null || true
-    chmod 4755 "$BIN"       2>/dev/null || true
-    ok "Binário Core Selynt (setuid root)"
-else
-    warn "Compile o Core Selynt e copie para: $BIN"
+# ── Verifying the install ──
+# Asks the binary for the same diagnostic the admin panel runs.
+if [ -x "$BIN" ]; then
+    sly_act "Verifying" "installation"
+    # Not root: the binary refuses it as a target, and that error used to be
+    # read as success.
+    DA_USER="$(cat "$PLUGIN_DIR/etc/da_user" 2>/dev/null || echo diradmin)"
+    DIAG="$(USERNAME="$DA_USER" "$BIN" admin diagnose 2>/dev/null)"
+    # Positive evidence that the checks ran: looking only for failures read a
+    # refused diagnostic as everything being fine.
+    if ! printf '%s' "$DIAG" | grep -q '"level":"pass"'; then
+        sly_err "diagnostic did not run — check with: $BIN admin diagnose"
+        INSTALL_FAILED=1
+    elif printf '%s' "$DIAG" | grep -q '"level":"fail"'; then
+        sly_err "installation has problems — run: $BIN admin diagnose"
+        INSTALL_FAILED=1
+    elif printf '%s' "$DIAG" | grep -q '"level":"warn"'; then
+        sly_warn "installation has warnings — run: $BIN admin diagnose"
+    else
+        sly_sub "Checks  " "all passed"
+    fi
 fi
 
-# ── Limpar cache do DA (recarrega menus) ──
+# Refresh DA menu cache.
 echo "action=cache&value=showall" >> /usr/local/directadmin/data/task.queue 2>/dev/null || true
 
-printf "\n${G}${BOLD}  ✓ Selynt Panel instalado!${N}\n\n"
+if [ "$INSTALL_FAILED" -eq 1 ]; then
+    sly_err "install incomplete — the panel will not work until this is resolved"
+    exit 0
+fi
+sly_finished "install"
 exit 0

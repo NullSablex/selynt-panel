@@ -1,0 +1,47 @@
+#!/usr/local/bin/php -n
+<?php
+declare(strict_types=1);
+
+require_once dirname(__DIR__, 2) . '/lib/common.php';
+
+$input  = selynt_input();
+$action = (string)($input['action'] ?? 'get');
+
+if ($action === 'get') {
+    $username = selynt_username();
+    selynt_json([
+        'ok'      => true,
+        'options' => selynt_i18n_options(),
+        'pref'    => $username !== '' ? selynt_i18n_user_pref($username) : '',
+        'global'  => selynt_i18n_global(),
+        'active'  => selynt_locale(),
+    ]); exit(0);
+}
+
+if ($action === 'save') {
+    selynt_require_post();
+    $username = selynt_username();
+    if ($username === '') {
+        selynt_json(['ok' => false, 'error' => 'no_user', 'message' => selynt_t('errors.no_user')]); exit(0);
+    }
+    // The binary resolves the user from USERNAME and persists as root. An empty
+    // value clears the preference, falling back to the plugin-wide default.
+    $locale = trim((string)($input['locale'] ?? ''));
+    // Validate here as well as in the binary: an empty or bogus code would
+    // otherwise reach clap as a missing argument and come back as a non-JSON
+    // error. '' is valid — it clears the preference.
+    if ($locale !== '' && selynt_normalize_locale($locale, selynt_i18n_available()) === null) {
+        selynt_json(['ok' => false, 'error' => 'invalid_locale', 'message' => selynt_t('errors.invalid_locale')]);
+        exit(0);
+    }
+    $res = selynt_i18n_set_user_pref($locale);
+    if (!($res['ok'] ?? false)) {
+        if (trim((string)($res['message'] ?? '')) === '') {
+            $res['message'] = selynt_t('errors.invalid_locale');
+        }
+        selynt_json($res); exit(0);
+    }
+    selynt_json(['ok' => true, 'pref' => selynt_i18n_user_pref($username)]); exit(0);
+}
+
+selynt_json(['ok' => false, 'error' => 'unknown_action']);

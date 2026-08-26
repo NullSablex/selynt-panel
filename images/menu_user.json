@@ -4,10 +4,31 @@
     "icon": "/CMD_PLUGINS/selynt_panel/images/assets/img/logo.png",
     "entries": [
       {
-        "name": "Aplicações",
+        "name": "Dashboard",
         "icon": "/CMD_PLUGINS/selynt_panel/images/assets/img/logo.png",
         "href": "/CMD_PLUGINS/selynt_panel",
-        "newTab": false,
+        "newTab": true,
+        "updates": 0
+      },
+      {
+        "name": "Applications",
+        "icon": "/CMD_PLUGINS/selynt_panel/images/assets/img/logo.png",
+        "href": "/CMD_PLUGINS/selynt_panel/apps",
+        "newTab": true,
+        "updates": 0
+      },
+      {
+        "name": "Settings",
+        "icon": "/CMD_PLUGINS/selynt_panel/images/assets/img/logo.png",
+        "href": "/CMD_PLUGINS/selynt_panel/settings",
+        "newTab": true,
+        "updates": 0
+      },
+      {
+        "name": "Help",
+        "icon": "/CMD_PLUGINS/selynt_panel/images/assets/img/logo.png",
+        "href": "/CMD_PLUGINS/selynt_panel/help",
+        "newTab": true,
         "updates": 0
       }
     ]
