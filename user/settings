@@ -20,9 +20,9 @@ $locale_active  = selynt_locale();
 
         <nav class="main-nav">
           <a href="<?= $pluginBase ?>"><?= selynt_t_html('nav.dashboard') ?></a>
-          <a href="<?= $pluginBase ?>/apps.html"><?= selynt_t_html('nav.apps') ?></a>
-          <a href="<?= $pluginBase ?>/settings.html" class="active"><?= selynt_t_html('nav.settings') ?></a>
-          <a href="<?= $pluginBase ?>/help.html"><?= selynt_t_html('nav.help') ?></a>
+          <a href="<?= $pluginBase ?>/apps"><?= selynt_t_html('nav.apps') ?></a>
+          <a href="<?= $pluginBase ?>/settings" class="active"><?= selynt_t_html('nav.settings') ?></a>
+          <a href="<?= $pluginBase ?>/help"><?= selynt_t_html('nav.help') ?></a>
         </nav>
       </div>
 

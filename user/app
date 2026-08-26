@@ -21,9 +21,9 @@ $v = SELYNT_VERSION;
 
         <nav class="main-nav">
           <a href="<?= $pluginBase ?>"><?= selynt_t_html('nav.dashboard') ?></a>
-          <a href="<?= $pluginBase ?>/apps.html" class="active"><?= selynt_t_html('nav.apps') ?></a>
-          <a href="<?= $pluginBase ?>/settings.html"><?= selynt_t_html('nav.settings') ?></a>
-          <a href="<?= $pluginBase ?>/help.html"><?= selynt_t_html('nav.help') ?></a>
+          <a href="<?= $pluginBase ?>/apps" class="active"><?= selynt_t_html('nav.apps') ?></a>
+          <a href="<?= $pluginBase ?>/settings"><?= selynt_t_html('nav.settings') ?></a>
+          <a href="<?= $pluginBase ?>/help"><?= selynt_t_html('nav.help') ?></a>
         </nav>
       </div>
 
@@ -52,7 +52,7 @@ $v = SELYNT_VERSION;
       </div>
 <?php elseif ($name === ''): ?>
       <div class="alert-error">
-        <?= selynt_t_html('alert.missing_name_param') ?> <a href="<?= $pluginBase ?>/apps.html"><?= selynt_t_html('alert.back_link') ?></a>.
+        <?= selynt_t_html('alert.missing_name_param') ?> <a href="<?= $pluginBase ?>/apps"><?= selynt_t_html('alert.back_link') ?></a>.
       </div>
 <?php else: ?>
       <header class="app-main-header">
@@ -61,7 +61,7 @@ $v = SELYNT_VERSION;
           <p><?= selynt_t_html('app.subtitle') ?></p>
         </div>
         <div class="main-header-actions">
-          <a href="<?= $pluginBase ?>/apps.html" class="btn-outline">
+          <a href="<?= $pluginBase ?>/apps" class="btn-outline">
             <i class="fa-solid fa-arrow-left"></i> <?= selynt_t_html('common.back') ?>
           </a>
         </div>
@@ -492,7 +492,7 @@ async function doRemove(){
   const r=await fetch(`${API}/action.raw?${p}`,{method:'POST'}).then(r=>r.json()).catch(()=>({ok:false}));
   if(r.ok){
     toast('success',t('apps.confirm.success',{action_done:t('apps.action.remove_done')}));
-    setTimeout(()=>{window.location.href='/CMD_PLUGINS/selynt_panel/apps.html';},1200);
+    setTimeout(()=>{window.location.href='/CMD_PLUGINS/selynt_panel/apps';},1200);
   } else {
     toast('error',r.message||r.error||t('errors.action_failed'));
   }

@@ -18,9 +18,9 @@ $v = SELYNT_VERSION;
 
         <nav class="main-nav">
           <a href="<?= $pluginBase ?>"><?= selynt_t_html('nav.overview') ?></a>
-          <a href="<?= $pluginBase ?>/config.html"><?= selynt_t_html('nav.settings') ?></a>
-          <a href="<?= $pluginBase ?>/diagnostic.html"><?= selynt_t_html('nav.diagnostic') ?></a>
-          <a class="active" href="<?= $pluginBase ?>/help.html"><?= selynt_t_html('nav.help') ?></a>
+          <a href="<?= $pluginBase ?>/config"><?= selynt_t_html('nav.settings') ?></a>
+          <a href="<?= $pluginBase ?>/diagnostic"><?= selynt_t_html('nav.diagnostic') ?></a>
+          <a class="active" href="<?= $pluginBase ?>/help"><?= selynt_t_html('nav.help') ?></a>
         </nav>
       </div>
 

@@ -20,9 +20,9 @@ $locale_active  = selynt_locale();
 
         <nav class="main-nav">
           <a href="<?= $pluginBase ?>" class="active"><?= selynt_t_html('nav.dashboard') ?></a>
-          <a href="<?= $pluginBase ?>/apps.html"><?= selynt_t_html('nav.apps') ?></a>
-          <a href="<?= $pluginBase ?>/settings.html"><?= selynt_t_html('nav.settings') ?></a>
-          <a href="<?= $pluginBase ?>/help.html"><?= selynt_t_html('nav.help') ?></a>
+          <a href="<?= $pluginBase ?>/apps"><?= selynt_t_html('nav.apps') ?></a>
+          <a href="<?= $pluginBase ?>/settings"><?= selynt_t_html('nav.settings') ?></a>
+          <a href="<?= $pluginBase ?>/help"><?= selynt_t_html('nav.help') ?></a>
         </nav>
       </div>
 
@@ -113,7 +113,7 @@ $locale_active  = selynt_locale();
       <h2><?= selynt_t_html('dash.recent') ?></h2>
       <p><?= selynt_t_html('dash.recent_hint') ?></p>
     </div>
-    <a href="<?= $pluginBase ?>/apps.html" style="font-size:0.8rem; text-decoration:none; color:var(--color-primary);">
+    <a href="<?= $pluginBase ?>/apps" style="font-size:0.8rem; text-decoration:none; color:var(--color-primary);">
       <i class="fa-solid fa-arrow-up-right-from-square"></i>
       <?= selynt_t_html('dash.see_all') ?>
     </a>
@@ -196,7 +196,7 @@ function renderRecent(apps){
   const el=document.getElementById('sly-recent');
   if(!apps.length){
     el.innerHTML='<p style="font-size:0.85rem; color:var(--color-text-muted);">'+
-      esc(t('apps.none'))+' <a href="'+BASE+'/create.html">'+esc(t('apps.create_now'))+'</a>.</p>';
+      esc(t('apps.none'))+' <a href="'+BASE+'/create">'+esc(t('apps.create_now'))+'</a>.</p>';
     return;
   }
   const sig=signature(apps);
@@ -220,7 +220,7 @@ function renderRecent(apps){
       const run=a.status==='RUNNING', id=cssId(a.name);
       return`<tr>`+
         `<td data-label="${esc(L.app)}"><div class="app-row-main">${appIcon(a.type)}`+
-          `<div><a href="${BASE}/app.html?name=${encodeURIComponent(a.name)}">${esc(a.name)}</a>`+
+          `<div><a href="${BASE}/app?name=${encodeURIComponent(a.name)}">${esc(a.name)}</a>`+
           `<div class="app-row-host">${esc(a.host)}</div></div></div></td>`+
         `<td data-label="${esc(L.status)}"><span class="status-pill ${run?'online':'offline'}">`+
           `<i class="fa-solid ${run?'fa-circle':'fa-circle-xmark'}"></i> `+

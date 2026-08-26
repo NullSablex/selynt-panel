@@ -20,9 +20,9 @@ $locale_active  = selynt_locale();
 
         <nav class="main-nav">
           <a href="<?= $pluginBase ?>"><?= selynt_t_html('nav.dashboard') ?></a>
-          <a href="<?= $pluginBase ?>/apps.html" class="active"><?= selynt_t_html('nav.apps') ?></a>
-          <a href="<?= $pluginBase ?>/settings.html"><?= selynt_t_html('nav.settings') ?></a>
-          <a href="<?= $pluginBase ?>/help.html"><?= selynt_t_html('nav.help') ?></a>
+          <a href="<?= $pluginBase ?>/apps" class="active"><?= selynt_t_html('nav.apps') ?></a>
+          <a href="<?= $pluginBase ?>/settings"><?= selynt_t_html('nav.settings') ?></a>
+          <a href="<?= $pluginBase ?>/help"><?= selynt_t_html('nav.help') ?></a>
         </nav>
       </div>
 
@@ -59,7 +59,7 @@ $locale_active  = selynt_locale();
           <button type="button" class="btn-outline" onclick="load()">
             <i class="fa-solid fa-rotate-right"></i> <?= selynt_t_html('common.refresh') ?>
           </button>
-          <a href="<?= $pluginBase ?>/create.html" class="btn-outline">
+          <a href="<?= $pluginBase ?>/create" class="btn-outline">
             <i class="fa-solid fa-plus"></i> <?= selynt_t_html('apps.new') ?>
           </a>
         </div>
@@ -281,12 +281,12 @@ function renderApps(apps){
   lastSig=sig;
   renderPager(apps.length);
   if(!apps.length){
-    el.innerHTML='<p class="text-muted">'+esc(t('apps.none'))+' <a href="'+BASE+'/create.html" class="link-primary">'+esc(t('apps.create_now'))+'</a>.</p>';
+    el.innerHTML='<p class="text-muted">'+esc(t('apps.none'))+' <a href="'+BASE+'/create" class="link-primary">'+esc(t('apps.create_now'))+'</a>.</p>';
     return;
   }
   el.innerHTML=slice.map(a=>{
     const run=a.status==='RUNNING';
-    const link=`${BASE}/app.html?name=${encodeURIComponent(a.name)}`;
+    const link=`${BASE}/app?name=${encodeURIComponent(a.name)}`;
     const ic=iconFor(a.type);
     const badge=run?'badge-online':'badge-offline';
     const statusLabel=run?t('apps.online'):t('apps.offline');
