@@ -217,3 +217,17 @@ como descrito no [SECURITY.md](SECURITY.md).
 ## Licença
 
 Distribuído sob a licença [AGPL-3.0-or-later](LICENSE).
+
+### Componentes de terceiros
+
+O pacote distribui software de terceiros, com as respectivas licenças em
+[`LICENSES/`](LICENSES/):
+
+| Componente | Licença | Uso |
+|---|---|---|
+| [Bubblewrap](https://github.com/containers/bubblewrap) 0.11.2 | LGPL-2.0-or-later | `bin/bwrap` — confina a execução de comandos das aplicações |
+| [Font Awesome](https://fontawesome.com) Free | CC BY 4.0 · SIL OFL 1.1 · MIT | ícones do painel |
+
+O `bwrap` é compilado sem modificações a partir da
+[release oficial](https://github.com/containers/bubblewrap/releases/tag/v0.11.2)
+e invocado como processo externo, não vinculado ao código do painel.
