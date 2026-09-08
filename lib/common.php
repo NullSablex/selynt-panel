@@ -109,6 +109,28 @@ function selynt_method(): string {
     return strtoupper(trim((string)getenv('REQUEST_METHOD'))) ?: 'GET';
 }
 
+/**
+ * Corpo bruto da requisição, sem interpretar.
+ *
+ * O CGI do DirectAdmin nem sempre preenche `php://input`, e nem sempre informa
+ * `CONTENT_LENGTH` no mesmo lugar — por isso as três tentativas. Usado por quem
+ * envia um arquivo inteiro, que não cabe em query string e não deve passar por
+ * form-encoding no caminho.
+ */
+function selynt_body(): string {
+    $len = (int)getenv('CONTENT_LENGTH');
+    if ($len <= 0) $len = (int)getenv('HTTP_CONTENT_LENGTH');
+
+    $body = '';
+    if ($len > 0) {
+        $body = (string)fread(STDIN, min($len, 4 * 1024 * 1024));
+    }
+    if ($body === '') {
+        $body = (string)@file_get_contents('php://input');
+    }
+    return $body;
+}
+
 function selynt_input(): array {
     $data = [];
     parse_str((string)getenv('QUERY_STRING'), $data);

@@ -122,11 +122,26 @@ export function confirm(opts) {
   });
 }
 
+// `text` é o caminho normal e escapa sozinho. `html` existe para o punhado de
+// diálogos que precisam de estrutura (uma lista com botões, por exemplo) e só
+// deve receber markup montado aqui no painel, nunca string vinda do usuário ou
+// do servidor sem passar por `esc`.
 export function alert(opts) {
   opts = opts || {};
   const title = String(opts.title || t('common.warn'));
   const text = String(opts.text || '');
+  const html = opts.html == null ? null : String(opts.html);
   const okText = String(opts.okText || t('common.ok'));
+  // Ação secundária opcional, no rodapé à esquerda do botão principal: é onde
+  // o usuário já procura os botões do diálogo.
+  //
+  //   { text, className, onClick, closes }
+  //
+  // `closes: false` mantém o diálogo aberto — o caso de uma ação que muda o
+  // conteúdo em vez de encerrá-lo, como interromper uma execução e continuar
+  // lendo o log. Padrão é fechar, que é o comportamento esperado de um botão
+  // de rodapé.
+  let extra = opts.extra || null;
 
   const backdrop = ensureModal();
   const titleEl = backdrop.querySelector('#selyntModalTitle');
@@ -135,15 +150,34 @@ export function alert(opts) {
   const cancelBtn = backdrop.querySelector('#selyntModalCancel');
 
   titleEl.textContent = title;
-  textEl.textContent = text;
+  if (html === null) textEl.textContent = text;
+  else textEl.innerHTML = html;
   okBtn.textContent = okText;
-  cancelBtn.style.display = 'none';
+
+  function pintarExtra() {
+    if (!extra) {
+      cancelBtn.style.display = 'none';
+      return;
+    }
+    cancelBtn.style.display = '';
+    cancelBtn.textContent = String(extra.text || '');
+    cancelBtn.className = String(extra.className || 'btn-outline') + ' selynt-modal-extra';
+  }
+  pintarExtra();
 
   backdrop.style.display = 'flex';
   try { document.body.classList.add('selynt-modal-open'); } catch (e) {}
 
-  return new Promise((resolve) => {
+  const p = new Promise((resolve) => {
+    function onExtra() {
+      const acao = extra;
+      if (!acao) return;
+      if (acao.closes !== false) cleanup();
+      try { acao.onClick(); } catch (e) {}
+    }
     function cleanup() {
+      cancelBtn.removeEventListener('click', onExtra);
+      cancelBtn.className = 'btn-outline';
       okBtn.removeEventListener('click', onOk);
       backdrop.removeEventListener('click', onBackdrop);
       document.removeEventListener('keydown', onKey);
@@ -155,9 +189,16 @@ export function alert(opts) {
     function onBackdrop(e) { if (e.target === backdrop) cleanup(); }
     function onKey(e) { if (e.key === 'Escape' || e.key === 'Enter') cleanup(); }
 
+    cancelBtn.addEventListener('click', onExtra);
     okBtn.addEventListener('click', onOk);
     backdrop.addEventListener('click', onBackdrop);
     document.addEventListener('keydown', onKey);
     try { okBtn.focus(); } catch (e) {}
   });
+
+  // Deixa o diálogo ser atualizado enquanto está aberto, sem que quem chamou
+  // precise procurar os elementos do modal pelo id.
+  p.setExtra = (nova) => { extra = nova || null; pintarExtra(); };
+  p.setHtml = (novo) => { textEl.innerHTML = String(novo); };
+  return p;
 }
