@@ -6,8 +6,12 @@ Copyright (C) 2016 Alexander Larsson e colaboradores
 # O que é distribuído
 
 O Selynt Panel distribui o executável `bin/bwrap`, compilado sem modificações a
-partir do código-fonte oficial do Bubblewrap, versão **0.11.2**
-(tag `v0.11.2` em https://github.com/containers/bubblewrap).
+partir do código-fonte oficial do Bubblewrap, versão **0.11.2**, commit
+`1b80120ef26a28e065e67f89bfef873f13bdd317`.
+
+O binário é publicado pelo release do
+[core-selynt](https://github.com/NullSablex/core-selynt), que o compila fixando
+o **SHA do commit** — uma tag pode ser reapontada, um commit não.
 
 Ele é usado para confinar a execução de comandos das aplicações — instalação de
 dependências e scripts do `package.json` — de modo que cada execução veja apenas
@@ -26,7 +30,7 @@ A LGPL exige que o código-fonte correspondente ao binário distribuído esteja
 disponível. Como o binário é compilado sem nenhuma modificação, o fonte
 correspondente é a própria release oficial:
 
-    https://github.com/containers/bubblewrap/releases/tag/v0.11.2
+    https://github.com/containers/bubblewrap/tree/1b80120ef26a28e065e67f89bfef873f13bdd317
 
 Compilado com:
 
