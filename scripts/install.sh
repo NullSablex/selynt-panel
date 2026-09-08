@@ -20,6 +20,7 @@ if [ "$(id -u)" -ne 0 ]; then
 fi
 
 BIN="$PLUGIN_DIR/bin/core-selynt"
+BWRAP="$PLUGIN_DIR/bin/bwrap"
 INSTALL_FAILED=0
 sly_try "creating etc/" mkdir -p "$PLUGIN_DIR/etc"
 
@@ -52,6 +53,16 @@ if [ -x "$BIN" ]; then
     fi
 else
     sly_err "Core Selynt binary missing: $BIN"
+    INSTALL_FAILED=1
+fi
+
+# O bwrap é o que confina a execução de comandos das aplicações. Sem ele o
+# painel recusa executar, em vez de rodar sem sandbox — então a falta é
+# reportada aqui, e não descoberta pelo cliente no primeiro npm install.
+if [ -x "$BWRAP" ]; then
+    sly_sub "sandbox " "$("$BWRAP" --version 2>/dev/null || echo present)"
+else
+    sly_err "bubblewrap binary missing: $BWRAP"
     INSTALL_FAILED=1
 fi
 
