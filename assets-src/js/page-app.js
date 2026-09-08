@@ -4,7 +4,7 @@
 // `window.__SELYNT_APP`; tudo o mais vive aqui.
 
 import { t } from './i18n.min.js';
-import { toast, confirm as slyConfirm } from './notify.min.js';
+import { toast, confirm as slyConfirm, alert as slyAlert } from './notify.min.js';
 import { esc, fmtMB, typeLabel, uptime } from './ui.min.js';
 
 const { name: NAME, apiBase: API } = window.__SELYNT_APP ?? {};
@@ -122,6 +122,9 @@ async function loadStatus(){
     btns+=`<button class="btn-xs btn-danger" onclick="act('stop')"><i class="fa-solid fa-stop"></i> ${esc(t('apps.action.stop'))}</button>`;
   } else {
     btns+=`<button class="btn-xs btn-soft" onclick="act('start')"><i class="fa-solid fa-play"></i> ${esc(t('apps.action.start'))}</button>`;
+  }
+  if(a.type==='node'){
+    btns+=`<button class="btn-xs btn-soft" onclick="openScripts()"><i class="fa-solid fa-terminal"></i> ${esc(t('app.scripts.action'))}</button>`;
   }
   btns+=`<button class="btn-xs btn-danger" onclick="doRemove()"><i class="fa-solid fa-trash"></i> ${esc(t('apps.action.remove'))}</button>`;
   document.getElementById('app-actions').innerHTML=btns;
@@ -360,45 +363,335 @@ setInterval(()=>loadStats().then(loadStatus),8000);
 loadLog('out');
 setInterval(()=>loadLog(activeTab),5000);
 
-// Scripts do package.json — apenas visual por enquanto.
+// Scripts do package.json — PROTÓTIPO DE UI.
 //
-// A lista é real (vem do binário), mas os botões nascem desligados: esta etapa
-// é para decidir o desenho, não para executar. O campo de argumentos acompanha
-// os scripts porque é assim que ele será usado — o argumento vale para a
-// execução do script escolhido, como no painel do CloudLinux.
-async function loadScripts() {
-  const card = document.getElementById('scripts-card');
-  const list = document.getElementById('scripts-list');
-  if (!card || !list) return;
+// A lista vem do binário, mas a execução aqui é simulada em JavaScript: serve
+// para desenhar o progresso, o log e os desfechos antes de existir o job no
+// core. Por ser só JS, recarregar a página perde tudo — na versão real o job
+// vive no servidor e a página apenas consulta, então recarregar reencontra a
+// execução em andamento.
+const SIM = {
+  install: { titulo: 'npm install', linhas: [
+    'npm warn config production Use `--omit=dev` instead.',
+    'added 1 package, and audited 214 packages in 3s',
+    '38 packages are looking for funding',
+    'found 0 vulnerabilities',
+  ]},
+  update: { titulo: 'npm update', linhas: [
+    'changed 4 packages, and audited 214 packages in 2s',
+    'found 0 vulnerabilities',
+  ]},
+  build: { titulo: 'npm run build', linhas: [
+    '> app@1.0.0 build', '> tsc -p .',
+    'Compilando 42 arquivos...', 'Concluído em 4.1s',
+  ]},
+  falha: { titulo: 'npm run build', erro: true, linhas: [
+    '> app@1.0.0 build', '> tsc -p .',
+    'src/index.ts(12,5): error TS2322: Type string is not assignable to number.',
+    'npm ERR! code ELIFECYCLE',
+    'npm ERR! Exit status 2',
+  ]},
+};
+
+let jobAtivo = null;
+let dialogoJob = null;   // diálogo aberto do job, para trocar a ação do rodapé
+// Jobs desta sessão: o que roda e os que terminaram. Fechar a tela não pode
+// significar perder o resultado — é o que falta no CloudLinux, onde a execução
+// some com a página. Na versão real virá do servidor; aqui vive enquanto a
+// página não recarrega.
+const jobs = [];
+
+// Um job encerrado permanece na lista: é registro de algo que rodou de fato, e
+// fazê-lo sumir sozinho apagaria a única evidência do que aconteceu. Sai quando
+// o usuário limpa.
+
+// Um passo do job. `estado` é o que a UI precisa saber: em execução, sucesso,
+// falha ou cancelado — no CloudLinux é justamente isso que falta e deixa o
+// usuário sem saber se rodou.
+function jobHtml(j) {
+  const pct = Math.min(100, Math.round(j.progresso));
+  const icone = { rodando: 'fa-spinner fa-spin', ok: 'fa-circle-check',
+                  erro: 'fa-circle-xmark', parado: 'fa-ban' }[j.estado];
+  const cor = { rodando: '', ok: 'job-ok', erro: 'job-erro', parado: 'job-parado' }[j.estado];
+  const rotulo = { rodando: t('app.job.running'), ok: t('app.job.done'),
+                   erro: t('app.job.failed'), parado: t('app.job.stopped') }[j.estado];
+
+  return '<div class="job-head">' +
+      '<span class="job-cmd"><i class="fa-solid ' + icone + '"></i> ' + esc(j.cmd) + '</span>' +
+      '<span class="job-state ' + cor + '">' + esc(rotulo) + '</span>' +
+    '</div>' +
+    '<div class="job-bar"><div class="job-bar-fill ' + cor + '" style="width:' + pct + '%"></div></div>' +
+    '<div class="job-meta">' +
+      '<span>' + esc(t('app.job.elapsed', { s: String(j.segundos) })) + '</span>' +
+      (j.estado === 'rodando' ? '<span>' + pct + '%</span>' : '') +
+    '</div>' +
+    '<pre class="job-log" id="job-log">' + esc(j.log.join('\n')) + '</pre>';
+}
+
+// A ação do job vive no rodapé do diálogo, na mesma linha do "Fechar" e à
+// esquerda dele. É o mesmo lugar durante e depois da execução — só muda o
+// botão: interromper enquanto roda, voltar quando termina.
+// Ação do job no rodapé, à esquerda do "Fechar". Interromper não encerra o
+// diálogo (`closes: false`): quem interrompe quer ler o log para saber onde
+// parou. Voltar troca de diálogo, então fecha este.
+function acaoDoJob(j) {
+  return j.estado === 'rodando'
+    ? { text: t('app.job.stop'), className: 'btn-xs btn-danger',
+        closes: false, onClick: pararJob }
+    : { text: t('app.job.back'), className: 'btn-xs btn-soft',
+        onClick: voltarScripts };
+}
+
+function pintarJob() {
+  // Sem diálogo aberto o job continua avançando, apenas não há o que desenhar.
+  if (!dialogoJob || !jobAtivo) return;
+  dialogoJob.setHtml(jobHtml(jobAtivo));
+  // Ao terminar, "Interromper" vira "Voltar" sem sair do lugar.
+  dialogoJob.setExtra(acaoDoJob(jobAtivo));
+
+  const log = document.getElementById('job-log');
+  if (log) log.scrollTop = log.scrollHeight;   // acompanha a saída
+}
+
+function rodarSimulado(chave, args) {
+  const cfg = SIM[chave] || SIM.build;
+  const cmd = cfg.titulo + (args ? ' -- ' + args : '');
+  jobAtivo = { id: Date.now(), cmd, estado: 'rodando', progresso: 0, segundos: 0,
+               log: [], i: 0, fim: null };
+  jobs.unshift(jobAtivo);
+  dialogoJob = slyAlert({
+    title: t('app.job.title'), html: '', okText: t('common.close'),
+    extra: acaoDoJob(jobAtivo),
+  });
+  pintarJob();
+
+  jobAtivo.timer = setInterval(() => {
+    const j = jobAtivo;
+    if (!j || j.estado !== 'rodando') return;
+    j.segundos += 1;
+    j.progresso += 100 / (cfg.linhas.length + 1);
+    if (j.i < cfg.linhas.length) j.log.push(cfg.linhas[j.i++]);
+    else {
+      clearInterval(j.timer);
+      j.estado = cfg.erro ? 'erro' : 'ok';
+      j.progresso = 100;
+      j.fim = Date.now();
+    }
+    pintarJob();
+    pintarPainel();
+  }, 700);
+}
+
+function pararJob() {
+  if (!jobAtivo) return;
+  clearInterval(jobAtivo.timer);
+  jobAtivo.estado = 'parado';
+  jobAtivo.fim = Date.now();
+  jobAtivo.log.push('^C');
+  pintarJob();
+  pintarPainel();
+}
+window.pararJob = pararJob;
+
+function voltarScripts() { openScripts(); }
+window.voltarScripts = voltarScripts;
+
+// Abre um job do histórico. Se ainda roda, volta a acompanhar ao vivo; se
+// terminou, mostra o resultado como ele ficou.
+function verJob(id) {
+  const j = jobs.find((x) => x.id === Number(id));
+  if (!j) return;
+  jobAtivo = j;   // pode ainda estar rodando: o relógio nunca parou
+  dialogoJob = slyAlert({
+    title: t('app.job.title'), html: '', okText: t('common.close'),
+    extra: acaoDoJob(jobAtivo),
+  });
+  pintarJob();
+}
+window.verJob = verJob;
+
+// Diálogo de scripts: dependências, comandos do npm e os scripts do package.
+async function openScripts() {
+  // O job segue correndo com o diálogo fechado — parar o relógio aqui faria a
+  // execução congelar ao trocar de tela, que é o oposto do que o recurso
+  // promete. Só o diálogo é solto.
+  jobAtivo = null;
+  dialogoJob = null;
+  pintarPainel();
 
   const r = await fetch(`${API}/scripts.raw?name=${encodeURIComponent(NAME)}`)
     .then(x => x.json()).catch(() => null);
-  if (!r || !r.ok) return;
 
-  // Só aparece para Node: um binário não tem package.json a oferecer.
-  if (r.reason === 'not_node') return;
-  card.style.display = '';
+  const motivo = { no_package: 'app.scripts.no_package',
+                   invalid_package: 'app.scripts.invalid_package' }[r && r.reason];
 
-  const aviso = {
-    no_package: 'app.scripts.no_package',
-    invalid_package: 'app.scripts.invalid_package',
-  }[r.reason];
-  if (aviso || !r.scripts || !r.scripts.length) {
-    list.innerHTML = '<p class="cfg-desc">' + esc(t(aviso || 'app.scripts.empty')) + '</p>';
+  let corpo = '';
+
+  // Dependências: o estado decide a ação. Oferecer instalar e atualizar com
+  // tudo em ordem contradiz o próprio aviso — não há o que instalar.
+  const dep = (r && r.ok && r.deps) || 'unknown';
+  const CENARIO = {
+    ok:         { cor: 'deps-ok',       icone: 'fa-circle-check',        acoes: [] },
+    none:       { cor: 'deps-neutro',   icone: 'fa-circle-info',         acoes: [] },
+    missing:    { cor: 'deps-faltando', icone: 'fa-triangle-exclamation', acoes: ['install'] },
+    incomplete: { cor: 'deps-faltando', icone: 'fa-triangle-exclamation', acoes: ['install'] },
+    outdated:   { cor: 'deps-atencao',  icone: 'fa-arrow-rotate-right',  acoes: ['install', 'update'] },
+    unknown:    { cor: 'deps-neutro',   icone: 'fa-circle-info',         acoes: [] },
+  }[dep] || { cor: 'deps-neutro', icone: 'fa-circle-info', acoes: [] };
+
+  if (dep !== 'unknown') {
+    const rotuloAcao = { install: t('app.deps.install'), update: t('app.deps.update') };
+    corpo += '<div class="deps-box ' + CENARIO.cor + '">' +
+        '<span class="deps-info"><i class="fa-solid ' + CENARIO.icone + '"></i>' +
+          '<span>' + esc(t('app.deps.' + dep)) + '</span></span>' +
+        (CENARIO.acoes.length
+          ? '<span class="deps-acoes">' + CENARIO.acoes.map((a, i) =>
+              '<button type="button" class="btn-xs ' + (i === 0 ? 'btn-primary' : 'btn-soft') +
+              '" onclick="rodarNpm(\'' + a + '\')">' + esc(rotuloAcao[a]) + '</button>').join('') +
+            '</span>'
+          : '') +
+      '</div>';
+  }
+
+  corpo += '<div class="form-field"><label class="form-label" for="scripts-args">' +
+    esc(t('app.scripts.args')) + '</label>' +
+    '<input type="text" id="scripts-args" class="inline-input" placeholder="' +
+    esc(t('app.scripts.args_ph')) + '"></div>';
+
+  if (motivo || !r || !r.ok || !r.scripts || !r.scripts.length) {
+    corpo += '<p class="cfg-desc">' + esc(t(motivo || 'app.scripts.empty')) + '</p>';
+  } else {
+    corpo += '<div class="scripts-list">' + r.scripts.map(n =>
+      '<div class="cfg-row"><span class="cfg-lbl">' + esc(n) + '</span>' +
+      '<span class="cfg-val"><button type="button" class="btn-xs btn-soft" ' +
+      'onclick="rodarScript(\'' + esc(n) + '\')">' +
+      '<i class="fa-solid fa-play"></i> ' + esc(t('app.scripts.run')) +
+      '</button></span></div>').join('') + '</div>';
+  }
+
+  corpo += '<p class="cfg-desc scripts-note"><i class="fa-solid fa-flask"></i> ' +
+    esc(t('app.job.prototype')) + '</p>';
+
+  slyAlert({ title: t('app.scripts.title'), html: corpo, okText: t('common.close') });
+}
+window.openScripts = openScripts;
+
+function argsAtuais() {
+  const el = document.getElementById('scripts-args');
+  return el ? el.value.trim() : '';
+}
+window.rodarNpm = (qual) => rodarSimulado(qual, '');
+
+// No protótipo, um script chamado `test` termina em erro de propósito: o
+// desfecho que mais importa avaliar é o que falha, não o que dá certo.
+window.rodarScript = (nome) =>
+  rodarSimulado(nome === 'test' ? 'falha' : 'build', argsAtuais());
+
+// ─── Painel lateral de execuções ───────────────────────────────────────────
+//
+// Fica no canto, sobre a página, sem escurecer o fundo: acompanhar uma execução
+// não deve impedir de usar o painel. Recolhido, é só um indicador; aberto,
+// lista o que roda e o que terminou há pouco.
+//
+// Vive fora de `.selynt-panel`, como o modal, então o CSS dele é próprio.
+let painelAberto = false;
+
+function elPainel() {
+  let el = document.getElementById('selynt-jobs');
+  if (el) return el;
+  el = document.createElement('div');
+  el.id = 'selynt-jobs';
+  el.className = 'selynt-jobs';
+  const p = document.querySelector('.selynt-panel');
+  if (p && p.classList.contains('theme-light')) el.classList.add('theme-light');
+  document.body.appendChild(el);
+  return el;
+}
+
+// Limpa um job encerrado. O que ainda roda não sai da lista: some quando
+// termina e o usuário decidir.
+function limparJob(id) {
+  const i = jobs.findIndex((x) => x.id === Number(id) && x.estado !== 'rodando');
+  if (i >= 0) jobs.splice(i, 1);
+  pintarPainel();
+}
+window.limparJob = limparJob;
+
+function limparEncerrados() {
+  for (let i = jobs.length - 1; i >= 0; i--) {
+    if (jobs[i].estado !== 'rodando') jobs.splice(i, 1);
+  }
+  pintarPainel();
+}
+window.limparEncerrados = limparEncerrados;
+
+function pintarPainel() {
+  const el = elPainel();
+
+  // O painel é parte fixa da tela, não um alerta que surge do nada: fica no
+  // lugar mesmo sem nada a mostrar, para o usuário saber onde procurar.
+  el.classList.add('tem-jobs');
+
+  const rodando = jobs.filter((j) => j.estado === 'rodando').length;
+
+  if (!painelAberto) {
+    // Recolhido: o indicador diz o que está acontecendo agora.
+    // Sem nada a relatar o texto não acrescenta, e vira só o ícone. Havendo
+    // execução ou histórico, o texto é a informação — fica.
+    const rotulo = rodando ? t('app.job.running_n', { n: String(rodando) })
+                 : jobs.length ? t('app.job.recent')
+                 : '';
+    el.innerHTML = '<button type="button" class="jobs-tag' + (rotulo ? '' : ' jobs-vazio') +
+      '" onclick="alternarPainel()" title="' + esc(t('app.job.panel_title')) + '">' +
+      '<i class="fa-solid ' + (rodando ? 'fa-spinner fa-spin' : 'fa-list-check') + '"></i>' +
+      (rotulo ? '<span>' + esc(rotulo) + '</span>' : '') + '</button>';
     return;
   }
 
-  list.innerHTML = r.scripts.map(nome => (
-    '<div class="cfg-row">' +
-      '<span class="cfg-lbl"><i class="fa-solid fa-terminal"></i> ' + esc(nome) + '</span>' +
-      '<span class="cfg-val">' +
-        '<button type="button" class="btn-xs btn-soft" disabled title="' +
-          esc(t('app.scripts.soon')) + '">' +
-          '<i class="fa-solid fa-play"></i> ' + esc(t('app.scripts.run')) +
-        '</button>' +
-      '</span>' +
-    '</div>'
-  )).join('');
+  el.innerHTML = '<div class="jobs-caixa">' +
+      '<div class="jobs-topo">' +
+        '<span>' + esc(t('app.job.panel_title')) + '</span>' +
+        '<span class="jobs-topo-acoes">' +
+          (jobs.some((j) => j.estado !== 'rodando')
+            ? '<button type="button" class="jobs-limpar-tudo" onclick="limparEncerrados()">' +
+              esc(t('app.job.clear_all')) + '</button>'
+            : '') +
+          '<button type="button" class="jobs-fechar" onclick="alternarPainel()" aria-label="' +
+            esc(t('common.close')) + '"><i class="fa-solid fa-chevron-down"></i></button>' +
+        '</span>' +
+      '</div>' +
+      (jobs.length
+        ? ''
+        : '<p class="jobs-nada">' + esc(t('app.job.none')) + '</p>') +
+      '<div class="jobs-lista">' + jobs.map((j) => {
+        const cor = { ok: 'job-ok', erro: 'job-erro', parado: 'job-parado', rodando: '' }[j.estado];
+        const ic = { ok: 'fa-circle-check', erro: 'fa-circle-xmark',
+                     parado: 'fa-ban', rodando: 'fa-spinner fa-spin' }[j.estado];
+        const rot = { ok: t('app.job.done'), erro: t('app.job.failed'),
+                      parado: t('app.job.stopped'), rodando: t('app.job.running') }[j.estado];
+        return '<div class="jobs-item" onclick="verJob(' + j.id + ')">' +
+            '<span class="jobs-item-topo">' +
+              '<span class="jobs-cmd"><i class="fa-solid ' + ic + ' ' + cor + '"></i> ' +
+                esc(j.cmd) + '</span>' +
+              '<span class="job-state ' + cor + '">' + esc(rot) + '</span>' +
+              (j.estado === 'rodando'
+                ? ''
+                : '<button type="button" class="jobs-limpar" title="' +
+                  esc(t('app.job.clear')) + '" onclick="event.stopPropagation();limparJob(' +
+                  j.id + ')"><i class="fa-solid fa-xmark"></i></button>') +
+            '</span>' +
+            (j.estado === 'rodando'
+              ? '<span class="jobs-bar"><span class="jobs-bar-fill" style="width:' +
+                Math.min(100, Math.round(j.progresso)) + '%"></span></span>'
+              : '') +
+          '</div>';
+      }).join('') + '</div>' +
+    '</div>';
 }
 
-loadScripts();
+function alternarPainel() { painelAberto = !painelAberto; pintarPainel(); }
+window.alternarPainel = alternarPainel;
+
+// Desenha o painel já na carga: ele é parte da tela, não consequência de uma
+// execução.
+pintarPainel();
