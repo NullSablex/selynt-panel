@@ -99,7 +99,6 @@
   "app.job.elapsed": "{s}s decorridos",
   "app.job.stop": "Interromper",
   "app.job.back": "Voltar",
-  "app.job.prototype": "Protótipo: a execução é simulada e se perde ao recarregar a página.",
   "app.nv.default": "Padrão do sistema",
   "app.nv.configured": "Versão configurada",
   "app.nv.configured_missing": "Versão configurada (indisponível)",
@@ -336,5 +335,13 @@
   "app.job.running_n": "{n} em execução",
   "app.job.clear": "Remover",
   "app.job.clear_all": "Limpar",
-  "app.job.none": "Nenhuma execução até agora."
+  "app.job.none": "Nenhuma execução até agora.",
+  "app.job.timeout": "Tempo esgotado",
+  "app.job.err_running": "Pare a aplicação antes de alterar as dependências.",
+  "app.job.err_busy": "Já há um comando em execução para esta aplicação.",
+  "app.job.err_script": "Nome de script não aceito.",
+  "app.job.err_args": "Argumentos não aceitos.",
+  "app.job.err_sandbox": "O isolamento não está disponível neste servidor.",
+  "errors.invalid_command": "Comando não permitido.",
+  "errors.missing_script": "Informe o script a executar."
 }

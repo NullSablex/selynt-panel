@@ -1,0 +1,50 @@
+#!/usr/local/bin/php -n
+<?php
+declare(strict_types=1);
+
+require_once dirname(__DIR__, 2) . '/lib/common.php';
+
+// Tudo pela query string: o CGI do DirectAdmin não entrega o corpo do POST ao
+// PHP — é o mesmo motivo pelo qual o seletor de idioma teve de abandoná-lo.
+$qs = [];
+parse_str((string)getenv('QUERY_STRING'), $qs);
+
+$name = trim((string)($qs['name'] ?? ''));
+if ($name === '') {
+    selynt_json(['ok' => false, 'error' => 'missing_name', 'message' => selynt_t('errors.missing_name')]);
+    exit(0);
+}
+
+// GET consulta, POST executa.
+if (selynt_method() !== 'POST') {
+    selynt_json(selynt_run(['job-status', $name]));
+    exit(0);
+}
+
+// Interromper é o Ctrl+C do terminal: o binário manda SIGINT ao grupo de
+// processos e só recorre ao SIGKILL se o comando insistir.
+if (($qs['action'] ?? '') === 'stop') {
+    selynt_json(selynt_run(['stop-job', $name]));
+    exit(0);
+}
+
+$command = trim((string)($qs['command'] ?? ''));
+$script  = trim((string)($qs['script'] ?? ''));
+$args    = trim((string)($qs['args'] ?? ''));
+
+// A lista fechada também vive aqui: o binário revalida, mas recusar cedo evita
+// invocá-lo à toa e dá uma mensagem que o painel sabe traduzir.
+if (!in_array($command, ['install', 'update', 'ci', 'run'], true)) {
+    selynt_json(['ok' => false, 'error' => 'invalid_command', 'message' => selynt_t('errors.invalid_command')]);
+    exit(0);
+}
+if ($command === 'run' && $script === '') {
+    selynt_json(['ok' => false, 'error' => 'missing_script', 'message' => selynt_t('errors.missing_script')]);
+    exit(0);
+}
+
+$cmd = ['run-job', $name, $command];
+if ($script !== '') { $cmd[] = '--script'; $cmd[] = $script; }
+if ($args !== '')   { $cmd[] = '--args';   $cmd[] = $args; }
+
+selynt_json(selynt_run($cmd));

@@ -946,6 +946,24 @@ Paleta base (tema escuro padrão)
     transition: width 0.4s ease;
 }
 
+/* Sem progresso real: a faixa se move para dizer "está trabalhando", em vez de
+   uma barra que avança sozinha e mente sobre quanto falta. */
+.selynt-modal-text .job-bar-fill.job-bar-indet {
+    background-image: linear-gradient(90deg,
+        rgba(99, 102, 241, 0.25) 25%, #6366f1 50%, rgba(99, 102, 241, 0.25) 75%);
+    background-size: 200% 100%;
+    animation: selynt-job-indet 1.2s linear infinite;
+}
+
+@keyframes selynt-job-indet {
+    from { background-position: 200% 0; }
+    to { background-position: 0 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .selynt-modal-text .job-bar-fill.job-bar-indet { animation: none; }
+}
+
 .selynt-modal-text .job-bar-fill.job-ok { background-color: #22c55e; }
 .selynt-modal-text .job-bar-fill.job-erro { background-color: var(--color-error); }
 .selynt-modal-text .job-bar-fill.job-parado { background-color: #94a3b8; }

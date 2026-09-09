@@ -370,28 +370,9 @@ setInterval(()=>loadLog(activeTab),5000);
 // core. Por ser só JS, recarregar a página perde tudo — na versão real o job
 // vive no servidor e a página apenas consulta, então recarregar reencontra a
 // execução em andamento.
-const SIM = {
-  install: { titulo: 'npm install', linhas: [
-    'npm warn config production Use `--omit=dev` instead.',
-    'added 1 package, and audited 214 packages in 3s',
-    '38 packages are looking for funding',
-    'found 0 vulnerabilities',
-  ]},
-  update: { titulo: 'npm update', linhas: [
-    'changed 4 packages, and audited 214 packages in 2s',
-    'found 0 vulnerabilities',
-  ]},
-  build: { titulo: 'npm run build', linhas: [
-    '> app@1.0.0 build', '> tsc -p .',
-    'Compilando 42 arquivos...', 'Concluído em 4.1s',
-  ]},
-  falha: { titulo: 'npm run build', erro: true, linhas: [
-    '> app@1.0.0 build', '> tsc -p .',
-    'src/index.ts(12,5): error TS2322: Type string is not assignable to number.',
-    'npm ERR! code ELIFECYCLE',
-    'npm ERR! Exit status 2',
-  ]},
-};
+// Execuções npm da aplicação. O comando roda no servidor, desprendido da
+// requisição: fechar a página não o interrompe, e reabrir reencontra o estado.
+const JOB_POLL_MS = 2000;
 
 let jobAtivo = null;
 let dialogoJob = null;   // diálogo aberto do job, para trocar a ação do rodapé
@@ -409,21 +390,27 @@ const jobs = [];
 // falha ou cancelado — no CloudLinux é justamente isso que falta e deixa o
 // usuário sem saber se rodou.
 function jobHtml(j) {
-  const pct = Math.min(100, Math.round(j.progresso));
+  // Sem progresso real, a barra vira indeterminada: o npm não informa quanto
+  // falta, e uma barra que avança sozinha mentiria sobre o andamento.
+  const indeterminado = j.progresso === null;
+  const pct = indeterminado ? 100 : Math.min(100, Math.round(j.progresso));
   const icone = { rodando: 'fa-spinner fa-spin', ok: 'fa-circle-check',
-                  erro: 'fa-circle-xmark', parado: 'fa-ban' }[j.estado];
-  const cor = { rodando: '', ok: 'job-ok', erro: 'job-erro', parado: 'job-parado' }[j.estado];
+                  erro: 'fa-circle-xmark', parado: 'fa-ban',
+                  timeout: 'fa-hourglass-end' }[j.estado];
+  const cor = { rodando: '', ok: 'job-ok', erro: 'job-erro', parado: 'job-parado',
+                timeout: 'job-erro' }[j.estado];
   const rotulo = { rodando: t('app.job.running'), ok: t('app.job.done'),
-                   erro: t('app.job.failed'), parado: t('app.job.stopped') }[j.estado];
+                   erro: t('app.job.failed'), parado: t('app.job.stopped'),
+                   timeout: t('app.job.timeout') }[j.estado];
 
   return '<div class="job-head">' +
       '<span class="job-cmd"><i class="fa-solid ' + icone + '"></i> ' + esc(j.cmd) + '</span>' +
       '<span class="job-state ' + cor + '">' + esc(rotulo) + '</span>' +
     '</div>' +
-    '<div class="job-bar"><div class="job-bar-fill ' + cor + '" style="width:' + pct + '%"></div></div>' +
+    '<div class="job-bar"><div class="job-bar-fill ' + cor +
+      (indeterminado ? ' job-bar-indet' : '') + '" style="width:' + pct + '%"></div></div>' +
     '<div class="job-meta">' +
-      '<span>' + esc(t('app.job.elapsed', { s: String(j.segundos) })) + '</span>' +
-      (j.estado === 'rodando' ? '<span>' + pct + '%</span>' : '') +
+      '<span>' + esc(t('app.job.elapsed', { s: String(Math.max(0, j.segundos)) })) + '</span>' +
     '</div>' +
     '<pre class="job-log" id="job-log">' + esc(j.log.join('\n')) + '</pre>';
 }
@@ -435,12 +422,27 @@ function jobHtml(j) {
 // diálogo (`closes: false`): quem interrompe quer ler o log para saber onde
 // parou. Voltar troca de diálogo, então fecha este.
 function acaoDoJob(j) {
+  // Interromper é o Ctrl+C do terminal: o servidor manda SIGINT ao grupo de
+  // processos, dando ao npm a chance de encerrar sem deixar node_modules pela
+  // metade. Não fecha o diálogo — quem interrompe quer ler onde parou.
   return j.estado === 'rodando'
     ? { text: t('app.job.stop'), className: 'btn-xs btn-danger',
         closes: false, onClick: pararJob }
     : { text: t('app.job.back'), className: 'btn-xs btn-soft',
         onClick: voltarScripts };
 }
+
+async function pararJob() {
+  const p = new URLSearchParams({ name: NAME, action: 'stop' });
+  const r = await fetch(`${API}/job.raw?${p}`, { method: 'POST' })
+    .then((x) => x.json()).catch(() => null);
+  if (!r || !r.ok) {
+    toast('error', (r && r.message) || t('errors.network'));
+    return;
+  }
+  acompanhar();
+}
+window.pararJob = pararJob;
 
 function pintarJob() {
   // Sem diálogo aberto o job continua avançando, apenas não há o que desenhar.
@@ -453,45 +455,76 @@ function pintarJob() {
   if (log) log.scrollTop = log.scrollHeight;   // acompanha a saída
 }
 
-function rodarSimulado(chave, args) {
-  const cfg = SIM[chave] || SIM.build;
-  const cmd = cfg.titulo + (args ? ' -- ' + args : '');
-  jobAtivo = { id: Date.now(), cmd, estado: 'rodando', progresso: 0, segundos: 0,
-               log: [], i: 0, fim: null };
-  jobs.unshift(jobAtivo);
-  dialogoJob = slyAlert({
-    title: t('app.job.title'), html: '', okText: t('common.close'),
-    extra: acaoDoJob(jobAtivo),
-  });
-  pintarJob();
+// Dispara o comando e passa a acompanhar. O servidor responde assim que o job
+// começa, não quando termina — um install grande passa do timeout do CGI.
+async function executar(command, script, args) {
+  const p = new URLSearchParams({ name: NAME, command });
+  if (script) p.set('script', script);
+  if (args) p.set('args', args);
 
-  jobAtivo.timer = setInterval(() => {
-    const j = jobAtivo;
-    if (!j || j.estado !== 'rodando') return;
-    j.segundos += 1;
-    j.progresso += 100 / (cfg.linhas.length + 1);
-    if (j.i < cfg.linhas.length) j.log.push(cfg.linhas[j.i++]);
-    else {
-      clearInterval(j.timer);
-      j.estado = cfg.erro ? 'erro' : 'ok';
-      j.progresso = 100;
-      j.fim = Date.now();
-    }
-    pintarJob();
-    pintarPainel();
-  }, 700);
+  const r = await fetch(`${API}/job.raw?${p}`, { method: 'POST' })
+    .then((x) => x.json()).catch(() => null);
+
+  if (!r || !r.ok) {
+    const conhecido = {
+      app_running: 'app.job.err_running',
+      job_running: 'app.job.err_busy',
+      not_node: 'app.scripts.not_node',
+      invalid_script: 'app.job.err_script',
+      invalid_arguments: 'app.job.err_args',
+      sandbox_unavailable: 'app.job.err_sandbox',
+    }[r && r.error];
+    toast('error', conhecido ? t(conhecido) : ((r && r.message) || t('errors.network')));
+    return;
+  }
+
+  abrirJob();
+  acompanhar();
 }
 
-function pararJob() {
-  if (!jobAtivo) return;
-  clearInterval(jobAtivo.timer);
-  jobAtivo.estado = 'parado';
-  jobAtivo.fim = Date.now();
-  jobAtivo.log.push('^C');
+// Consulta o estado até o comando terminar. Enquanto roda, o log cresce na
+// tela; ao terminar, o desfecho fica visível sem depender de a página estar
+// aberta no momento certo.
+let pollTimer = null;
+async function acompanhar() {
+  clearTimeout(pollTimer);
+  const r = await fetch(`${API}/job.raw?name=${encodeURIComponent(NAME)}`)
+    .then((x) => x.json()).catch(() => null);
+
+  const j = r && r.ok && r.job;
+  if (!j) return;
+
+  const estado = { running: 'rodando', ok: 'ok', failed: 'erro',
+                   timeout: 'timeout', stopped: 'parado' }[j.status] || j.status;
+
+  jobAtivo = {
+    id: j.started_at || 0,
+    cmd: j.command || '',
+    estado,
+    log: j.lines || [],
+    segundos: (j.finished_at || Math.floor(Date.now() / 1000)) - (j.started_at || 0),
+    // Sem progresso real: o npm não informa quanto falta, e uma barra que
+    // avança sozinha mentiria sobre o que está acontecendo.
+    progresso: estado === 'rodando' ? null : 100,
+    fim: j.finished_at || null,
+  };
+
+  const i = jobs.findIndex((x) => x.id === jobAtivo.id);
+  if (i >= 0) jobs[i] = jobAtivo; else jobs.unshift(jobAtivo);
+
   pintarJob();
   pintarPainel();
+
+  if (estado === 'rodando') pollTimer = setTimeout(acompanhar, JOB_POLL_MS);
 }
-window.pararJob = pararJob;
+
+// Abre o diálogo do job sem disparar nada — usado ao iniciar e ao reabrir.
+function abrirJob() {
+  dialogoJob = slyAlert({
+    title: t('app.job.title'), html: '', okText: t('common.close'),
+    extra: jobAtivo ? acaoDoJob(jobAtivo) : undefined,
+  });
+}
 
 function voltarScripts() { openScripts(); }
 window.voltarScripts = voltarScripts;
@@ -501,12 +534,11 @@ window.voltarScripts = voltarScripts;
 function verJob(id) {
   const j = jobs.find((x) => x.id === Number(id));
   if (!j) return;
-  jobAtivo = j;   // pode ainda estar rodando: o relógio nunca parou
-  dialogoJob = slyAlert({
-    title: t('app.job.title'), html: '', okText: t('common.close'),
-    extra: acaoDoJob(jobAtivo),
-  });
+  jobAtivo = j;
+  abrirJob();
   pintarJob();
+  // Ainda rodando: volta a acompanhar de onde está.
+  if (j.estado === 'rodando') acompanhar();
 }
 window.verJob = verJob;
 
@@ -569,9 +601,6 @@ async function openScripts() {
       '</button></span></div>').join('') + '</div>';
   }
 
-  corpo += '<p class="cfg-desc scripts-note"><i class="fa-solid fa-flask"></i> ' +
-    esc(t('app.job.prototype')) + '</p>';
-
   slyAlert({ title: t('app.scripts.title'), html: corpo, okText: t('common.close') });
 }
 window.openScripts = openScripts;
@@ -580,12 +609,11 @@ function argsAtuais() {
   const el = document.getElementById('scripts-args');
   return el ? el.value.trim() : '';
 }
-window.rodarNpm = (qual) => rodarSimulado(qual, '');
+window.rodarNpm = (qual) => executar(qual, '', '');
 
 // No protótipo, um script chamado `test` termina em erro de propósito: o
 // desfecho que mais importa avaliar é o que falha, não o que dá certo.
-window.rodarScript = (nome) =>
-  rodarSimulado(nome === 'test' ? 'falha' : 'build', argsAtuais());
+window.rodarScript = (nome) => executar('run', nome, argsAtuais());
 
 // ─── Painel lateral de execuções ───────────────────────────────────────────
 //

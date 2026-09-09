@@ -99,7 +99,6 @@
   "app.job.elapsed": "{s}s elapsed",
   "app.job.stop": "Stop",
   "app.job.back": "Back",
-  "app.job.prototype": "Prototype: execution is simulated and is lost on page reload.",
   "app.nv.default": "System default",
   "app.nv.configured": "Configured version",
   "app.nv.configured_missing": "Configured version (unavailable)",
@@ -336,5 +335,13 @@
   "app.job.running_n": "{n} running",
   "app.job.clear": "Remove",
   "app.job.clear_all": "Clear",
-  "app.job.none": "No executions yet."
+  "app.job.none": "No executions yet.",
+  "app.job.timeout": "Timed out",
+  "app.job.err_running": "Stop the application before changing its dependencies.",
+  "app.job.err_busy": "A command is already running for this application.",
+  "app.job.err_script": "Script name not accepted.",
+  "app.job.err_args": "Arguments not accepted.",
+  "app.job.err_sandbox": "Isolation is not available on this server.",
+  "errors.invalid_command": "Command not allowed.",
+  "errors.missing_script": "Choose the script to run."
 }
