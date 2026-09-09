@@ -1,4 +1,8 @@
-import http from 'node:http';
+// CommonJS de propósito: é o formato que o `npm init` marca no package.json
+// gerado junto. Trocar para `import` aqui obrigaria o painel a alterar o
+// `type` do arquivo do npm — e escolher entre ESM e CommonJS é do dev, não do
+// painel. Quem preferir ESM muda o `type` para `module` e usa `import`.
+const http = require('node:http');
 const APP_NAME = '{{APP_NAME}}';
 const NODE_VER = process.version;
 
