@@ -8,3 +8,4 @@
 
 - [Font Awesome Free](https://fontawesome.com)
 - [esbuild](https://github.com/evanw/esbuild)
+- [Bubblewrap](https://github.com/containers/bubblewrap)
