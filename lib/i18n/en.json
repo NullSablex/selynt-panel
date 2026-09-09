@@ -343,5 +343,11 @@
   "app.job.err_args": "Arguments not accepted.",
   "app.job.err_sandbox": "Isolation is not available on this server.",
   "errors.invalid_command": "Command not allowed.",
-  "errors.missing_script": "Choose the script to run."
+  "errors.missing_script": "Choose the script to run.",
+  "app.entry.apply": "Apply",
+  "app.entry.saved": "Entry file updated.",
+  "app.entry.saved_restart": "Updated. Restart the application to apply.",
+  "app.entry.err_missing": "File not found in the application directory.",
+  "app.entry.err_invalid": "Invalid file name: no slashes or '..'.",
+  "errors.missing_entry": "Choose the entry file."
 }

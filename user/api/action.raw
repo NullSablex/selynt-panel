@@ -11,7 +11,7 @@ $action = trim((string)($input['action'] ?? ''));
 if ($name === '' || $action === '') {
     selynt_json(['ok' => false, 'error' => 'missing_fields', 'message' => selynt_t('errors.missing_fields')]); exit(0);
 }
-if (!in_array($action, ['start','stop','restart','remove','set-node-version','set-memory-max'], true)) {
+if (!in_array($action, ['start','stop','restart','remove','set-node-version','set-memory-max','set-entry'], true)) {
     selynt_json(['ok' => false, 'error' => 'invalid_action', 'message' => selynt_t('errors.invalid_action')]); exit(0);
 }
 $args = [$action, $name];
@@ -23,6 +23,14 @@ if ($action === 'set-node-version') {
     }
     $args[] = '--node-version';
     $args[] = $nv;
+}
+if ($action === 'set-entry') {
+    $entry = trim((string)($input['entry'] ?? ''));
+    if ($entry === '') {
+        selynt_json(['ok' => false, 'error' => 'missing_fields', 'message' => selynt_t('errors.missing_entry')]); exit(0);
+    }
+    $args[] = '--entry';
+    $args[] = $entry;
 }
 if ($action === 'set-memory-max') {
     // 0 restaura o modo automático; o binário rejeita valores muito baixos.

@@ -57,7 +57,7 @@ async function loadStatus(){
     ['fa-solid fa-server',t('app.field.type'),typeLabel(a.type)],
     ['fa-solid fa-globe',t('app.field.host'),esc(a.host)],
     ['fa-solid fa-folder',t('app.field.cwd'),esc(a.cwd)],
-    ['fa-solid fa-file-code',t('app.field.entry'),esc(a.entry||t('app.log.dash'))],
+    ['fa-solid fa-file-code',t('app.field.entry'),entryControl(a.entry||'')],
   ];
   if(a.type==='node'){
     const nv=nodeVersions.find(v=>v.path===a.node_version);
@@ -267,6 +267,48 @@ async function changeMemLimit(){
   await loadStatus();
 }
 window.changeMemLimit=changeMemLimit;
+
+// Campo do arquivo de entrada, com o mesmo desenho do seletor de versão: o
+// botão de confirmar só acende quando há algo a aplicar.
+function entryControl(atual){
+  return `<span class="nv-control" id="entry-control" data-current="${esc(atual)}">`+
+    `<input type="text" id="entry-input" class="inline-input" value="${esc(atual)}" `+
+    `spellcheck="false" autocapitalize="off" oninput="markEntryDirty()">`+
+    `<button class="btn-xs btn-soft" onclick="changeEntry()" title="${esc(t('app.entry.apply'))}">`+
+    `<i class="fa-solid fa-check"></i></button></span>`;
+}
+
+function markEntryDirty(){
+  const el=document.getElementById('entry-input'),box=document.getElementById('entry-control');
+  if(!el||!box)return;
+  const current=box.getAttribute('data-current')||'';
+  box.classList.toggle('is-dirty',el.value.trim()!==current);
+}
+window.markEntryDirty=markEntryDirty;
+
+// A troca vale a partir do próximo start: o processo em execução continua com o
+// arquivo antigo, e dizer isso evita o usuário achar que não funcionou.
+async function changeEntry(){
+  const el=document.getElementById('entry-input');
+  if(!el)return;
+  const entry=el.value.trim();
+  const box=document.getElementById('entry-control');
+  if(!entry||entry===(box&&box.getAttribute('data-current'))){return;}
+
+  const p=new URLSearchParams({name:NAME,action:'set-entry',entry});
+  const r=await fetch(`${API}/action.raw?${p}`,{method:'POST'})
+    .then(x=>x.json()).catch(()=>null);
+
+  if(!r||!r.ok){
+    const conhecido={entry_not_found:'app.entry.err_missing',
+                     invalid_entry:'app.entry.err_invalid'}[r&&r.error];
+    toast('error',conhecido?t(conhecido):((r&&r.message)||t('errors.network')));
+    return;
+  }
+  toast('success',r.restart_required?t('app.entry.saved_restart'):t('app.entry.saved'));
+  loadStatus();
+}
+window.changeEntry=changeEntry;
 
 // Enables the confirm button once the picked version differs from the one in
 // use, so the row reads as settled until there is something to apply.

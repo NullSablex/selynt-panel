@@ -343,5 +343,11 @@
   "app.job.err_args": "Argumentos não aceitos.",
   "app.job.err_sandbox": "O isolamento não está disponível neste servidor.",
   "errors.invalid_command": "Comando não permitido.",
-  "errors.missing_script": "Informe o script a executar."
+  "errors.missing_script": "Informe o script a executar.",
+  "app.entry.apply": "Aplicar",
+  "app.entry.saved": "Arquivo de entrada atualizado.",
+  "app.entry.saved_restart": "Atualizado. Reinicie a aplicação para valer.",
+  "app.entry.err_missing": "Arquivo não encontrado no diretório da aplicação.",
+  "app.entry.err_invalid": "Nome de arquivo inválido: sem barras nem '..'.",
+  "errors.missing_entry": "Informe o arquivo de entrada."
 }
