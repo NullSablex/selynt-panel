@@ -349,5 +349,8 @@
   "app.entry.saved_restart": "Atualizado. Reinicie a aplicação para valer.",
   "app.entry.err_missing": "Arquivo não encontrado no diretório da aplicação.",
   "app.entry.err_invalid": "Nome de arquivo inválido: sem barras nem '..'.",
-  "errors.missing_entry": "Informe o arquivo de entrada."
+  "errors.missing_entry": "Informe o arquivo de entrada.",
+  "diag.sandbox_missing": "Isolamento ausente — reinstale o plugin",
+  "diag.sandbox_unavailable": "Isolamento indisponível: o kernel recusa criar namespaces",
+  "diag.sandbox_ok": "Isolamento configurado corretamente (bubblewrap {n})"
 }

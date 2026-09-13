@@ -349,5 +349,8 @@
   "app.entry.saved_restart": "Updated. Restart the application to apply.",
   "app.entry.err_missing": "File not found in the application directory.",
   "app.entry.err_invalid": "Invalid file name: no slashes or '..'.",
-  "errors.missing_entry": "Choose the entry file."
+  "errors.missing_entry": "Choose the entry file.",
+  "diag.sandbox_missing": "Sandbox missing — reinstall the plugin",
+  "diag.sandbox_unavailable": "Sandbox unavailable: the kernel refuses to create namespaces",
+  "diag.sandbox_ok": "Sandbox configured correctly (bubblewrap {n})"
 }
