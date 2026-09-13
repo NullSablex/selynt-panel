@@ -2066,6 +2066,33 @@ table.apps-table {
     gap: 6px;
 }
 
+/* Nome de arquivo é bem mais longo que um número de megabytes, que é o caso
+   para o qual o `inline-input` foi dimensionado: em 6.5em um `server-api.mjs`
+   já não cabe. Cresce até onde a linha permite e encolhe em tela estreita. */
+/* Nome de arquivo é bem mais longo que um número de megabytes, que é o caso
+   para o qual o `inline-input` foi dimensionado: em 6.5em um `server-api.mjs`
+   já não cabe. `ch` acompanha a largura do dígito da fonte, então o campo
+   comporta cerca de 24 caracteres sem depender do tamanho do texto. */
+.selynt-panel #entry-input {
+    width: 24ch;
+    max-width: 100%;
+    font-weight: 500;
+    text-align: right;
+}
+
+/* O valor pode encolher se o rótulo precisar, mas não cresce para ocupar a
+   linha: os demais valores da lista ficam encostados à direita, e um campo
+   esticado quebraria esse alinhamento. */
+.selynt-panel .stat-row:has(#entry-input) .stat-value {
+    min-width: 0;
+    margin-left: 12px;
+}
+
+.selynt-panel .nv-control:has(#entry-input) {
+    display: inline-flex;
+    justify-content: flex-end;
+}
+
 .nv-control .btn-xs {
     opacity: 0.45;
     pointer-events: none;
