@@ -78,6 +78,34 @@ if ($action === 'save_default_isolated') {
     exit(0);
 }
 
+if ($action === 'get_npm_policy') {
+    selynt_json(selynt_run(['admin', 'npm-policy'])); exit(0);
+}
+
+if ($action === 'save_npm_policy') {
+    selynt_require_post();
+    // O binário descarta o que não for do catálogo; filtrar aqui só evita
+    // levar lixo até ele.
+    $catalog  = ['install', 'update', 'ci', 'run'];
+    $commands = array_values(array_intersect(
+        $catalog,
+        explode(',', (string)($input['commands'] ?? ''))
+    ));
+    // Só o "0" explícito libera os scripts de instalação: um valor malformado
+    // não pode desligar a proteção do servidor inteiro por acidente.
+    $ignore = ((string)($input['ignore_scripts'] ?? '')) === '0' ? 'false' : 'true';
+    $res = selynt_run([
+        'admin', 'save-npm-policy',
+        '--commands', implode(',', $commands),
+        '--ignore-scripts', $ignore,
+    ]);
+    if (!($res['ok'] ?? false) && trim((string)($res['message'] ?? '')) === '') {
+        $res['message'] = selynt_t('errors.generic');
+    }
+    selynt_json($res);
+    exit(0);
+}
+
 if ($action === 'get_locale') {
     selynt_json([
         'ok'      => true,
