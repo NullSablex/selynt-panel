@@ -27,7 +27,13 @@ function applyTheme(theme) {
   if (!ROOT) return;
   // A marca do boot fica no <html> e vale só até aqui: mantê-la significaria
   // duas fontes decidindo a mesma cor, e a do boot não muda ao alternar.
-  document.documentElement.classList.remove('selynt-boot-light');
+  //
+  // Só remove se estiver lá. `classList.remove` regrava o atributo mesmo sem a
+  // classe, e o <html> é observado logo abaixo: cada remoção virava uma nova
+  // mutação, que reaplicava o tema, que removia de novo — a página congelava
+  // com "Carregando…" e nada respondia a clique.
+  const html = document.documentElement;
+  if (html.classList.contains('selynt-boot-light')) html.classList.remove('selynt-boot-light');
   ROOT.classList.toggle('theme-light', theme === 'light');
   // O backdrop de modais vive fora de .selynt-panel; mantém-se em sincronia.
   const backdrop = document.getElementById('selynt-modal-backdrop');
@@ -94,7 +100,11 @@ function applyDirectAdminTheme() {
   }
 
   const chosen = storedTheme();
-  applyTheme(chosen ?? (isProbablyLight() ? 'light' : 'dark'));
+  const want = chosen ?? (isProbablyLight() ? 'light' : 'dark');
+  // Reaplicar o mesmo tema não muda nada na tela e só gera mutações para o
+  // observador; aplica quando muda, ou quando a marca do boot ainda está lá.
+  const bootMark = document.documentElement.classList.contains('selynt-boot-light');
+  if (want !== currentTheme() || bootMark) applyTheme(want);
 }
 
 if (ROOT) {
