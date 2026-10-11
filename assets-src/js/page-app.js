@@ -454,7 +454,26 @@ function jobHtml(j) {
     '<div class="job-meta">' +
       '<span>' + esc(t('app.job.elapsed', { s: String(Math.max(0, j.segundos)) })) + '</span>' +
     '</div>' +
+    avisoBuildNativo(j) +
     '<pre class="job-log" id="job-log">' + esc(j.log.join('\n')) + '</pre>';
+}
+
+// Pacote que compila código nativo instala "com sucesso" sem o script de
+// instalação e só quebra no start, com um erro do Node que não diz a causa. O
+// servidor aponta quais ficaram sem compilar e por quê — e o caminho muda com
+// o motivo: o admin bloqueou os scripts, ou o npm exige que o projeto os
+// aprove no package.json.
+function avisoBuildNativo(j) {
+  if (j.estado !== 'ok' || !j.pulados.length) return '';
+  const chave = j.motivo === 'not_approved'
+    ? 'app.job.native_not_approved' : 'app.job.native_skipped';
+  return '<div class="deps-box deps-atencao"><span class="deps-info">' +
+    '<i class="fa-solid fa-triangle-exclamation"></i><span>' +
+    esc(t(chave, {
+      pkgs: j.pulados.join(', '),
+      exemplo: '"allowScripts": {' + j.pulados.map((n) => '"' + n + '": true').join(', ') + '}',
+    })) +
+    '</span></span></div>';
 }
 
 // A ação do job vive no rodapé do diálogo, na mesma linha do "Fechar" e à
@@ -515,6 +534,7 @@ async function executar(command, script, args) {
       invalid_script: 'app.job.err_script',
       invalid_arguments: 'app.job.err_args',
       sandbox_unavailable: 'app.job.err_sandbox',
+      command_disabled: 'app.job.err_disabled',
     }[r && r.error];
     toast('error', conhecido ? t(conhecido) : ((r && r.message) || t('errors.network')));
     return;
@@ -549,6 +569,8 @@ async function acompanhar() {
     // avança sozinha mentiria sobre o que está acontecendo.
     progresso: estado === 'rodando' ? null : 100,
     fim: j.finished_at || null,
+    pulados: Array.isArray(j.skipped_builds) ? j.skipped_builds : [],
+    motivo: j.skipped_reason || null,
   };
 
   const i = jobs.findIndex((x) => x.id === jobAtivo.id);
@@ -601,6 +623,11 @@ async function openScripts() {
 
   let corpo = '';
 
+  // Só o que o servidor libera. Binário anterior ao preset não devolve a
+  // política: vale o que ele sempre permitiu.
+  const liberados = (r && r.policy && Array.isArray(r.policy.commands))
+    ? r.policy.commands : ['install', 'update', 'ci', 'run'];
+
   // Dependências: o estado decide a ação. Oferecer instalar e atualizar com
   // tudo em ordem contradiz o próprio aviso — não há o que instalar.
   const dep = (r && r.ok && r.deps) || 'unknown';
@@ -615,16 +642,27 @@ async function openScripts() {
 
   if (dep !== 'unknown') {
     const rotuloAcao = { install: t('app.deps.install'), update: t('app.deps.update') };
+    const acoes = CENARIO.acoes.filter((a) => liberados.includes(a));
+    // Havia o que fazer, mas o servidor não libera: dizer por quê, em vez de
+    // deixar o aviso sem saída.
+    const bloqueado = CENARIO.acoes.length && !acoes.length
+      ? '<span class="deps-acoes text-half">' + esc(t('app.deps.disabled')) + '</span>' : '';
     corpo += '<div class="deps-box ' + CENARIO.cor + '">' +
         '<span class="deps-info"><i class="fa-solid ' + CENARIO.icone + '"></i>' +
-          '<span>' + esc(t('app.deps.' + dep)) + '</span></span>' +
-        (CENARIO.acoes.length
-          ? '<span class="deps-acoes">' + CENARIO.acoes.map((a, i) =>
+          '<span>' + esc(t('app.deps.' + dep)) + '</span></span>' + bloqueado +
+        (acoes.length
+          ? '<span class="deps-acoes">' + acoes.map((a, i) =>
               '<button type="button" class="btn-xs ' + (i === 0 ? 'btn-primary' : 'btn-soft') +
               '" onclick="rodarNpm(\'' + a + '\')">' + esc(rotuloAcao[a]) + '</button>').join('') +
             '</span>'
           : '') +
       '</div>';
+  }
+
+  if (!liberados.includes('run')) {
+    corpo += '<p class="cfg-desc">' + esc(t('app.scripts.run_disabled')) + '</p>';
+    slyAlert({ title: t('app.scripts.title'), html: corpo, okText: t('common.close') });
+    return;
   }
 
   corpo += '<div class="form-field"><label class="form-label" for="scripts-args">' +

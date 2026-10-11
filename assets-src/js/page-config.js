@@ -6,7 +6,10 @@ import { t } from './i18n.min.js';
 import { toast } from './notify.min.js';
 import { esc } from './ui.min.js';
 
-const { apiBase: API } = window.__SELYNT_CONFIG ?? {};
+// O endpoint completo, como na página de configurações da conta: com só a
+// base, `${API}?action=` caía em `/api`, que o DirectAdmin responde com uma
+// página HTML — e versão, isolamento, runtimes e preset falhavam calados.
+const { endpoint: API } = window.__SELYNT_CONFIG ?? {};
 let allowed=[];
 let detected=[];
 // Ambiente em exibição. Cada um tem sua própria natureza: Node oferece
@@ -140,4 +143,45 @@ isoBtn.addEventListener('click',async()=>{
   if(!r||!r.ok){toast('error',(r&&r.message)||t('errors.generic'));isoBtn.disabled=false;return;}
   isoDefault=!!r.isolated; renderIsoDefault();
   toast('success',t('settings.isolation.saved'));
+});
+
+// Preset npm do servidor: quais comandos o painel oferece às contas e se a
+// instalação roda sem os scripts dos pacotes. Vale para o servidor inteiro.
+const NPM_COMMANDS=['install','update','ci','run'];
+const npmList=document.getElementById('npm-commands');
+const npmIgnore=document.getElementById('npm-ignore-scripts');
+const npmSave=document.getElementById('npm-save');
+
+function npmMsg(tx,c){
+  const el=document.getElementById('npm-msg');
+  el.className='cfg-msg '+c;el.textContent=tx;
+  setTimeout(()=>{el.textContent='';el.className='';},3000);
+}
+
+function renderNpmPolicy(p){
+  npmList.innerHTML=NPM_COMMANDS.map(c=>
+    `<li><label><input type="checkbox" value="${esc(c)}" ${p.commands.includes(c)?'checked':''}>`+
+    `<span class="cfg-node-ver">npm ${esc(c)}</span></label>`+
+    `<span class="cfg-node-path">${esc(t('admin.cfg.npm_cmd_'+c))}</span></li>`
+  ).join('');
+  npmIgnore.checked=!!p.ignore_scripts;
+  npmIgnore.disabled=false;
+  npmSave.disabled=false;
+}
+
+fetch(API+'?action=get_npm_policy').then(r=>r.json()).then(r=>{
+  if(!r||!r.ok){npmMsg((r&&r.message)||t('errors.generic'),'err');return;}
+  renderNpmPolicy(r);
+}).catch(()=>npmMsg(t('errors.generic'),'err'));
+
+npmSave.addEventListener('click',async()=>{
+  npmSave.disabled=true;
+  const commands=[...npmList.querySelectorAll('input:checked')].map(i=>i.value);
+  const p=new URLSearchParams({action:'save_npm_policy',commands:commands.join(','),
+    ignore_scripts:npmIgnore.checked?'1':'0'});
+  const r=await fetch(API+'?'+p,{method:'POST'}).then(x=>x.json()).catch(()=>null);
+  npmSave.disabled=false;
+  if(!r||!r.ok){npmMsg((r&&r.message)||t('errors.generic'),'err');return;}
+  renderNpmPolicy(r);
+  npmMsg(t('admin.cfg.npm_saved'),'ok');
 });

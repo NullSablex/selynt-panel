@@ -101,6 +101,23 @@ $locale_global  = selynt_i18n_global();
           </div>
         </div>
 
+        <div class="cfg-card">
+          <h4><?= selynt_t_html('admin.cfg.npm_title') ?></h4>
+          <p class="cfg-desc"><?= selynt_t_html('admin.cfg.npm_desc') ?></p>
+          <ul class="cfg-node-list" id="npm-commands"></ul>
+          <ul class="cfg-node-list">
+            <li><label><input type="checkbox" id="npm-ignore-scripts" disabled>
+              <span class="cfg-node-ver"><?= selynt_t_html('admin.cfg.npm_ignore') ?></span></label>
+              <span class="cfg-node-path"><?= selynt_t_html('admin.cfg.npm_ignore_desc') ?></span></li>
+          </ul>
+          <div class="cfg-actions">
+            <button type="button" class="btn-xs btn-soft" id="npm-save" disabled>
+              <i class="fa-solid fa-floppy-disk"></i> <?= selynt_t_html('common.save') ?>
+            </button>
+          </div>
+          <div id="npm-msg"></div>
+        </div>
+
         <div class="cfg-card" id="runtime-section" style="display:none">
           <div class="cfg-card-head">
             <div>
@@ -153,7 +170,7 @@ langModal({
 <?php if ($bin_ok): ?>
 <script>
   window.__SELYNT_CONFIG = {
-    apiBase: '<?= $pluginBase ?>/api',
+    endpoint: '<?= $pluginBase ?>/api/config.raw',
   };
 </script>
 <script type="module" src="<?= $pluginBase ?>/images/assets/js/page-config.min.js?v=<?= $v ?>"></script>
