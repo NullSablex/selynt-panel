@@ -121,6 +121,7 @@ if ($bin_ok) {
           <div class="form-field">
             <label class="form-label"><?= selynt_t_html('create.field.entry') ?></label>
             <input type="text" id="f-entry" placeholder="index.js">
+            <div class="nv-warn" id="ts-warn" style="display:none"><i class="fa-solid fa-triangle-exclamation"></i> <span id="ts-warn-text"></span></div>
           </div>
           <div class="form-field">
             <label class="form-label"><?= selynt_t_html('create.field.env') ?> <span class="label-optional"><?= selynt_t_html('create.field.env_optional') ?></span></label>

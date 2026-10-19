@@ -3,7 +3,7 @@
 // A página entrega os dados em `window.__SELYNT_CREATE`; o resto vive aqui.
 
 import { t } from './i18n.min.js';
-import { esc } from './ui.min.js';
+import { esc, tsUnsupported } from './ui.min.js';
 
 const { user: _user, domains: _domainsData } = window.__SELYNT_CREATE ?? {};
 
@@ -60,7 +60,23 @@ const nvRes = await fetch('/CMD_PLUGINS/selynt_panel/api/nodes.raw').then(r=>r.j
   }
 }
 
-document.getElementById('f-entry').addEventListener('input', function() { this.dataset.auto = '0'; });
+// Versão de cada runtime oferecido, para avisar antes de criar um app que o
+// Node escolhido não executaria.
+const versaoDe = new Map(((nvRes && nvRes.versions) || []).map((v) => [v.path, v.version]));
+function avisoTs() {
+  const node = document.getElementById('f-type').value === 'node';
+  const entry = document.getElementById('f-entry').value;
+  const ver = versaoDe.get(document.getElementById('f-node-version').value);
+  const ruim = node && tsUnsupported(entry, ver);
+  document.getElementById('ts-warn').style.display = ruim ? '' : 'none';
+  if (ruim) {
+    document.getElementById('ts-warn-text').textContent =
+      t('app.ts.unsupported', { v: String(ver).replace(/^v/, ''), entry: entry.trim() });
+  }
+}
+
+document.getElementById('f-entry').addEventListener('input', function() { this.dataset.auto = '0'; avisoTs(); });
+['f-node-version', 'f-type'].forEach((id) => document.getElementById(id).addEventListener('change', avisoTs));
 ['f-host', 'f-type'].forEach(id => document.getElementById(id).addEventListener('change', onFormChange));
 document.getElementById('f-name').addEventListener('input', onFormChange);
 

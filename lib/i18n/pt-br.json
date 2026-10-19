@@ -103,6 +103,8 @@
   "app.nv.configured": "Versão configurada",
   "app.nv.configured_missing": "Versão configurada (indisponível)",
   "app.nv.warn_missing": "Versão atual não está mais disponível no sistema. Selecione uma das versões abaixo.",
+  "app.ts.unsupported": "O Node {v} não executa TypeScript ({entry}) direto: escolha o Node 22.18 ou mais novo, ou compile a entrada para JavaScript.",
+  "app.ts.start_refused": "A aplicação não foi iniciada: a versão do Node escolhida não executa TypeScript direto. Escolha o Node 22.18 ou mais novo, ou compile a entrada para JavaScript.",
   "app.nv.tooltip_running": "A aplicação será parada e reiniciada automaticamente.",
   "app.nv.tooltip_stopped": "Aplicar versão.",
   "app.nv.changed": "Versão do Node.js alterada.",
