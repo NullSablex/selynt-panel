@@ -367,5 +367,8 @@
   "errors.missing_entry": "Informe o arquivo de entrada.",
   "diag.sandbox_missing": "Isolamento ausente — reinstale o plugin",
   "diag.sandbox_unavailable": "Isolamento indisponível: o kernel recusa criar namespaces",
-  "diag.sandbox_ok": "Isolamento configurado corretamente (bubblewrap {n})"
+  "diag.sandbox_ok": "Isolamento configurado corretamente (bubblewrap {n})",
+  "diag.bindguard_ok": "Portas fixas acessíveis de fora são recusadas pelo kernel",
+  "diag.bindguard_idle": "Nenhuma aplicação rodando — a proteção de portas é aplicada no próximo início",
+  "diag.bindguard_missing": "Proteção de portas no kernel ausente — as aplicações podem abrir porta fixa até a varredura periódica; reinstale o plugin"
 }

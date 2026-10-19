@@ -367,5 +367,8 @@
   "errors.missing_entry": "Choose the entry file.",
   "diag.sandbox_missing": "Sandbox missing — reinstall the plugin",
   "diag.sandbox_unavailable": "Sandbox unavailable: the kernel refuses to create namespaces",
-  "diag.sandbox_ok": "Sandbox configured correctly (bubblewrap {n})"
+  "diag.sandbox_ok": "Sandbox configured correctly (bubblewrap {n})",
+  "diag.bindguard_ok": "Fixed ports reachable from outside are refused by the kernel",
+  "diag.bindguard_idle": "No application running — port protection is applied on the next start",
+  "diag.bindguard_missing": "Kernel port protection missing — applications can open a fixed port until the periodic sweep; reinstall the plugin"
 }
