@@ -5,7 +5,7 @@
 
 import { t } from './i18n.min.js';
 import { toast, confirm as slyConfirm, alert as slyAlert } from './notify.min.js';
-import { esc, fmtMB, typeLabel, uptime } from './ui.min.js';
+import { esc, fmtMB, typeLabel, tsUnsupported, uptime } from './ui.min.js';
 
 const { name: NAME, apiBase: API } = window.__SELYNT_APP ?? {};
 
@@ -66,6 +66,8 @@ async function loadStatus(){
     // With no runtime configured, prefer the fallback entry's label — it carries
     // the actual system version ("25.9.0 (padrão)") instead of a bare "default".
     const sysDefault=nodeVersions.find(v=>!v.path);
+    // Sem versão configurada, o app roda no Node padrão do sistema.
+    const verEmUso=nv?nv.version:(!configured&&sysDefault?sysDefault.version:'');
     const label=nv?nv.label
       :(configured?t('app.nv.configured_missing'):(sysDefault?sysDefault.label:t('app.nv.default')));
     // nodes.raw falls back to a single entry with an empty `path` when the admin
@@ -76,7 +78,8 @@ async function loadStatus(){
     const canSelect=selectable.length>0&&(selectable.length>1||missing||!configured);
     if(canSelect){
       const opts=selectable.map(v=>`<option value="${esc(v.path)}"${v.path===a.node_version?' selected':''}>${esc(v.label)}</option>`).join('');
-      const warn=missing?`<div class="nv-warn"><i class="fa-solid fa-triangle-exclamation"></i> ${esc(t('app.nv.warn_missing'))}</div>`:'';
+      const warn=(missing?`<div class="nv-warn"><i class="fa-solid fa-triangle-exclamation"></i> ${esc(t('app.nv.warn_missing'))}</div>`:'')+
+        `<div class="nv-warn" id="ts-warn" style="display:${tsUnsupported(a.entry,verEmUso)?'':'none'}"><i class="fa-solid fa-triangle-exclamation"></i> <span id="ts-warn-text">${esc(textoTs(a.entry,verEmUso))}</span></div>`;
       const tip=run?t('app.nv.tooltip_running'):t('app.nv.tooltip_stopped');
       // `is-dirty` up front when nothing is configured yet: picking any version
       // is a real change, so the confirm button must be usable right away.
@@ -145,7 +148,8 @@ async function act(a){
   if(r.ok){
     toast('success',t('apps.confirm.success',{action_done:actionDone}));
   } else {
-    toast('error',r.message||r.error||t('errors.action_failed'));
+    const conhecido={typescript_unsupported:'app.ts.start_refused'}[r.error];
+    toast('error',conhecido?t(conhecido):(r.message||r.error||t('errors.action_failed')));
   }
   loadStatus();
 }
@@ -317,6 +321,19 @@ function markNvDirty(){
   if(!sel||!box)return;
   const current=box.getAttribute('data-current')||'';
   box.classList.toggle('is-dirty',sel.value!==current);
+  // Avisa ao escolher, antes de aplicar: o core recusaria o start depois.
+  const nv=nodeVersions.find(v=>v.path===sel.value);
+  const entry=(document.getElementById('entry-control')||{getAttribute:()=>''}).getAttribute('data-current');
+  const w=document.getElementById('ts-warn');
+  if(w){
+    const ruim=tsUnsupported(entry,nv&&nv.version);
+    w.style.display=ruim?'':'none';
+    if(ruim)document.getElementById('ts-warn-text').textContent=textoTs(entry,nv.version);
+  }
+}
+
+function textoTs(entry,version){
+  return t('app.ts.unsupported',{v:String(version||'').replace(/^v/,''),entry:String(entry||'')});
 }
 window.markNvDirty=markNvDirty;
 

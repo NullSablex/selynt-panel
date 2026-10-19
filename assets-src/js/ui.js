@@ -75,3 +75,21 @@ export function typeLabel(ty) {
   if (ty === 'binary') return t('type.binary');
   return ty || '—';
 }
+
+/** Se esta versão do Node deixa de executar esta entrada TypeScript.
+ *
+ * Espelha `runtime::node::typescript_refusal` do core, que é quem recusa de
+ * fato no start; aqui só se antecipa o aviso. A remoção de tipos ficou ligada
+ * por padrão no 22.18.0 e no 23.6.0. Versão ilegível não gera aviso: sem
+ * saber, não há o que afirmar.
+ */
+export function tsUnsupported(entry, version) {
+  if (!/\.(ts|mts|cts)$/.test(String(entry || '').trim())) return false;
+  const m = /^v?(\d+)\.(\d+)/.exec(String(version || ''));
+  if (!m) return false;
+  const major = Number(m[1]), minor = Number(m[2]);
+  if (major <= 21) return true;
+  if (major === 22) return minor < 18;
+  if (major === 23) return minor < 6;
+  return false;
+}
