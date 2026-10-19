@@ -288,6 +288,7 @@
   "diag.acl_fallback_used": "Isolamento enfraquecido em {n} — o diretório permite travessia por qualquer conta, sinal de que o setfacl falhou. Confira se o sistema de arquivos está montado com a opção acl.",
   "diag.templates_ok": "Encaminhamento de domínios configurado",
   "diag.templates_missing": "Encaminhamento de domínios não configurado — reaplique a configuração do servidor web",
+  "diag.templates_legacy": "Resto de instalação antiga no CUSTOM.7 — rode a atualização do plugin para removê-lo",
   "diag.extproc_ok": "{n} handler(s) de aplicação configurado(s) no OpenLiteSpeed",
   "diag.extproc_empty": "Nenhum handler configurado — aplicações não recebem tráfego",
   "diag.extproc_missing": "Configuração de handlers ausente no OpenLiteSpeed",
@@ -368,5 +369,8 @@
   "errors.missing_entry": "Informe o arquivo de entrada.",
   "diag.sandbox_missing": "Isolamento ausente — reinstale o plugin",
   "diag.sandbox_unavailable": "Isolamento indisponível: o kernel recusa criar namespaces",
-  "diag.sandbox_ok": "Isolamento configurado corretamente (bubblewrap {n})"
+  "diag.sandbox_ok": "Isolamento configurado corretamente (bubblewrap {n})",
+  "diag.bindguard_ok": "Portas fixas acessíveis de fora são recusadas pelo kernel",
+  "diag.bindguard_idle": "Nenhuma aplicação rodando — a proteção de portas é aplicada no próximo início",
+  "diag.bindguard_missing": "Proteção de portas no kernel ausente — as aplicações podem abrir porta fixa até a varredura periódica; reinstale o plugin"
 }

@@ -288,6 +288,7 @@
   "diag.acl_fallback_used": "Isolation weakened for {n} — the directory allows traverse by any account, meaning setfacl failed. Check that the filesystem is mounted with the acl option.",
   "diag.templates_ok": "Domain forwarding configured",
   "diag.templates_missing": "Domain forwarding not configured — reapply the web server setup",
+  "diag.templates_legacy": "Leftover from an old install in CUSTOM.7 — run the plugin update to remove it",
   "diag.extproc_ok": "{n} application handler(s) configured in OpenLiteSpeed",
   "diag.extproc_empty": "No handler configured — applications receive no traffic",
   "diag.extproc_missing": "Handler configuration missing from OpenLiteSpeed",
@@ -368,5 +369,8 @@
   "errors.missing_entry": "Choose the entry file.",
   "diag.sandbox_missing": "Sandbox missing — reinstall the plugin",
   "diag.sandbox_unavailable": "Sandbox unavailable: the kernel refuses to create namespaces",
-  "diag.sandbox_ok": "Sandbox configured correctly (bubblewrap {n})"
+  "diag.sandbox_ok": "Sandbox configured correctly (bubblewrap {n})",
+  "diag.bindguard_ok": "Fixed ports reachable from outside are refused by the kernel",
+  "diag.bindguard_idle": "No application running — port protection is applied on the next start",
+  "diag.bindguard_missing": "Kernel port protection missing — applications can open a fixed port until the periodic sweep; reinstall the plugin"
 }
