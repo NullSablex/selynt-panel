@@ -34,7 +34,7 @@ $args    = trim((string)($qs['args'] ?? ''));
 
 // A lista fechada também vive aqui: o binário revalida, mas recusar cedo evita
 // invocá-lo à toa e dá uma mensagem que o painel sabe traduzir.
-if (!in_array($command, ['install', 'update', 'ci', 'run'], true)) {
+if (!in_array($command, ['install', 'update', 'ci', 'run', 'rebuild'], true)) {
     selynt_json(['ok' => false, 'error' => 'invalid_command', 'message' => selynt_t('errors.invalid_command')]);
     exit(0);
 }
