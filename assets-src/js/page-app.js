@@ -455,12 +455,12 @@ function jobHtml(j) {
   const pct = indeterminado ? 100 : Math.min(100, Math.round(j.progresso));
   const icone = { rodando: 'fa-spinner fa-spin', ok: 'fa-circle-check',
                   erro: 'fa-circle-xmark', parado: 'fa-ban',
-                  timeout: 'fa-hourglass-end' }[j.estado];
+                  timeout: 'fa-hourglass-end', interrompido: 'fa-circle-exclamation' }[j.estado];
   const cor = { rodando: '', ok: 'job-ok', erro: 'job-erro', parado: 'job-parado',
-                timeout: 'job-erro' }[j.estado];
+                timeout: 'job-erro', interrompido: 'job-erro' }[j.estado];
   const rotulo = { rodando: t('app.job.running'), ok: t('app.job.done'),
                    erro: t('app.job.failed'), parado: t('app.job.stopped'),
-                   timeout: t('app.job.timeout') }[j.estado];
+                   timeout: t('app.job.timeout'), interrompido: t('app.job.interrupted') }[j.estado];
 
   return '<div class="job-head">' +
       '<span class="job-cmd"><i class="fa-solid ' + icone + '"></i> ' + esc(j.cmd) + '</span>' +
@@ -471,8 +471,19 @@ function jobHtml(j) {
     '<div class="job-meta">' +
       '<span>' + esc(t('app.job.elapsed', { s: String(Math.max(0, j.segundos)) })) + '</span>' +
     '</div>' +
-    avisoBuildNativo(j) +
+    avisoBuildNativo(j) + avisoParada(j) +
     '<pre class="job-log" id="job-log">' + esc(j.log.join('\n')) + '</pre>';
+}
+
+// Por que o job terminou sem ser pelo próprio comando: o servidor parou porque
+// ele abriu porta de fora, ou o processo morreu sem registrar o desfecho.
+function avisoParada(j) {
+  const chave = j.motivo_parada === 'network_port_forbidden' ? 'app.job.port_forbidden'
+    : (j.estado === 'interrompido' ? 'app.job.interrupted_hint' : null);
+  if (!chave) return '';
+  return '<div class="deps-box deps-atencao"><span class="deps-info">' +
+    '<i class="fa-solid fa-triangle-exclamation"></i><span>' + esc(t(chave)) +
+    '</span></span></div>';
 }
 
 // Pacote que compila código nativo instala "com sucesso" sem o script de
@@ -574,7 +585,8 @@ async function acompanhar() {
   if (!j) return;
 
   const estado = { running: 'rodando', ok: 'ok', failed: 'erro',
-                   timeout: 'timeout', stopped: 'parado' }[j.status] || j.status;
+                   timeout: 'timeout', stopped: 'parado',
+                   interrupted: 'interrompido' }[j.status] || j.status;
 
   jobAtivo = {
     id: j.started_at || 0,
@@ -588,6 +600,7 @@ async function acompanhar() {
     fim: j.finished_at || null,
     pulados: Array.isArray(j.skipped_builds) ? j.skipped_builds : [],
     motivo: j.skipped_reason || null,
+    motivo_parada: j.reason || null,
   };
 
   const i = jobs.findIndex((x) => x.id === jobAtivo.id);
