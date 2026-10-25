@@ -10,6 +10,13 @@ import { esc, fmtMB, typeLabel, tsUnsupported, uptime } from './ui.min.js';
 const { name: NAME, apiBase: API } = window.__SELYNT_APP ?? {};
 
 let activeTab='out',nodeVersions=[],appRunning=false;
+// Estado das dependências, módulos nativos e preset npm, vindos do `scripts`.
+// Alimentam a linha "Dependências" e o aviso de recompilação na troca de versão.
+let infoDeps=null;
+async function loadDeps(){
+  const r=await fetch(`${API}/scripts.raw?name=${encodeURIComponent(NAME)}`).then(x=>x.json()).catch(()=>null);
+  infoDeps=r&&r.ok?{deps:r.deps||'unknown',nativos:r.native_packages||[],policy:r.policy||{}}:null;
+}
 
 await fetch(`${API}/nodes.raw`).then(r=>r.json()).then(r=>{if(r&&r.ok)nodeVersions=r.versions||[];}).catch(()=>{});
 
@@ -79,6 +86,7 @@ async function loadStatus(){
     if(canSelect){
       const opts=selectable.map(v=>`<option value="${esc(v.path)}"${v.path===a.node_version?' selected':''}>${esc(v.label)}</option>`).join('');
       const warn=(missing?`<div class="nv-warn"><i class="fa-solid fa-triangle-exclamation"></i> ${esc(t('app.nv.warn_missing'))}</div>`:'')+
+        `<div class="nv-warn" id="rb-warn" style="display:none"><i class="fa-solid fa-triangle-exclamation"></i> <span id="rb-warn-text"></span></div>`+
         `<div class="nv-warn" id="ts-warn" style="display:${tsUnsupported(a.entry,verEmUso)?'':'none'}"><i class="fa-solid fa-triangle-exclamation"></i> <span id="ts-warn-text">${esc(textoTs(a.entry,verEmUso))}</span></div>`;
       const tip=run?t('app.nv.tooltip_running'):t('app.nv.tooltip_stopped');
       // `is-dirty` up front when nothing is configured yet: picking any version
@@ -88,6 +96,13 @@ async function loadStatus(){
     } else {
       rows.push(['fa-brands fa-node-js',t('app.field.node'),esc(label)]);
     }
+  }
+  // A pasta node_modules fica dentro da aplicação, à vista do cliente por FTP.
+  // A linha diz o estado e que é o painel quem a gera — apagá-la por engano
+  // deixa a aplicação sem iniciar.
+  if(a.type==='node'&&infoDeps&&infoDeps.deps!=='unknown'){
+    rows.push(['fa-solid fa-cubes',t('app.field.deps'),
+      `${esc(t('app.deps.'+infoDeps.deps))}<div class="mem-hint">${esc(t('app.deps.folder_hint'))}</div>`]);
   }
   rows.push(['fa-solid fa-memory',t('app.field.memlimit'),memLimitControl()]);
   if(run&&a.started_at) rows.push(['fa-solid fa-clock',t('app.field.uptime'),uptime(a.started_at, 'long')]);
@@ -321,6 +336,18 @@ function markNvDirty(){
   if(!sel||!box)return;
   const current=box.getAttribute('data-current')||'';
   box.classList.toggle('is-dirty',sel.value!==current);
+  // Módulo nativo compilado para uma versão não carrega em outra: avisa o que
+  // a troca vai fazer, ou que não vai conseguir.
+  const rb=document.getElementById('rb-warn');
+  if(rb){
+    const nativos=(infoDeps&&infoDeps.nativos)||[];
+    const muda=sel.value!==current&&nativos.length>0;
+    rb.style.display=muda?'':'none';
+    if(muda){
+      const bloqueado=infoDeps.policy&&infoDeps.policy.ignore_scripts;
+      document.getElementById('rb-warn-text').textContent=t(bloqueado?'app.rebuild.blocked':'app.rebuild.will',{pkgs:nativos.join(', ')});
+    }
+  }
   // Avisa ao escolher, antes de aplicar: o core recusaria o start depois.
   const nv=nodeVersions.find(v=>v.path===sel.value);
   const entry=(document.getElementById('entry-control')||{getAttribute:()=>''}).getAttribute('data-current');
@@ -365,6 +392,18 @@ async function changeNodeVersion(){
     toast('error',r.message||r.error||t('errors.change_node_failed'));
     if(wasRunning) await callAction('start');
     loadStatus();return;
+  }
+
+  // Recompila os módulos nativos para a versão nova antes de religar: com o
+  // addon da versão anterior, a aplicação não inicia.
+  const nativos=(infoDeps&&infoDeps.nativos)||[];
+  if(nativos.length){
+    if(infoDeps.policy&&infoDeps.policy.ignore_scripts){
+      toast('warning',t('app.rebuild.blocked',{pkgs:nativos.join(', ')}));
+    } else if(!(await rodarRebuild())){
+      toast('error',t('app.rebuild.failed'));
+      loadDeps().then(loadStatus);return;
+    }
   }
 
   if(wasRunning){
@@ -417,7 +456,7 @@ async function loadLog(tg){
 window.loadLog=loadLog;
 
 // Os limites vêm antes do primeiro desenho; depois acompanham o mesmo ciclo.
-loadStats().then(loadStatus);
+Promise.all([loadStats(),loadDeps()]).then(loadStatus);
 setInterval(()=>loadStats().then(loadStatus),8000);
 loadLog('out');
 setInterval(()=>loadLog(activeTab),5000);
@@ -546,6 +585,25 @@ function pintarJob() {
 
 // Dispara o comando e passa a acompanhar. O servidor responde assim que o job
 // começa, não quando termina — um install grande passa do timeout do CGI.
+// Roda o `npm rebuild` como job, mostra o andamento e espera o fim.
+async function rodarRebuild(){
+  const p=new URLSearchParams({name:NAME,command:'rebuild'});
+  const r=await fetch(`${API}/job.raw?${p}`,{method:'POST'}).then(x=>x.json()).catch(()=>null);
+  if(!r||!r.ok){
+    const conhecido={rebuild_needs_scripts:'app.rebuild.blocked',command_disabled:'app.job.err_disabled'}[r&&r.error];
+    toast('error',conhecido?t(conhecido,{pkgs:((infoDeps&&infoDeps.nativos)||[]).join(', ')}):((r&&r.message)||t('errors.network')));
+    return false;
+  }
+  abrirJob();
+  acompanhar();
+  for(;;){
+    await new Promise(ok=>setTimeout(ok,JOB_POLL_MS));
+    const s=await fetch(`${API}/job.raw?name=${encodeURIComponent(NAME)}`).then(x=>x.json()).catch(()=>null);
+    const st=s&&s.ok&&s.job&&s.job.status;
+    if(st&&st!=='running')return st==='ok';
+  }
+}
+
 async function executar(command, script, args) {
   const p = new URLSearchParams({ name: NAME, command });
   if (script) p.set('script', script);
@@ -610,6 +668,8 @@ async function acompanhar() {
   pintarPainel();
 
   if (estado === 'rodando') pollTimer = setTimeout(acompanhar, JOB_POLL_MS);
+  // Terminou: as dependências podem ter mudado.
+  else loadDeps().then(loadStatus);
 }
 
 // Abre o diálogo do job sem disparar nada — usado ao iniciar e ao reabrir.
