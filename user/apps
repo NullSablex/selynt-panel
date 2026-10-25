@@ -18,7 +18,7 @@ $locale_active  = selynt_locale();
   <div class="app-shell">
     <header class="app-header">
       <div class="header-left">
-        <img src="<?= $pluginBase ?>/images/assets/img/logo.png" class="brand-mini" alt="Selynt Panel">
+        <img src="<?= $pluginBase ?>/images/assets/img/logo.svg" class="brand-mini" alt="Selynt Panel">
 
         <nav class="main-nav">
           <a href="<?= $pluginBase ?>"><?= selynt_t_html('nav.dashboard') ?></a>

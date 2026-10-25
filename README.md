@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="images/assets/img/logo.png" alt="Selynt Panel" width="140">
+  <img src="images/assets/img/logo.svg" alt="Selynt Panel" width="140">
 </p>
 
 <h1 align="center">Selynt Panel</h1>
