@@ -1,32 +1,32 @@
 [
   {
     "name": "Selynt Panel",
-    "icon": "/CMD_PLUGINS_ADMIN/selynt_panel/images/assets/img/logo.png",
+    "icon": "/CMD_PLUGINS_ADMIN/selynt_panel/images/assets/img/logo.svg",
     "entries": [
       {
         "name": "Overview",
-        "icon": "/CMD_PLUGINS_ADMIN/selynt_panel/images/assets/img/logo.png",
+        "icon": "/CMD_PLUGINS_ADMIN/selynt_panel/images/assets/img/logo.svg",
         "href": "/CMD_PLUGINS_ADMIN/selynt_panel",
         "newTab": true,
         "updates": 0
       },
       {
         "name": "Settings",
-        "icon": "/CMD_PLUGINS_ADMIN/selynt_panel/images/assets/img/logo.png",
+        "icon": "/CMD_PLUGINS_ADMIN/selynt_panel/images/assets/img/logo.svg",
         "href": "/CMD_PLUGINS_ADMIN/selynt_panel/config",
         "newTab": true,
         "updates": 0
       },
       {
         "name": "Diagnostic",
-        "icon": "/CMD_PLUGINS_ADMIN/selynt_panel/images/assets/img/logo.png",
+        "icon": "/CMD_PLUGINS_ADMIN/selynt_panel/images/assets/img/logo.svg",
         "href": "/CMD_PLUGINS_ADMIN/selynt_panel/diagnostic",
         "newTab": true,
         "updates": 0
       },
       {
         "name": "Help",
-        "icon": "/CMD_PLUGINS_ADMIN/selynt_panel/images/assets/img/logo.png",
+        "icon": "/CMD_PLUGINS_ADMIN/selynt_panel/images/assets/img/logo.svg",
         "href": "/CMD_PLUGINS_ADMIN/selynt_panel/help",
         "newTab": true,
         "updates": 0
