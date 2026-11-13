@@ -5,7 +5,7 @@
 
 import { t } from './i18n.min.js';
 import { toast, confirm as slyConfirm, alert as slyAlert } from './notify.min.js';
-import { esc, fmtMB, typeLabel, tsUnsupported, uptime } from './ui.min.js';
+import { esc, failureOf, fmtMB, statusBadge, typeLabel, tsUnsupported, uptime } from './ui.min.js';
 
 const { name: NAME, apiBase: API } = window.__SELYNT_APP ?? {};
 
@@ -57,8 +57,18 @@ async function loadStatus(){
   document.getElementById('app-icon').innerHTML=`<i class="${ic.icon}${ic.cls?' '+ic.cls:''}"></i>`;
 
   const bdg=document.getElementById('app-badge');
-  bdg.textContent=run?t('apps.online'):t('apps.offline');
+  const sb=statusBadge(a);
+  bdg.textContent=sb.label;
   bdg.className='badge '+(run?'badge-online':'badge-offline');
+  bdg.title=sb.title;
+
+  // Caiu ou não subiu sem ninguém pedir: diz o motivo e o que fazer, em vez
+  // de mostrar só "parado".
+  const f=failureOf(a);
+  document.getElementById('app-alert').innerHTML=f
+    ?'<div class="deps-box deps-atencao"><span class="deps-info"><i class="fa-solid fa-triangle-exclamation"></i><span>'+
+      esc(f.texto)+(f.quando?' '+esc(f.quando):'')+' '+esc(t('app.fail.hint'))+'</span></span></div>'
+    :'';
 
   const rows=[
     ['fa-solid fa-server',t('app.field.type'),typeLabel(a.type)],

@@ -93,3 +93,38 @@ export function tsUnsupported(entry, version) {
   if (major === 23) return minor < 6;
   return false;
 }
+
+/** Por que o app não está no ar, quando caiu ou não subiu sem ninguém pedir.
+ *
+ * Vem do core: `last_error` é a última falha registrada (start pela tela, boot
+ * ou varredura de portas); `unexpected_stop` é o app marcado para rodar e
+ * parado — cobre também a queda do próprio app. `null` quando não há o que
+ * alertar.
+ */
+export function failureOf(a) {
+  if (!a || a.status === 'RUNNING') return null;
+  const e = a.last_error;
+  if (!e && !a.unexpected_stop) return null;
+  let texto;
+  if (e) {
+    const chave = 'app.fail.' + e.code;
+    const traduzido = t(chave);
+    texto = traduzido !== chave ? traduzido : (e.message || t('app.fail.generic'));
+  } else {
+    texto = t('app.fail.unexpected');
+  }
+  let quando = '';
+  if (e && e.at) {
+    const origem = t('app.fail.origin.' + (e.origin || 'panel'));
+    quando = t('app.fail.when', { origin: origem, time: new Date(e.at * 1000).toLocaleString() });
+  }
+  return { texto, quando };
+}
+
+/** Selo de status de um app: online, offline ou com falha. */
+export function statusBadge(a) {
+  if (a.status === 'RUNNING') return { cls: 'online', label: t('apps.online'), icon: 'fa-circle', title: '' };
+  const f = failureOf(a);
+  if (f) return { cls: 'offline', label: t('apps.failed'), icon: 'fa-triangle-exclamation', title: f.texto };
+  return { cls: 'offline', label: t('apps.offline'), icon: 'fa-circle-xmark', title: '' };
+}

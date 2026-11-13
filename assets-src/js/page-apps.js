@@ -4,7 +4,7 @@
 
 import { t } from './i18n.min.js';
 import { toast, confirm as slyConfirm } from './notify.min.js';
-import { cssId, esc, fmtBytes } from './ui.min.js';
+import { cssId, esc, fmtBytes, statusBadge } from './ui.min.js';
 
 const { apiBase: API } = window.__SELYNT_APPS ?? {};
 const BASE='/CMD_PLUGINS/selynt_panel';
@@ -194,8 +194,9 @@ function renderApps(apps){
     const run=a.status==='RUNNING';
     const link=`${BASE}/app?name=${encodeURIComponent(a.name)}`;
     const ic=iconFor(a.type);
+    const sb=statusBadge(a);
     const badge=run?'badge-online':'badge-offline';
-    const statusLabel=run?t('apps.online'):t('apps.offline');
+    const statusLabel=sb.label;
     let buttons='';
     if(run){
       buttons+=`<button type="button" class="btn-xs btn-soft" onclick="action('${esc(a.name)}','restart')"><i class="fa-solid fa-arrows-rotate"></i> ${esc(t('apps.action.restart'))}</button>`;

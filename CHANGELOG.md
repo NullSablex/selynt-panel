@@ -67,6 +67,7 @@
 - **Comentários dos scripts enxutos** — o cabeçalho descrevia a API inteira e cada função repetia a mesma frase logo acima. Ficou o que não se lê no próprio código. Nenhuma linha de código mudou.
 
 ### Adicionado
+- **Alerta quando a aplicação cai ou não sobe** — antes a tela só mostrava "parado", e o motivo ficava num log que ninguém lia. A lista de aplicações, o painel inicial e a visão geral do admin passam a mostrar "Com falha", e a página da aplicação diz o motivo, quando ocorreu (ao iniciar pelo painel, na recuperação após reinício ou pela verificação de portas) e o que fazer. Também alerta quando a aplicação parou sozinha.
 - **Recompilação automática na troca de versão do Node** — quando a aplicação tem módulos nativos, a tela avisa antes de aplicar e, ao trocar a versão, recompila os módulos (com o andamento na janela de execução) antes de religar a aplicação. Se o servidor desliga os scripts de instalação, a tela diz que a recompilação não é possível.
 - **Linha "Dependências" no resumo da aplicação** — mostra o estado das dependências e avisa que a pasta `node_modules` é gerada pelo painel: não deve ser apagada, e se precisar ser recriada é pelo Instalar.
 - **Preset npm do servidor** — nas configurações, o admin escolhe quais comandos as contas executam pelo painel (`install`, `update`, `ci`, `run`) e se a instalação roda sem os scripts dos pacotes. Vale para o servidor inteiro, e revendedor não altera. A tela do cliente só oferece o que está liberado e, quando algo foi desligado, diz que foi o administrador.
