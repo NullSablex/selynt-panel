@@ -83,6 +83,8 @@ $v = SELYNT_VERSION;
             <span id="app-badge" class="badge badge-offline">...</span>
           </div>
 
+          <div id="app-alert"></div>
+
           <div class="app-summary-body" id="app-info">
             <div class="stat-row"><span class="stat-label"><?= selynt_t_html('common.loading') ?></span></div>
           </div>

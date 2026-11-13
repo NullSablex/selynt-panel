@@ -3,7 +3,7 @@
 // A página entrega os dados em `window.__SELYNT_DASH`; o resto vive aqui.
 
 import { t } from './i18n.min.js';
-import { cssId, esc, fmtBytes, uptime } from './ui.min.js';
+import { cssId, esc, fmtBytes, statusBadge, uptime } from './ui.min.js';
 
 const { apiBase: API, base: BASE } = window.__SELYNT_DASH ?? {};
 
@@ -72,9 +72,9 @@ function renderRecent(apps){
         `<td data-label="${esc(L.app)}"><div class="app-row-main">${appIcon(a.type)}`+
           `<div><a href="${BASE}/app?name=${encodeURIComponent(a.name)}">${esc(a.name)}</a>`+
           `<div class="app-row-host">${esc(a.host)}</div></div></div></td>`+
-        `<td data-label="${esc(L.status)}"><span class="status-pill ${run?'online':'offline'}">`+
-          `<i class="fa-solid ${run?'fa-circle':'fa-circle-xmark'}"></i> `+
-          `${esc(run?t('apps.online'):t('apps.offline'))}</span></td>`+
+        `<td data-label="${esc(L.status)}"><span class="status-pill ${statusBadge(a).cls}" title="${esc(statusBadge(a).title)}">`+
+          `<i class="fa-solid ${statusBadge(a).icon}"></i> `+
+          `${esc(statusBadge(a).label)}</span></td>`+
         `<td data-label="${esc(L.cpu)}" id="rcpu-${id}">${DASH}</td>`+
         `<td data-label="${esc(L.mem)}" id="rmem-${id}">${DASH}</td>`+
         `<td data-label="${esc(L.up)}">${run&&a.started_at?esc(uptime(a.started_at)):DASH}</td>`+

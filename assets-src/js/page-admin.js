@@ -3,7 +3,7 @@
 // A página entrega os dados em `window.__SELYNT_ADMIN`; o resto vive aqui.
 
 import { t } from './i18n.min.js';
-import { esc, fmtBytes, typeLabel } from './ui.min.js';
+import { esc, fmtBytes, statusBadge, typeLabel } from './ui.min.js';
 
 const { apiBase: API } = window.__SELYNT_ADMIN ?? {};
 function uptime(ts){
@@ -188,9 +188,9 @@ async function load(){
         `<td data-label="${esc(t('admin.overview.col.app'))}"><div class="app-row-main">${appIcon(a.type)}`+
           `<div><span class="app-name-plain">${esc(a.name)}</span>`+
           `<div class="app-row-host">${esc(a.host)}</div></div></div></td>`+
-        `<td data-label="${esc(t('admin.overview.col.status'))}"><span class="status-pill ${run?'online':'offline'}">`+
-          `<i class="fa-solid ${run?'fa-circle':'fa-circle-xmark'}"></i> `+
-          `${esc(run?t('apps.online'):t('apps.offline'))}</span></td>`+
+        `<td data-label="${esc(t('admin.overview.col.status'))}"><span class="status-pill ${statusBadge(a).cls}" title="${esc(statusBadge(a).title)}">`+
+          `<i class="fa-solid ${statusBadge(a).icon}"></i> `+
+          `${esc(statusBadge(a).label)}</span></td>`+
         `<td data-label="${esc(t('admin.overview.col.uptime'))}">${run&&a.started_at?esc(uptime(a.started_at)):dash}</td>`+
         `<td data-label="${esc(t('admin.overview.col.cpu'))}" id="cpu-${cellId(a)}">${cpuCell(a.user+'/'+a.name,a.cpu_usec)||dash}</td>`+
         `<td data-label="${esc(t('admin.overview.col.memory'))}" id="mem-${cellId(a)}">${a.memory?esc(fmtBytes(a.memory)):dash}</td>`+
