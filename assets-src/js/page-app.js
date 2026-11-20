@@ -66,8 +66,8 @@ async function loadStatus(){
   // de mostrar só "parado".
   const f=failureOf(a);
   document.getElementById('app-alert').innerHTML=f
-    ?'<div class="deps-box deps-atencao"><span class="deps-info"><i class="fa-solid fa-triangle-exclamation"></i><span>'+
-      esc(f.texto)+(f.quando?' '+esc(f.quando):'')+' '+esc(t('app.fail.hint'))+'</span></span></div>'
+    ?'<div class="nv-warn"><i class="fa-solid fa-triangle-exclamation"></i><span>'+
+      esc(f.texto)+(f.quando?' '+esc(f.quando):'')+' '+esc(t('app.fail.hint'))+'</span></div>'
     :'';
 
   const rows=[
@@ -112,7 +112,7 @@ async function loadStatus(){
   // deixa a aplicação sem iniciar.
   if(a.type==='node'&&infoDeps&&infoDeps.deps!=='unknown'){
     rows.push(['fa-solid fa-cubes',t('app.field.deps'),
-      `${esc(t('app.deps.'+infoDeps.deps))}<div class="mem-hint">${esc(t('app.deps.folder_hint'))}</div>`]);
+      `${esc(t('app.deps.'+infoDeps.deps))}<div class="text-muted">${esc(t('app.deps.folder_hint'))}</div>`]);
   }
   rows.push(['fa-solid fa-memory',t('app.field.memlimit'),memLimitControl()]);
   if(run&&a.started_at) rows.push(['fa-solid fa-clock',t('app.field.uptime'),uptime(a.started_at, 'long')]);
